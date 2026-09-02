@@ -1,0 +1,36 @@
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
+
+/**
+ * Supabase client voor gebruik in Server Components, Route Handlers
+ * en Server Actions. Leest en schrijft de auth-cookies via de
+ * Next.js cookie store.
+ *
+ * Roep dit per request opnieuw aan; niet cachen in een module-scope
+ * variabele.
+ */
+export async function createClient() {
+  const cookieStore = await cookies();
+
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options),
+            );
+          } catch {
+            // setAll aangeroepen vanuit een Server Component. Dit kan
+            // genegeerd worden zolang de proxy de sessie ververst.
+          }
+        },
+      },
+    },
+  );
+}
