@@ -10,7 +10,7 @@ import {
   str,
   type FormState,
 } from "@/lib/form";
-import { CLIENT_STATUSES, isOneOf } from "@/lib/types";
+import { CANDIDATE_STATUSES, isOneOf } from "@/lib/types";
 
 function parse(fd: FormData) {
   const name = str(fd, "name");
@@ -18,77 +18,78 @@ function parse(fd: FormData) {
 
   const fieldErrors: Record<string, string> = {};
   if (!name) fieldErrors.name = "Naam is verplicht.";
-  if (!isOneOf(CLIENT_STATUSES, statusRaw))
+  if (!isOneOf(CANDIDATE_STATUSES, statusRaw))
     fieldErrors.status = "Kies een geldige status.";
 
   return {
     fieldErrors,
     values: {
       name,
-      status: isOneOf(CLIENT_STATUSES, statusRaw) ? statusRaw : "prospect",
-      kvk_number: nullableStr(fd, "kvk_number"),
-      sector: nullableStr(fd, "sector"),
-      region: nullableStr(fd, "region"),
+      status: isOneOf(CANDIDATE_STATUSES, statusRaw)
+        ? statusRaw
+        : "in_proces",
+      email: nullableStr(fd, "email"),
+      phone: nullableStr(fd, "phone"),
+      current_job_title: nullableStr(fd, "current_job_title"),
+      source: nullableStr(fd, "source"),
+      cv_link: nullableStr(fd, "cv_link"),
       notes: nullableStr(fd, "notes"),
     },
   };
 }
 
-export async function createKlant(
+export async function createKandidaat(
   _prev: FormState,
   fd: FormData,
 ): Promise<FormState> {
-  const { supabase, user, organizationId } = await getSessionContext();
+  const { supabase, organizationId } = await getSessionContext();
   if (!organizationId) {
-    return formError(
-      "Je account is nog niet aan een organisatie gekoppeld. Draai supabase/seed.sql.",
-    );
+    return formError("Je account is nog niet aan een organisatie gekoppeld.");
   }
 
   const { fieldErrors, values } = parse(fd);
   if (Object.keys(fieldErrors).length > 0) return fieldError(fieldErrors);
 
   const { data, error } = await supabase
-    .from("clients")
-    .insert({
-      ...values,
-      organization_id: organizationId,
-      account_owner_id: user.id,
-    })
+    .from("candidates")
+    .insert({ ...values, organization_id: organizationId })
     .select("id")
     .single();
 
   if (error || !data) return formError("Opslaan mislukt. Probeer het opnieuw.");
 
-  revalidatePath("/klanten");
-  redirect(`/klanten/${data.id}`);
+  revalidatePath("/kandidaten");
+  redirect(`/kandidaten/${data.id}`);
 }
 
-export async function updateKlant(
+export async function updateKandidaat(
   _prev: FormState,
   fd: FormData,
 ): Promise<FormState> {
   const { supabase } = await getSessionContext();
   const id = str(fd, "id");
-  if (!id) return formError("Onbekende klant.");
+  if (!id) return formError("Onbekende kandidaat.");
 
   const { fieldErrors, values } = parse(fd);
   if (Object.keys(fieldErrors).length > 0) return fieldError(fieldErrors);
 
-  const { error } = await supabase.from("clients").update(values).eq("id", id);
+  const { error } = await supabase
+    .from("candidates")
+    .update(values)
+    .eq("id", id);
   if (error) return formError("Opslaan mislukt. Probeer het opnieuw.");
 
-  revalidatePath("/klanten");
-  revalidatePath(`/klanten/${id}`);
-  redirect(`/klanten/${id}`);
+  revalidatePath("/kandidaten");
+  revalidatePath(`/kandidaten/${id}`);
+  redirect(`/kandidaten/${id}`);
 }
 
-export async function deleteKlant(fd: FormData) {
+export async function deleteKandidaat(fd: FormData) {
   const { supabase } = await getSessionContext();
   const id = str(fd, "id");
   if (!id) return;
 
-  await supabase.from("clients").delete().eq("id", id);
-  revalidatePath("/klanten");
-  redirect("/klanten");
+  await supabase.from("candidates").delete().eq("id", id);
+  revalidatePath("/kandidaten");
+  redirect("/kandidaten");
 }

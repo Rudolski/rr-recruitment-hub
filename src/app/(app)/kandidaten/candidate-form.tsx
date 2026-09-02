@@ -2,23 +2,23 @@
 
 import Link from "next/link";
 import { useActionState } from "react";
-import {
-  CLIENT_STATUSES,
-  CLIENT_STATUS_LABELS,
-  type Client,
-} from "@/lib/types";
 import { emptyFormState, type FormState } from "@/lib/form";
-import { inputClass, labelClass } from "@/components/ui";
+import { btnGhost, btnPrimary, inputClass, labelClass } from "@/components/ui";
+import {
+  CANDIDATE_STATUSES,
+  CANDIDATE_STATUS_LABELS,
+  type Candidate,
+} from "@/lib/types";
 
 type Action = (prev: FormState, formData: FormData) => Promise<FormState>;
 
-export function ClientForm({
+export function CandidateForm({
   action,
   initial,
   submitLabel,
 }: {
   action: Action;
-  initial?: Client;
+  initial?: Candidate;
   submitLabel: string;
 }) {
   const [state, formAction, pending] = useActionState(action, emptyFormState);
@@ -60,52 +60,71 @@ export function ClientForm({
           <select
             id="status"
             name="status"
-            defaultValue={initial?.status ?? "prospect"}
+            defaultValue={initial?.status ?? "in_proces"}
             className={inputClass}
           >
-            {CLIENT_STATUSES.map((status) => (
-              <option key={status} value={status}>
-                {CLIENT_STATUS_LABELS[status]}
+            {CANDIDATE_STATUSES.map((s) => (
+              <option key={s} value={s}>
+                {CANDIDATE_STATUS_LABELS[s]}
               </option>
             ))}
           </select>
-          {state.fieldErrors.status && (
-            <p className="text-xs text-red-600">{state.fieldErrors.status}</p>
-          )}
         </div>
-
         <div className="space-y-1.5">
-          <label htmlFor="kvk_number" className={labelClass}>
-            KvK-nummer
+          <label htmlFor="current_job_title" className={labelClass}>
+            Huidige functie
           </label>
           <input
-            id="kvk_number"
-            name="kvk_number"
-            defaultValue={initial?.kvk_number ?? ""}
+            id="current_job_title"
+            name="current_job_title"
+            defaultValue={initial?.current_job_title ?? ""}
             className={inputClass}
           />
         </div>
-
         <div className="space-y-1.5">
-          <label htmlFor="sector" className={labelClass}>
-            Sector
+          <label htmlFor="email" className={labelClass}>
+            E-mail
           </label>
           <input
-            id="sector"
-            name="sector"
-            defaultValue={initial?.sector ?? ""}
+            id="email"
+            name="email"
+            type="email"
+            defaultValue={initial?.email ?? ""}
             className={inputClass}
           />
         </div>
-
         <div className="space-y-1.5">
-          <label htmlFor="region" className={labelClass}>
-            Regio
+          <label htmlFor="phone" className={labelClass}>
+            Telefoon
           </label>
           <input
-            id="region"
-            name="region"
-            defaultValue={initial?.region ?? ""}
+            id="phone"
+            name="phone"
+            defaultValue={initial?.phone ?? ""}
+            className={inputClass}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <label htmlFor="source" className={labelClass}>
+            Bron
+          </label>
+          <input
+            id="source"
+            name="source"
+            placeholder="LinkedIn, referral, …"
+            defaultValue={initial?.source ?? ""}
+            className={inputClass}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <label htmlFor="cv_link" className={labelClass}>
+            CV-link
+          </label>
+          <input
+            id="cv_link"
+            name="cv_link"
+            placeholder="https://…"
+            defaultValue={initial?.cv_link ?? ""}
             className={inputClass}
           />
         </div>
@@ -118,23 +137,19 @@ export function ClientForm({
         <textarea
           id="notes"
           name="notes"
-          rows={4}
+          rows={3}
           defaultValue={initial?.notes ?? ""}
           className={inputClass}
         />
       </div>
 
       <div className="flex items-center gap-3 pt-1">
-        <button
-          type="submit"
-          disabled={pending}
-          className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-800 disabled:opacity-60 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
-        >
+        <button type="submit" disabled={pending} className={btnPrimary}>
           {pending ? "Bezig met opslaan…" : submitLabel}
         </button>
         <Link
-          href={initial ? `/klanten/${initial.id}` : "/klanten"}
-          className="text-sm text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+          href={initial ? `/kandidaten/${initial.id}` : "/kandidaten"}
+          className={btnGhost}
         >
           Annuleren
         </Link>
