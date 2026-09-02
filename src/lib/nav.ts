@@ -81,6 +81,17 @@ export const navSections: NavSection[] = [
     ],
   },
   {
+    title: "Rapportages",
+    items: [
+      {
+        label: "Omzet per klant",
+        href: "/rapportages/omzet-per-klant",
+        description:
+          "Behaalde omzet (facturen vanaf verzonden, excl. btw) per klant, per jaar.",
+      },
+    ],
+  },
+  {
     title: "Tools",
     items: [
       {
