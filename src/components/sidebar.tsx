@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { signOut } from "@/app/(app)/actions";
 import { navSections } from "@/lib/nav";
 
-export function Sidebar() {
+export function Sidebar({ userEmail }: { userEmail: string }) {
   const pathname = usePathname();
 
   return (
@@ -52,8 +53,23 @@ export function Sidebar() {
         ))}
       </nav>
 
-      <div className="border-t border-zinc-200 px-5 py-3 dark:border-zinc-800">
-        <p className="text-[11px] text-zinc-400">MVP · fase 1</p>
+      <div className="space-y-2 border-t border-zinc-200 px-4 py-3 dark:border-zinc-800">
+        {userEmail && (
+          <p
+            className="truncate text-xs text-zinc-500"
+            title={userEmail}
+          >
+            {userEmail}
+          </p>
+        )}
+        <form action={signOut}>
+          <button
+            type="submit"
+            className="w-full rounded-md px-2 py-1.5 text-left text-sm text-zinc-600 transition-colors hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-zinc-100"
+          >
+            Uitloggen
+          </button>
+        </form>
       </div>
     </aside>
   );

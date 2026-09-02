@@ -76,8 +76,21 @@ uitgevoerd op het development-project. Row Level Security staat op elke tabel aa
 schemawijzigingen gaan uitsluitend via nieuwe migratiebestanden, nooit handmatig
 op productie.
 
+## Authenticatie
+
+Supabase Auth met e-mail + wachtwoord. `/login` bevat het inlogformulier;
+`src/utils/supabase/proxy.ts` stuurt niet-ingelogde bezoekers daarheen en
+`src/app/(app)/layout.tsx` doet dezelfde check nog eens server-side.
+
+Nieuwe gebruiker toevoegen (er is bewust geen publieke aanmeldpagina):
+
+1. Supabase Dashboard → Authentication → Users → **Add user** (met "Auto
+   Confirm User" aan).
+2. `supabase/seed.sql` openen, het e-mailadres invullen en in de Supabase
+   **SQL Editor** draaien. Dat maakt de organisatie aan en koppelt de
+   gebruiker als `owner`. Zonder dat lidmaatschap toont RLS geen data.
+
 ## Volgende stappen (fase 0 afmaken)
 
-- Supabase Auth aansluiten (e-mail + wachtwoord) met een `/login`-pagina
-- Auth-gating in `src/utils/supabase/proxy.ts`
-- Vercel-project koppelen met gescheiden environments
+- Eerste echte module (bijv. Klanten) als blauwdruk voor CRUD + RLS
+- Vercel-project koppelen met gescheiden dev/prod environments
