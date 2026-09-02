@@ -1,12 +1,16 @@
-import { PlaceholderPage } from "@/components/placeholder-page";
+import { PageHeader } from "@/components/page-header";
+import { FeeCalculator } from "./calculator";
 
 export const metadata = { title: "Fee calculator · RR Recruitment Hub" };
 
 export default function FeeCalculatorPage() {
   return (
-    <PlaceholderPage
-      title="Fee calculator"
-      description="Losstaand rekentooltje om snel een fee te bepalen op basis van bruto jaarsalaris en een percentage (doorgaans 18 tot 25 procent), met een eventuele minimum fee. Rekent alleen, slaat niets op."
-    />
+    <div className="mx-auto max-w-3xl">
+      <PageHeader
+        title="Fee calculator"
+        description="Snel een fee bepalen op basis van jaarsalaris en percentage."
+      />
+      <FeeCalculator />
+    </div>
   );
 }

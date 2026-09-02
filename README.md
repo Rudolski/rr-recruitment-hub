@@ -38,36 +38,52 @@ server-side. `.env.local` staat in `.gitignore`.
 
 ## Projectstructuur
 
+Elke module volgt hetzelfde patroon (blauwdruk = Klanten):
+
+```
+<module>/
+  page.tsx              lijst
+  nieuw/page.tsx        aanmaken
+  [id]/page.tsx         bewerken + verwijderen
+  <naam>-form.tsx       gedeeld client-formulier (useActionState)
+  actions.ts            server actions ("use server"), zetten organization_id;
+                        RLS scoped read/update/delete
+```
+
 ```
 src/
   app/
     (app)/                 route group met de gedeelde app-shell (sidebar)
-      dashboard/
-      klanten/
-      contactpersonen/
-      vacatures/
-      kandidaten/
-      placements/
-      facturen/
+      dashboard/           behaalde omzet + prognose lopende/volgende maand
+      klanten/  contactpersonen/  vacatures/  kandidaten/
+      placements/          incl. gecombineerde factuurregistratie
+      facturen/            registratie; concept -> verzonden legt sent_at vast
       tools/fee-calculator/
+    login/  auth/confirm/
     layout.tsx             root layout
     page.tsx               redirect naar /dashboard
-  components/
-    sidebar.tsx            navigatie
-    placeholder-page.tsx   tijdelijke module-inhoud
+  components/              sidebar, page-header, status-badges, ui-klassen
   lib/
+    database.types.ts      handgeschreven Database-type (typet de clients)
+    types.ts               rij-types + status-unions/labels
+    form.ts  format.ts     form- en formatteer-helpers
     nav.ts                 navigatieconfiguratie
   utils/supabase/
-    client.ts              browser client
-    server.ts              server client (Server Components, Actions, Handlers)
-    proxy.ts               sessie verversen per request
+    client.ts server.ts    browser- en server-client
+    auth.ts                getSessionContext(): user + organization_id
+    proxy.ts               sessie verversen + gating per request
   proxy.ts                 Next.js 16 Proxy (voorheen middleware.ts)
 
 supabase/
   migrations/              versiebeheerde SQL-migraties
+  seed.sql                 dev: koppel je account als organisatie-owner
 docs/
   rr-recruitment-hub-ontwerp.md   functioneel ontwerp
 ```
+
+Sollicitatieprocedures (`applications`) hebben geen eigen pagina maar leven als
+pipeline op de vacaturedetailpagina. `fee_agreements` heeft nog geen UI; de
+fee calculator is een losstaand rekentooltje.
 
 ## Database
 
