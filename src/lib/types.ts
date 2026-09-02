@@ -14,6 +14,7 @@ export type Application = Tables["applications"]["Row"];
 export type Placement = Tables["placements"]["Row"];
 export type Invoice = Tables["invoices"]["Row"];
 export type FeeAgreement = Tables["fee_agreements"]["Row"];
+export type MonthlyTarget = Tables["monthly_targets"]["Row"];
 
 /* -------------------------------------------------------------- */
 /* Klanten                                                        */

@@ -393,6 +393,69 @@ export type Database = {
         };
         Relationships: [];
       };
+      generated_documents: {
+        Row: {
+          id: string;
+          organization_id: string;
+          created_by: string | null;
+          type: string;
+          title: string | null;
+          related_entity_type: string | null;
+          related_entity_id: string | null;
+          input: Record<string, unknown> | null;
+          content: string;
+          model: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          created_by?: string | null;
+          type: string;
+          title?: string | null;
+          related_entity_type?: string | null;
+          related_entity_id?: string | null;
+          input?: Record<string, unknown> | null;
+          content: string;
+          model?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          title?: string | null;
+          content?: string;
+        };
+        Relationships: [];
+      };
+      monthly_targets: {
+        Row: {
+          id: string;
+          organization_id: string;
+          year: number;
+          month: number;
+          target_revenue: number | null;
+          target_placements: number | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          year: number;
+          month: number;
+          target_revenue?: number | null;
+          target_placements?: number | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          year?: number;
+          month?: number;
+          target_revenue?: number | null;
+          target_placements?: number | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: { [_ in never]: never };
     Functions: {

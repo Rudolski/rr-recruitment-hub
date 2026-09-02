@@ -1,9 +1,8 @@
 /**
- * Navigatiestructuur voor de MVP. Alleen de modules uit hoofdstuk 7
- * van het functioneel ontwerp. Latere fasen (rapportages, targets,
- * forecast, AI-tools, instellingen) worden hier toegevoegd zodra ze
- * gebouwd worden.
+ * Navigatiestructuur. MVP-modules plus fase 2 (targets, rapportages)
+ * en fase 3 (AI-generatoren).
  */
+import { GENERATORS } from "@/lib/generators";
 
 export type NavItem = {
   label: string;
@@ -26,6 +25,12 @@ export const navSections: NavSection[] = [
         href: "/dashboard",
         description:
           "Behaalde omzet (facturen vanaf status verzonden, excl. btw) en de prognose voor de lopende en volgende maand.",
+      },
+      {
+        label: "Targets",
+        href: "/targets",
+        description:
+          "Maandtargets voor omzet en plaatsingen, automatisch opgeteld naar kwartaal en jaar en afgezet tegen de behaalde omzet.",
       },
     ],
   },
@@ -107,6 +112,14 @@ export const navSections: NavSection[] = [
           "Losstaand rekentooltje: fee op basis van jaarsalaris en percentage, geen opslag.",
       },
     ],
+  },
+  {
+    title: "AI-generatoren",
+    items: GENERATORS.map((g) => ({
+      label: g.label,
+      href: `/tools/generator/${g.key}`,
+      description: g.description,
+    })),
   },
 ];
 

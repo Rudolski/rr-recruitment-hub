@@ -48,3 +48,24 @@ export function formatMonth(value: string | null | undefined): string {
 export function monthKey(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
+
+/** Maandnamen, index 1-12. */
+export const MONTH_NAMES = [
+  "",
+  "januari",
+  "februari",
+  "maart",
+  "april",
+  "mei",
+  "juni",
+  "juli",
+  "augustus",
+  "september",
+  "oktober",
+  "november",
+  "december",
+];
+
+export const QUARTER_OF_MONTH = [
+  0, 1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4,
+] as const;
