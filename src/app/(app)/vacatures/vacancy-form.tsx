@@ -17,12 +17,14 @@ const num = (v: number | null | undefined) => (v == null ? "" : String(v));
 export function VacancyForm({
   action,
   clients,
+  feeAgreements = [],
   initial,
   submitLabel,
   lockedClientId,
 }: {
   action: Action;
   clients: { id: string; name: string }[];
+  feeAgreements?: { id: string; label: string }[];
   initial?: Vacancy;
   submitLabel: string;
   lockedClientId?: string;
@@ -99,6 +101,27 @@ export function VacancyForm({
           </select>
         </div>
       </div>
+
+      {feeAgreements.length > 0 && (
+        <div className="space-y-1.5">
+          <label htmlFor="fee_agreement_id" className={labelClass}>
+            Fee-afspraak
+          </label>
+          <select
+            id="fee_agreement_id"
+            name="fee_agreement_id"
+            defaultValue={initial?.fee_agreement_id ?? ""}
+            className={inputClass}
+          >
+            <option value="">— Geen —</option>
+            {feeAgreements.map((fa) => (
+              <option key={fa.id} value={fa.id}>
+                {fa.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <div className="space-y-1.5">
         <label htmlFor="title" className={labelClass}>

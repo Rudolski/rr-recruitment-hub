@@ -6,6 +6,7 @@ import { getSessionContext } from "@/utils/supabase/auth";
 import type { Application, Candidate, Client, Vacancy } from "@/lib/types";
 import { VacancyForm } from "../vacancy-form";
 import { deleteVacature, updateVacature } from "../actions";
+import { loadFeeAgreementOptions } from "../helpers";
 import { Pipeline, type PipelineRow } from "./pipeline";
 
 export const metadata = { title: "Vacature · RR Recruitment Hub" };
@@ -26,24 +27,29 @@ export default async function VacatureDetailPage({
 
   if (!vacancy) notFound();
 
-  const [{ data: clients }, { data: applications }, { data: candidates }] =
-    await Promise.all([
-      supabase
-        .from("clients")
-        .select("id, name")
-        .order("name", { ascending: true }),
-      supabase
-        .from("applications")
-        .select("*")
-        .eq("vacancy_id", id)
-        .order("created_at", { ascending: true })
-        .returns<Application[]>(),
-      supabase
-        .from("candidates")
-        .select("id, name")
-        .order("name", { ascending: true })
-        .returns<Pick<Candidate, "id" | "name">[]>(),
-    ]);
+  const [
+    { data: clients },
+    { data: applications },
+    { data: candidates },
+    feeAgreements,
+  ] = await Promise.all([
+    supabase
+      .from("clients")
+      .select("id, name")
+      .order("name", { ascending: true }),
+    supabase
+      .from("applications")
+      .select("*")
+      .eq("vacancy_id", id)
+      .order("created_at", { ascending: true })
+      .returns<Application[]>(),
+    supabase
+      .from("candidates")
+      .select("id, name")
+      .order("name", { ascending: true })
+      .returns<Pick<Candidate, "id" | "name">[]>(),
+    loadFeeAgreementOptions(supabase),
+  ]);
 
   const candidateName = new Map((candidates ?? []).map((c) => [c.id, c.name]));
   const rows: PipelineRow[] = (applications ?? []).map((a) => ({
@@ -97,6 +103,7 @@ export default async function VacatureDetailPage({
         <VacancyForm
           action={updateVacature}
           clients={clients ?? []}
+          feeAgreements={feeAgreements}
           initial={vacancy}
           submitLabel="Wijzigingen opslaan"
         />

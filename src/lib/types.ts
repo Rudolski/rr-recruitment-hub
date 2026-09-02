@@ -13,6 +13,7 @@ export type Candidate = Tables["candidates"]["Row"];
 export type Application = Tables["applications"]["Row"];
 export type Placement = Tables["placements"]["Row"];
 export type Invoice = Tables["invoices"]["Row"];
+export type FeeAgreement = Tables["fee_agreements"]["Row"];
 
 /* -------------------------------------------------------------- */
 /* Klanten                                                        */
@@ -130,6 +131,22 @@ export const REALISED_INVOICE_STATUSES: InvoiceStatus[] = [
   "betaald",
   "te_laat",
 ];
+
+/* -------------------------------------------------------------- */
+/* Fee-afspraken                                                  */
+/* -------------------------------------------------------------- */
+
+export const FEE_AGREEMENT_TYPES = [
+  "percentage",
+  "staffel",
+  "vast_bedrag",
+] as const;
+export type FeeAgreementType = (typeof FEE_AGREEMENT_TYPES)[number];
+export const FEE_AGREEMENT_TYPE_LABELS: Record<FeeAgreementType, string> = {
+  percentage: "Percentage",
+  staffel: "Staffel",
+  vast_bedrag: "Vast bedrag",
+};
 
 /* -------------------------------------------------------------- */
 /* Helpers                                                        */

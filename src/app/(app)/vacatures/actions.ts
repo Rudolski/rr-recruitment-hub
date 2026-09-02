@@ -39,6 +39,7 @@ function parse(fd: FormData) {
       client_id: clientId,
       title,
       status: isOneOf(VACANCY_STATUSES, statusRaw) ? statusRaw : "open",
+      fee_agreement_id: nullableStr(fd, "fee_agreement_id"),
       function_group: nullableStr(fd, "function_group"),
       location: nullableStr(fd, "location"),
       employment_type: nullableStr(fd, "employment_type"),
