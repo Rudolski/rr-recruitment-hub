@@ -36,6 +36,13 @@ export function InvoiceForm({
   const [state, formAction, pending] = useActionState(action, emptyFormState);
   const [amount, setAmount] = useState(num(initial?.amount_excl_btw));
   const [btw, setBtw] = useState(num(initial?.btw_percentage ?? 21));
+  const [partnerName, setPartnerName] = useState(initial?.partner_name ?? "");
+
+  // Een partnerregel is altijd een uitbetaling: bedrag automatisch negatief.
+  function negateForPartner(raw: string, partner: string) {
+    const n = Number(raw.replace(",", "."));
+    return partner.trim() && Number.isFinite(n) && n > 0 ? String(-n) : raw;
+  }
 
   const inclBtw = useMemo(() => {
     const a = Number(amount.replace(",", "."));
@@ -153,13 +160,17 @@ export function InvoiceForm({
           <input
             id="partner_name"
             name="partner_name"
-            defaultValue={initial?.partner_name ?? ""}
+            value={partnerName}
+            onChange={(e) => {
+              setPartnerName(e.target.value);
+              setAmount((a) => negateForPartner(a, e.target.value));
+            }}
             placeholder="leeg = normale klantfactuur"
             className={inputClass}
           />
           <p className="text-xs text-zinc-400">
-            Ingevuld = deze regel is een uitbetaling aan die partner. Gebruik
-            een negatief bedrag; het gaat van je netto-omzet af.
+            Ingevuld = deze regel is een uitbetaling aan die partner. Het
+            bedrag wordt automatisch negatief en gaat van je netto-omzet af.
           </p>
         </div>
 
@@ -173,6 +184,9 @@ export function InvoiceForm({
             inputMode="numeric"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
+            onBlur={(e) =>
+              setAmount(negateForPartner(e.target.value, partnerName))
+            }
             className={inputClass}
           />
           {state.fieldErrors.amount_excl_btw && (

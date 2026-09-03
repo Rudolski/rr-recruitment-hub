@@ -19,10 +19,15 @@ function parse(fd: FormData) {
   const clientId = str(fd, "client_id");
   const amountExcl = numOrNull(fd, "amount_excl_btw");
   const statusRaw = str(fd, "status");
+  const partnerName = nullableStr(fd, "partner_name");
 
   const fieldErrors: Record<string, string> = {};
   if (!clientId) fieldErrors.client_id = "Kies een klant.";
   if (amountExcl == null) fieldErrors.amount_excl_btw = "Vul een bedrag in.";
+
+  // Een partnerregel is een uitbetaling: bedrag altijd negatief opslaan.
+  const amount =
+    partnerName && amountExcl != null ? -Math.abs(amountExcl) : (amountExcl ?? 0);
 
   return {
     fieldErrors,
@@ -32,8 +37,8 @@ function parse(fd: FormData) {
       placement_id: nullableStr(fd, "placement_id"),
       invoice_number: nullableStr(fd, "invoice_number"),
       entity_name: nullableStr(fd, "entity_name"),
-      partner_name: nullableStr(fd, "partner_name"),
-      amount_excl_btw: amountExcl ?? 0,
+      partner_name: partnerName,
+      amount_excl_btw: amount,
       btw_percentage: numOrNull(fd, "btw_percentage") ?? 21,
       issue_date: nullableStr(fd, "issue_date"),
       due_date: nullableStr(fd, "due_date"),
