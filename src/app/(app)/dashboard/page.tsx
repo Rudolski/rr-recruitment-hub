@@ -10,6 +10,7 @@ import {
   type MonthlyTarget,
   type Vacancy,
 } from "@/lib/types";
+import { splitOmzet } from "@/lib/omzet";
 import { RevenueChart } from "./revenue-chart";
 
 export const metadata = { title: "Dashboard · RR Recruitment Hub" };
@@ -96,10 +97,7 @@ export default async function DashboardPage({
     realisedInvoices(`${year - 1}-01-01`, `${year - 1}-12-31`),
   ]);
 
-  const realised = periodInvoices.reduce(
-    (s, i) => s + Number(i.amount_excl_btw),
-    0,
-  );
+  const omzet = splitOmzet(periodInvoices);
 
   /* -------- Grafiek: heel jaar t.o.v. vorig jaar en target -------- */
 
@@ -236,16 +234,24 @@ export default async function DashboardPage({
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
           <p className="text-xs uppercase tracking-wider text-zinc-500">
-            Behaalde omzet
+            Behaalde omzet (netto)
           </p>
           <p className="mt-1 text-2xl font-semibold text-zinc-900 dark:text-zinc-50">
-            {eur2(realised)}
+            {eur2(omzet.netto)}
           </p>
           <p className="mt-1 text-xs text-zinc-400">
             {MONTH_NAMES[fromMonth]}
             {fromMonth !== toMonth ? `–${MONTH_NAMES[toMonth]}` : ""} {year} ·{" "}
-            {periodInvoices.length} facturen
+            {omzet.count} facturen · bruto {eur2(omzet.bruto)}
           </p>
+          {omzet.partners.length > 0 && (
+            <p className="mt-1 text-xs text-zinc-400">
+              waarvan naar partners:{" "}
+              {omzet.partners
+                .map((p) => `${p.name} ${eur2(p.amount)}`)
+                .join(" · ")}
+            </p>
+          )}
         </div>
         <div className="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
           <p className="text-xs uppercase tracking-wider text-zinc-500">

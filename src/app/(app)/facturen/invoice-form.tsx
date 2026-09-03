@@ -23,6 +23,7 @@ export function InvoiceForm({
   initial,
   submitLabel,
   lockedPlacementId,
+  defaultClientId,
 }: {
   action: Action;
   clients: Option[];
@@ -30,6 +31,7 @@ export function InvoiceForm({
   initial?: Invoice;
   submitLabel: string;
   lockedPlacementId?: string;
+  defaultClientId?: string;
 }) {
   const [state, formAction, pending] = useActionState(action, emptyFormState);
   const [amount, setAmount] = useState(num(initial?.amount_excl_btw));
@@ -63,7 +65,7 @@ export function InvoiceForm({
           <select
             id="client_id"
             name="client_id"
-            defaultValue={initial?.client_id ?? ""}
+            defaultValue={initial?.client_id ?? defaultClientId ?? ""}
             className={inputClass}
           >
             <option value="">— Kies een klant —</option>
@@ -142,6 +144,23 @@ export function InvoiceForm({
             defaultValue={initial?.entity_name ?? ""}
             className={inputClass}
           />
+        </div>
+
+        <div className="space-y-1.5">
+          <label htmlFor="partner_name" className={labelClass}>
+            Partner (bv. Juul)
+          </label>
+          <input
+            id="partner_name"
+            name="partner_name"
+            defaultValue={initial?.partner_name ?? ""}
+            placeholder="leeg = normale klantfactuur"
+            className={inputClass}
+          />
+          <p className="text-xs text-zinc-400">
+            Ingevuld = deze regel is een uitbetaling aan die partner. Gebruik
+            een negatief bedrag; het gaat van je netto-omzet af.
+          </p>
         </div>
 
         <div className="space-y-1.5">

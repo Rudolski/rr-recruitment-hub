@@ -14,13 +14,8 @@ import {
 } from "@/components/ui";
 import { eur2, formatDate } from "@/lib/format";
 import { getSessionContext } from "@/utils/supabase/auth";
-import {
-  REALISED_INVOICE_STATUSES,
-  type Client,
-  type Invoice,
-  type Placement,
-  type Vacancy,
-} from "@/lib/types";
+import { splitOmzet } from "@/lib/omzet";
+import type { Client, Invoice, Placement, Vacancy } from "@/lib/types";
 
 export const metadata = { title: "Omzet per klant · RR Recruitment Hub" };
 
@@ -85,11 +80,7 @@ export default async function KlantOmzetPage({
     ]);
 
   const vacancyTitle = new Map((vacancies ?? []).map((v) => [v.id, v.title]));
-
-  const realisedStatuses = REALISED_INVOICE_STATUSES as string[];
-  const realisedTotal = (invoices ?? [])
-    .filter((i) => realisedStatuses.includes(i.status))
-    .reduce((s, i) => s + Number(i.amount_excl_btw), 0);
+  const omzet = splitOmzet(invoices ?? []);
 
   return (
     <div className="mx-auto max-w-4xl">
@@ -109,9 +100,16 @@ export default async function KlantOmzetPage({
       </p>
 
       <p className="mt-4 text-sm text-zinc-500">
-        Behaalde omzet:{" "}
+        Behaalde omzet (netto):{" "}
         <span className="text-xl font-semibold text-navy dark:text-cream">
-          {eur2(realisedTotal)}
+          {eur2(omzet.netto)}
+        </span>
+        <span className="ml-2 text-xs text-zinc-400">
+          bruto {eur2(omzet.bruto)}
+          {omzet.partners.length > 0 &&
+            ` · ${omzet.partners
+              .map((p) => `${p.name} ${eur2(p.amount)}`)
+              .join(", ")}`}
         </span>
       </p>
 

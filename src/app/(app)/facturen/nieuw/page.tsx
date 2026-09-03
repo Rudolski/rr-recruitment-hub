@@ -15,6 +15,8 @@ export default async function NieuweFactuurPage({
   const params = await searchParams;
   const lockedPlacementId =
     typeof params.placement === "string" ? params.placement : undefined;
+  const defaultClientId =
+    typeof params.klant === "string" ? params.klant : undefined;
 
   const [{ data: clients }, placements] = await Promise.all([
     supabase.from("clients").select("id, name").order("name"),
@@ -24,7 +26,7 @@ export default async function NieuweFactuurPage({
   return (
     <div className="mx-auto max-w-3xl">
       <BackLink href="/facturen" label="Facturen" />
-      <h1 className="mt-2 text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+      <h1 className="mt-2 font-[family-name:var(--font-roc)] text-2xl font-medium tracking-tight text-navy dark:text-cream">
         Nieuwe factuurregel
       </h1>
       <div className="mt-6">
@@ -33,6 +35,7 @@ export default async function NieuweFactuurPage({
           clients={clients ?? []}
           placements={placements}
           lockedPlacementId={lockedPlacementId}
+          defaultClientId={defaultClientId}
           submitLabel="Factuurregel opslaan"
         />
       </div>
