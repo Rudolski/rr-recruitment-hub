@@ -38,6 +38,23 @@ export function Sidebar({ userEmail }: { userEmail: string }) {
             </p>
             <ul className="space-y-0.5">
               {section.items.map((item) => {
+                if (item.external) {
+                  return (
+                    <li key={item.href}>
+                      <a
+                        href={item.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-between rounded-md px-2 py-1.5 text-sm text-zinc-600 transition-colors hover:bg-zinc-100 hover:text-navy dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-cream"
+                      >
+                        {item.label}
+                        <span aria-hidden className="text-xs text-zinc-400">
+                          ↗
+                        </span>
+                      </a>
+                    </li>
+                  );
+                }
                 const active =
                   pathname === item.href ||
                   pathname.startsWith(`${item.href}/`);

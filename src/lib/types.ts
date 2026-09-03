@@ -50,6 +50,15 @@ export const ACQUISITION_FUNNEL: ClientStatus[] = [
   "actief",
 ];
 
+/** Prospect-statussen = funnel vóór 'actief'. */
+export const PROSPECT_STATUSES: ClientStatus[] = [
+  "nieuw",
+  "in_outreach",
+  "warm",
+  "afspraak_gepland",
+  "voorstel_gestuurd",
+];
+
 /* -------------------------------------------------------------- */
 /* Vacatures                                                      */
 /* -------------------------------------------------------------- */

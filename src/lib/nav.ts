@@ -1,14 +1,15 @@
 /**
- * Navigatiestructuur. MVP-modules plus fase 2 (targets, rapportages)
- * en fase 3 (AI-generatoren).
+ * Navigatiestructuur van de Hub.
  */
 import { GENERATORS } from "@/lib/generators";
 
 export type NavItem = {
   label: string;
   href: string;
-  /** Korte omschrijving, getoond op de placeholder-pagina. */
+  /** Korte omschrijving. */
   description: string;
+  /** Externe link — opent in een nieuw tabblad. */
+  external?: boolean;
 };
 
 export type NavSection = {
@@ -18,42 +19,34 @@ export type NavSection = {
 
 export const navSections: NavSection[] = [
   {
-    title: "Overzicht",
-    items: [
-      {
-        label: "Dashboard",
-        href: "/dashboard",
-        description:
-          "Behaalde omzet (facturen vanaf status verzonden, excl. btw) en de prognose voor de lopende en volgende maand.",
-      },
-      {
-        label: "Targets",
-        href: "/targets",
-        description:
-          "Maandtargets voor omzet en plaatsingen, automatisch opgeteld naar kwartaal en jaar en afgezet tegen de behaalde omzet.",
-      },
-    ],
-  },
-  {
     title: "Relatiebeheer",
     items: [
       {
         label: "Acquisitie",
         href: "/acquisitie",
         description:
-          "De acquisitie-funnel per klant en de openstaande opvolgacties.",
+          "De funnel per relatie en de openstaande opvolgacties.",
       },
       {
         label: "Klanten",
         href: "/klanten",
+        description: "Actieve opdrachtgevers.",
+      },
+      {
+        label: "Prospects",
+        href: "/prospects",
         description:
-          "Opdrachtgevers met acquisitiestatus, contactpersonen, vacatures en omzet.",
+          "Relaties in de funnel: nieuw, in outreach, warm, afspraak gepland of voorstel gestuurd.",
+      },
+      {
+        label: "Archief",
+        href: "/archief",
+        description: "Inactieve relaties.",
       },
       {
         label: "Contactpersonen",
         href: "/contactpersonen",
-        description:
-          "Globaal overzicht van alle contactpersonen, elk gekoppeld aan een klant.",
+        description: "Alle contactpersonen, gekoppeld aan een relatie.",
       },
     ],
   },
@@ -61,21 +54,50 @@ export const navSections: NavSection[] = [
     title: "Werving",
     items: [
       {
-        label: "Vacatures",
+        label: "Vacatures openstaand",
         href: "/vacatures",
         description:
-          "Opdrachten per klant, met de forecastvelden verwachte fee, verwachte sluitingsmaand en slagingskans.",
+          "Openstaande opdrachten met de forecastvelden (verwachte fee, maand, slagingskans).",
       },
       {
         label: "Placements",
         href: "/placements",
         description:
-          "Geplaatste kandidaten met startdatum, fee, garantietermijn en de gekoppelde factuurregistratie.",
+          "Geplaatste kandidaten met startdatum, fee, garantie en de factuurregels.",
       },
     ],
   },
   {
     title: "Financieel",
+    items: [
+      {
+        label: "Dashboard",
+        href: "/dashboard",
+        description:
+          "Behaalde omzet (netto/bruto), prognose en de opvolgacties van deze week.",
+      },
+      {
+        label: "Targets",
+        href: "/targets",
+        description:
+          "Maandtargets, automatisch opgeteld naar kwartaal en jaar en afgezet tegen de omzet.",
+      },
+      {
+        label: "Omzet per klant",
+        href: "/rapportages/omzet-per-klant",
+        description:
+          "Behaalde omzet per klant, per jaar, met doorklik naar de opbouw.",
+      },
+      {
+        label: "Facturen",
+        href: "/facturen",
+        description:
+          "Registratie van facturen uit Snelstart Web. Concept telt niet mee; verzonden en verder wel.",
+      },
+    ],
+  },
+  {
+    title: "RR Recruitment",
     items: [
       {
         label: "Samenwerkingsovereenkomst",
@@ -84,32 +106,28 @@ export const navSections: NavSection[] = [
           "Vul de samenwerkingsovereenkomst per klant en download 'm als Word-document.",
       },
       {
-        label: "Facturen",
-        href: "/facturen",
+        label: "Huisstijl & bestanden",
+        href: "/rr-recruitment",
         description:
-          "Registratie van facturen uit Snelstart Web. Start op concept; telt pas mee in de omzet na handmatig op verzonden zetten.",
+          "Logo's, beeldmerk, afbeeldingen en stijldocumenten centraal.",
       },
-    ],
-  },
-  {
-    title: "Rapportages",
-    items: [
       {
-        label: "Omzet per klant",
-        href: "/rapportages/omzet-per-klant",
-        description:
-          "Behaalde omzet (facturen vanaf verzonden, excl. btw) per klant, per jaar.",
+        label: "Website (WordPress)",
+        href: "https://rr-recruitment.nl/wp-admin/",
+        description: "Beheeromgeving van de website.",
+        external: true,
       },
-    ],
-  },
-  {
-    title: "Tools",
-    items: [
       {
-        label: "Fee calculator",
-        href: "/tools/fee-calculator",
-        description:
-          "Losstaand rekentooltje: fee op basis van jaarsalaris en percentage, geen opslag.",
+        label: "De Banensite",
+        href: "https://accounts.debanensite.nl/login",
+        description: "Vacaturesite-account.",
+        external: true,
+      },
+      {
+        label: "Snelstart Web",
+        href: "https://web.snelstart.nl/",
+        description: "Boekhouding en facturen.",
+        external: true,
       },
     ],
   },
@@ -122,13 +140,13 @@ export const navSections: NavSection[] = [
     })),
   },
   {
-    title: "RR Recruitment",
+    title: "Tools",
     items: [
       {
-        label: "Huisstijl & bestanden",
-        href: "/rr-recruitment",
+        label: "Fee calculator",
+        href: "/tools/fee-calculator",
         description:
-          "Logo's, beeldmerk, afbeeldingen en stijldocumenten centraal.",
+          "Losstaand rekentooltje: fee op basis van jaarsalaris en percentage, geen opslag.",
       },
     ],
   },
