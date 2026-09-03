@@ -102,6 +102,26 @@ export async function updateVacature(
   redirect(`/vacatures/${id}`);
 }
 
+/** Snel-bewerken van de drie forecastvelden vanuit de lijst. */
+export async function updateVacatureForecast(fd: FormData) {
+  const { supabase } = await getSessionContext();
+  const id = str(fd, "id");
+  if (!id) return;
+
+  await supabase
+    .from("vacancies")
+    .update({
+      expected_fee: numOrNull(fd, "expected_fee"),
+      expected_close_month: monthToDate(str(fd, "expected_close_month")),
+      success_probability: clampPct(numOrNull(fd, "success_probability")),
+    })
+    .eq("id", id);
+
+  revalidatePath("/vacatures");
+  revalidatePath(`/vacatures/${id}`);
+  revalidatePath("/dashboard");
+}
+
 export async function deleteVacature(fd: FormData) {
   const { supabase } = await getSessionContext();
   const id = str(fd, "id");

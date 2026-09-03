@@ -6,7 +6,6 @@ import {
   REALISED_INVOICE_STATUSES,
   type Invoice,
   type MonthlyTarget,
-  type Placement,
 } from "@/lib/types";
 import { TargetsForm, type MonthInput } from "./targets-form";
 
@@ -40,27 +39,20 @@ export default async function TargetsPage({
   );
   const years = [currentYear + 1, currentYear, currentYear - 1, currentYear - 2];
 
-  const [{ data: targets, error }, { data: invoices }, { data: placements }] =
-    await Promise.all([
-      supabase
-        .from("monthly_targets")
-        .select("*")
-        .eq("year", year)
-        .returns<MonthlyTarget[]>(),
-      supabase
-        .from("invoices")
-        .select("*")
-        .in("status", REALISED_INVOICE_STATUSES)
-        .gte("issue_date", `${year}-01-01`)
-        .lte("issue_date", `${year}-12-31`)
-        .returns<Invoice[]>(),
-      supabase
-        .from("placements")
-        .select("*")
-        .gte("start_date", `${year}-01-01`)
-        .lte("start_date", `${year}-12-31`)
-        .returns<Placement[]>(),
-    ]);
+  const [{ data: targets, error }, { data: invoices }] = await Promise.all([
+    supabase
+      .from("monthly_targets")
+      .select("*")
+      .eq("year", year)
+      .returns<MonthlyTarget[]>(),
+    supabase
+      .from("invoices")
+      .select("*")
+      .in("status", REALISED_INVOICE_STATUSES)
+      .gte("issue_date", `${year}-01-01`)
+      .lte("issue_date", `${year}-12-31`)
+      .returns<Invoice[]>(),
+  ]);
 
   if (error && error.message.includes("monthly_targets")) {
     return (
@@ -77,10 +69,7 @@ export default async function TargetsPage({
 
   const initial: Record<number, MonthInput> = {};
   for (const t of targets ?? []) {
-    initial[t.month] = {
-      revenue: numStr(t.target_revenue),
-      placements: numStr(t.target_placements),
-    };
+    initial[t.month] = { revenue: numStr(t.target_revenue) };
   }
 
   const realisedRevenue = Array(13).fill(0) as number[];
@@ -88,13 +77,6 @@ export default async function TargetsPage({
     if (!inv.issue_date) continue;
     const m = Number(inv.issue_date.slice(5, 7));
     realisedRevenue[m] += Number(inv.amount_excl_btw);
-  }
-
-  const realisedPlacements = Array(13).fill(0) as number[];
-  for (const p of placements ?? []) {
-    if (!p.start_date) continue;
-    const m = Number(p.start_date.slice(5, 7));
-    realisedPlacements[m] += 1;
   }
 
   // Kwartaal- en jaartotalen: opgeteld uit de maanden.
@@ -145,7 +127,6 @@ export default async function TargetsPage({
         year={year}
         initial={initial}
         realisedRevenue={realisedRevenue}
-        realisedPlacements={realisedPlacements}
       />
 
       <section className="mt-10">

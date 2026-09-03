@@ -10,7 +10,17 @@ function toNumber(value: string): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+/** Factor om het ingevoerde bedrag naar een bruto jaarsalaris om te rekenen. */
+const PERIODS = {
+  jaar: { label: "Jaarsalaris", factor: 1 },
+  maand: { label: "Maandsalaris", factor: 12.96 },
+  vierweken: { label: "Vierwekensalaris", factor: 14.02 },
+} as const;
+
+type PeriodKey = keyof typeof PERIODS;
+
 export function FeeCalculator() {
+  const [period, setPeriod] = useState<PeriodKey>("jaar");
   const [salary, setSalary] = useState("");
   const [percentage, setPercentage] = useState("22");
   const [minimumFee, setMinimumFee] = useState("");
@@ -20,26 +30,51 @@ export function FeeCalculator() {
     const p = toNumber(percentage);
     if (s == null || p == null) return null;
 
-    const raw = s * (p / 100);
+    const annual = s * PERIODS[period].factor;
+    const raw = annual * (p / 100);
     const min = toNumber(minimumFee);
     const fee = min != null && min > raw ? min : raw;
-    return { raw, fee, minApplied: min != null && min > raw };
-  }, [salary, percentage, minimumFee]);
+    return { annual, raw, fee, minApplied: min != null && min > raw };
+  }, [salary, percentage, minimumFee, period]);
 
   return (
     <div className="mt-6 max-w-md space-y-5">
       <div className="space-y-1.5">
+        <label htmlFor="period" className={labelClass}>
+          Salaris opgegeven als
+        </label>
+        <select
+          id="period"
+          value={period}
+          onChange={(e) => setPeriod(e.target.value as PeriodKey)}
+          className={inputClass}
+        >
+          {(Object.keys(PERIODS) as PeriodKey[]).map((k) => (
+            <option key={k} value={k}>
+              {PERIODS[k].label}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="space-y-1.5">
         <label htmlFor="salary" className={labelClass}>
-          Bruto jaarsalaris (€)
+          {PERIODS[period].label} bruto (€)
         </label>
         <input
           id="salary"
           inputMode="numeric"
           value={salary}
           onChange={(e) => setSalary(e.target.value)}
-          placeholder="55000"
+          placeholder={period === "jaar" ? "55000" : "4200"}
           className={inputClass}
         />
+        {period !== "jaar" && (
+          <p className="text-xs text-zinc-400">
+            Wordt omgerekend naar jaarbasis (× {PERIODS[period].factor}, incl.
+            vakantiegeld).
+          </p>
+        )}
       </div>
 
       <div className="space-y-1.5">
@@ -78,9 +113,12 @@ export function FeeCalculator() {
         </p>
         {result && (
           <p className="mt-2 text-xs text-zinc-500">
+            {period !== "jaar" && (
+              <>Jaarsalaris {eur2(result.annual)}. </>
+            )}
             {result.minApplied
               ? `Percentage zou ${eur2(result.raw)} zijn; minimum fee toegepast.`
-              : "Salaris × percentage."}
+              : "Jaarsalaris × percentage."}
           </p>
         )}
       </div>

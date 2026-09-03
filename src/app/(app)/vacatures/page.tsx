@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
-import { VacancyStatusBadge } from "@/components/status-badge";
 import {
   btnPrimary,
   emptyState,
@@ -8,14 +7,12 @@ import {
   table,
   tableWrap,
   tbody,
-  td,
   th,
   thead,
-  tr,
 } from "@/components/ui";
-import { eur, formatMonth } from "@/lib/format";
 import { getSessionContext } from "@/utils/supabase/auth";
 import type { Client, Vacancy } from "@/lib/types";
+import { ForecastRow } from "./forecast-row";
 
 export const metadata = { title: "Vacatures · RR Recruitment Hub" };
 
@@ -76,51 +73,35 @@ export default async function VacaturesPage() {
       )}
 
       {!error && vacancies && vacancies.length > 0 && (
-        <div className={tableWrap}>
-          <table className={table}>
-            <thead className={thead}>
-              <tr>
-                <th className={th}>Titel</th>
-                <th className={th}>Klant</th>
-                <th className={th}>Status</th>
-                <th className={th}>Verw. fee</th>
-                <th className={th}>Verw. maand</th>
-                <th className={th}>Kans</th>
-              </tr>
-            </thead>
-            <tbody className={tbody}>
-              {vacancies.map((v) => (
-                <tr key={v.id} className={tr}>
-                  <td className={td}>
-                    <Link
-                      href={`/vacatures/${v.id}`}
-                      className="font-medium text-zinc-900 hover:underline dark:text-zinc-100"
-                    >
-                      {v.title}
-                    </Link>
-                  </td>
-                  <td className={`${td} text-zinc-600 dark:text-zinc-400`}>
-                    {clientName.get(v.client_id) ?? "—"}
-                  </td>
-                  <td className={td}>
-                    <VacancyStatusBadge status={v.status} />
-                  </td>
-                  <td className={`${td} text-zinc-600 dark:text-zinc-400`}>
-                    {eur(v.expected_fee)}
-                  </td>
-                  <td className={`${td} text-zinc-600 dark:text-zinc-400`}>
-                    {formatMonth(v.expected_close_month)}
-                  </td>
-                  <td className={`${td} text-zinc-600 dark:text-zinc-400`}>
-                    {v.success_probability == null
-                      ? "—"
-                      : `${v.success_probability}%`}
-                  </td>
+        <>
+          <p className="mt-4 text-xs text-zinc-400">
+            Verwachte fee, maand en kans zijn hier direct aan te passen.
+          </p>
+          <div className={tableWrap}>
+            <table className={table}>
+              <thead className={thead}>
+                <tr>
+                  <th className={th}>Titel</th>
+                  <th className={th}>Klant</th>
+                  <th className={th}>Status</th>
+                  <th className={th}>Verw. fee</th>
+                  <th className={th}>Verw. maand</th>
+                  <th className={th}>Kans %</th>
+                  <th className={th}></th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className={tbody}>
+                {vacancies.map((v) => (
+                  <ForecastRow
+                    key={v.id}
+                    vacancy={v}
+                    clientName={clientName.get(v.client_id) ?? "—"}
+                  />
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
     </div>
   );

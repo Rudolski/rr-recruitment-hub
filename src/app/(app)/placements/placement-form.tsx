@@ -35,8 +35,25 @@ export function PlacementForm({
 }) {
   const [state, formAction, pending] = useActionState(action, emptyFormState);
   const [clientId, setClientId] = useState(initial?.client_id ?? "");
+  const [grossSalary, setGrossSalary] = useState(
+    num(initial?.gross_annual_salary),
+  );
+  const [feePercentage, setFeePercentage] = useState(
+    num(initial?.fee_percentage),
+  );
   const [feeAmount, setFeeAmount] = useState(num(initial?.fee_amount));
+  const [feeEdited, setFeeEdited] = useState(!!initial?.fee_amount);
   const [createInvoice, setCreateInvoice] = useState(false);
+
+  // fee = bruto jaarsalaris × fee-percentage, tenzij handmatig aangepast
+  function autoFee(salary: string, pct: string) {
+    if (feeEdited) return;
+    const s = Number(salary.replace(",", "."));
+    const p = Number(pct.replace(",", "."));
+    if (Number.isFinite(s) && Number.isFinite(p) && salary && pct) {
+      setFeeAmount(String(Math.round(s * (p / 100))));
+    }
+  }
 
   return (
     <form action={formAction} className="max-w-2xl space-y-5">
@@ -168,7 +185,28 @@ export function PlacementForm({
             id="gross_annual_salary"
             name="gross_annual_salary"
             inputMode="numeric"
-            defaultValue={num(initial?.gross_annual_salary)}
+            value={grossSalary}
+            onChange={(e) => {
+              setGrossSalary(e.target.value);
+              autoFee(e.target.value, feePercentage);
+            }}
+            className={inputClass}
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <label htmlFor="fee_percentage" className={labelClass}>
+            Fee-percentage (%)
+          </label>
+          <input
+            id="fee_percentage"
+            name="fee_percentage"
+            inputMode="numeric"
+            value={feePercentage}
+            onChange={(e) => {
+              setFeePercentage(e.target.value);
+              autoFee(grossSalary, e.target.value);
+            }}
             className={inputClass}
           />
         </div>
@@ -182,22 +220,18 @@ export function PlacementForm({
             name="fee_amount"
             inputMode="numeric"
             value={feeAmount}
-            onChange={(e) => setFeeAmount(e.target.value)}
+            onChange={(e) => {
+              setFeeAmount(e.target.value);
+              setFeeEdited(true);
+            }}
             className={inputClass}
           />
-        </div>
-
-        <div className="space-y-1.5">
-          <label htmlFor="fee_percentage" className={labelClass}>
-            Fee-percentage (%)
-          </label>
-          <input
-            id="fee_percentage"
-            name="fee_percentage"
-            inputMode="numeric"
-            defaultValue={num(initial?.fee_percentage)}
-            className={inputClass}
-          />
+          {!feeEdited && (
+            <p className="text-xs text-zinc-400">
+              Automatisch berekend uit salaris × percentage; je kunt het
+              overschrijven.
+            </p>
+          )}
         </div>
 
         <div className="space-y-1.5">

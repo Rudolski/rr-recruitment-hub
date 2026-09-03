@@ -1,19 +1,35 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
 import { errorBox } from "@/components/ui";
-import { eur, eur2, formatMonth } from "@/lib/format";
+import { eur, eur2, formatMonth, MONTH_NAMES } from "@/lib/format";
 import { getSessionContext } from "@/utils/supabase/auth";
 import {
   REALISED_INVOICE_STATUSES,
   type Client,
   type Invoice,
+  type MonthlyTarget,
   type Vacancy,
 } from "@/lib/types";
+import { RevenueChart } from "./revenue-chart";
 
 export const metadata = { title: "Dashboard · RR Recruitment Hub" };
 
 function monthKey(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function lastDay(year: number, month: number) {
+  return new Date(year, month, 0).getDate();
+}
+
+function monthlyBuckets(invoices: Invoice[]): number[] {
+  const b = Array(13).fill(0) as number[];
+  for (const inv of invoices) {
+    if (!inv.issue_date) continue;
+    const m = Number(inv.issue_date.slice(5, 7));
+    b[m] += Number(inv.amount_excl_btw);
+  }
+  return b;
 }
 
 export default async function DashboardPage({
@@ -38,9 +54,15 @@ export default async function DashboardPage({
   const params = await searchParams;
   const now = new Date();
   const currentYear = now.getFullYear();
-  const year = Number(
-    typeof params.jaar === "string" ? params.jaar : currentYear,
-  );
+  const num = (key: string, fallback: number) => {
+    const v = typeof params[key] === "string" ? Number(params[key]) : NaN;
+    return Number.isFinite(v) ? v : fallback;
+  };
+
+  const year = num("jaar", currentYear);
+  let fromMonth = Math.min(12, Math.max(1, num("van", 1)));
+  let toMonth = Math.min(12, Math.max(1, num("tm", 12)));
+  if (fromMonth > toMonth) [fromMonth, toMonth] = [toMonth, fromMonth];
   const clientFilter =
     typeof params.klant === "string" && params.klant ? params.klant : null;
 
@@ -50,25 +72,54 @@ export default async function DashboardPage({
     .order("name")
     .returns<Pick<Client, "id" | "name">[]>();
 
-  /* -------- Behaalde omzet -------- */
-  let invoiceQuery = supabase
-    .from("invoices")
-    .select("*")
-    .in("status", REALISED_INVOICE_STATUSES)
-    .gte("issue_date", `${year}-01-01`)
-    .lte("issue_date", `${year}-12-31`);
-  if (clientFilter) invoiceQuery = invoiceQuery.eq("client_id", clientFilter);
+  async function realisedInvoices(from: string, to: string) {
+    let q = supabase
+      .from("invoices")
+      .select("*")
+      .in("status", REALISED_INVOICE_STATUSES)
+      .gte("issue_date", from)
+      .lte("issue_date", to);
+    if (clientFilter) q = q.eq("client_id", clientFilter);
+    const { data } = await q.returns<Invoice[]>();
+    return data ?? [];
+  }
 
-  const { data: invoices } = await invoiceQuery.returns<Invoice[]>();
-  const realised = (invoices ?? []).reduce(
-    (sum, i) => sum + Number(i.amount_excl_btw),
+  /* -------- Behaalde omzet in de gekozen periode -------- */
+  const periodStart = `${year}-${String(fromMonth).padStart(2, "0")}-01`;
+  const periodEnd = `${year}-${String(toMonth).padStart(2, "0")}-${String(
+    lastDay(year, toMonth),
+  ).padStart(2, "0")}`;
+
+  const [periodInvoices, thisYearInvoices, lastYearInvoices] = await Promise.all([
+    realisedInvoices(periodStart, periodEnd),
+    realisedInvoices(`${year}-01-01`, `${year}-12-31`),
+    realisedInvoices(`${year - 1}-01-01`, `${year - 1}-12-31`),
+  ]);
+
+  const realised = periodInvoices.reduce(
+    (s, i) => s + Number(i.amount_excl_btw),
     0,
   );
 
+  /* -------- Grafiek: heel jaar t.o.v. vorig jaar en target -------- */
+
+  let targetMonthly: number[] | null = null;
+  if (!clientFilter) {
+    const { data: targets, error: targetErr } = await supabase
+      .from("monthly_targets")
+      .select("*")
+      .eq("year", year)
+      .returns<MonthlyTarget[]>();
+    if (!targetErr && targets && targets.length > 0) {
+      const t = Array(13).fill(0) as number[];
+      for (const row of targets) t[row.month] = Number(row.target_revenue ?? 0);
+      targetMonthly = t;
+    }
+  }
+
   /* -------- Prognose lopende + volgende maand -------- */
   const thisMonth = monthKey(now);
-  const nextMonthDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-  const nextMonth = monthKey(nextMonthDate);
+  const nextMonth = monthKey(new Date(now.getFullYear(), now.getMonth() + 1, 1));
 
   let vacancyQuery = supabase
     .from("vacancies")
@@ -78,7 +129,6 @@ export default async function DashboardPage({
     .not("expected_close_month", "is", null)
     .not("success_probability", "is", null);
   if (clientFilter) vacancyQuery = vacancyQuery.eq("client_id", clientFilter);
-
   const { data: openVacancies } = await vacancyQuery.returns<Vacancy[]>();
 
   const contributions = (openVacancies ?? []).map((v) => ({
@@ -96,6 +146,11 @@ export default async function DashboardPage({
     .reduce((s, c) => s + c.value, 0);
 
   const years = [currentYear + 1, currentYear, currentYear - 1, currentYear - 2];
+  const selectClass =
+    "mt-1 rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900";
+  const prognoseRows = contributions
+    .filter((c) => c.month === thisMonth || c.month === nextMonth)
+    .sort((a, b) => a.month.localeCompare(b.month));
 
   return (
     <div className="mx-auto max-w-5xl">
@@ -107,14 +162,30 @@ export default async function DashboardPage({
       <form className="mt-6 flex flex-wrap items-end gap-3" method="get">
         <label className="text-sm">
           <span className="block text-xs text-zinc-500">Jaar</span>
-          <select
-            name="jaar"
-            defaultValue={String(year)}
-            className="mt-1 rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900"
-          >
+          <select name="jaar" defaultValue={String(year)} className={selectClass}>
             {years.map((y) => (
               <option key={y} value={y}>
                 {y}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="text-sm">
+          <span className="block text-xs text-zinc-500">Van maand</span>
+          <select name="van" defaultValue={String(fromMonth)} className={selectClass}>
+            {MONTH_NAMES.slice(1).map((m, i) => (
+              <option key={m} value={i + 1}>
+                {m}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="text-sm">
+          <span className="block text-xs text-zinc-500">Tot en met</span>
+          <select name="tm" defaultValue={String(toMonth)} className={selectClass}>
+            {MONTH_NAMES.slice(1).map((m, i) => (
+              <option key={m} value={i + 1}>
+                {m}
               </option>
             ))}
           </select>
@@ -124,7 +195,7 @@ export default async function DashboardPage({
           <select
             name="klant"
             defaultValue={clientFilter ?? ""}
-            className="mt-1 rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+            className={selectClass}
           >
             <option value="">Alle klanten</option>
             {(clients ?? []).map((c) => (
@@ -145,13 +216,15 @@ export default async function DashboardPage({
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
           <p className="text-xs uppercase tracking-wider text-zinc-500">
-            Behaalde omzet {year}
+            Behaalde omzet
           </p>
           <p className="mt-1 text-2xl font-semibold text-zinc-900 dark:text-zinc-50">
             {eur2(realised)}
           </p>
           <p className="mt-1 text-xs text-zinc-400">
-            {(invoices ?? []).length} facturen · excl. btw
+            {MONTH_NAMES[fromMonth]}
+            {fromMonth !== toMonth ? `–${MONTH_NAMES[toMonth]}` : ""} {year} ·{" "}
+            {periodInvoices.length} facturen
           </p>
         </div>
         <div className="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
@@ -174,44 +247,59 @@ export default async function DashboardPage({
         </div>
       </div>
 
+      <RevenueChart
+        year={year}
+        thisYear={monthlyBuckets(thisYearInvoices)}
+        lastYear={monthlyBuckets(lastYearInvoices)}
+        target={targetMonthly}
+      />
+
       <section className="mt-10">
-        <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
-          Vacatures in de prognose
-        </h2>
-        {contributions.filter((c) => c.month === thisMonth || c.month === nextMonth)
-          .length === 0 ? (
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+            Vacatures in de prognose
+          </h2>
+          <p className="text-sm text-zinc-500">
+            Totaal {formatMonth(`${thisMonth}-01`)}:{" "}
+            <span className="font-medium text-zinc-900 dark:text-zinc-100">
+              {eur(forecastThis)}
+            </span>{" "}
+            · {formatMonth(`${nextMonth}-01`)}:{" "}
+            <span className="font-medium text-zinc-900 dark:text-zinc-100">
+              {eur(forecastNext)}
+            </span>
+          </p>
+        </div>
+
+        {prognoseRows.length === 0 ? (
           <p className="mt-2 text-sm text-zinc-500">
             Geen open vacatures met verwachte fee, maand en slagingskans voor
             deze twee maanden.
           </p>
         ) : (
           <ul className="mt-3 divide-y divide-zinc-100 rounded-lg border border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800">
-            {contributions
-              .filter((c) => c.month === thisMonth || c.month === nextMonth)
-              .sort((a, b) => a.month.localeCompare(b.month))
-              .map(({ vacancy, month, value }) => (
-                <li
-                  key={vacancy.id}
-                  className="flex items-center justify-between px-4 py-2.5 text-sm"
+            {prognoseRows.map(({ vacancy, month, value }) => (
+              <li
+                key={vacancy.id}
+                className="flex items-center justify-between px-4 py-2.5 text-sm"
+              >
+                <Link
+                  href={`/vacatures/${vacancy.id}`}
+                  className="font-medium text-zinc-900 hover:underline dark:text-zinc-100"
                 >
-                  <Link
-                    href={`/vacatures/${vacancy.id}`}
-                    className="font-medium text-zinc-900 hover:underline dark:text-zinc-100"
-                  >
-                    {vacancy.title}
-                  </Link>
-                  <span className="flex items-center gap-4 text-zinc-500">
-                    <span>{formatMonth(`${month}-01`)}</span>
-                    <span>
-                      {eur(vacancy.expected_fee)} × {vacancy.success_probability}
-                      %
-                    </span>
-                    <span className="font-medium text-zinc-900 dark:text-zinc-100">
-                      {eur(value)}
-                    </span>
+                  {vacancy.title}
+                </Link>
+                <span className="flex items-center gap-4 text-zinc-500">
+                  <span>{formatMonth(`${month}-01`)}</span>
+                  <span>
+                    {eur(vacancy.expected_fee)} × {vacancy.success_probability}%
                   </span>
-                </li>
-              ))}
+                  <span className="font-medium text-zinc-900 dark:text-zinc-100">
+                    {eur(value)}
+                  </span>
+                </span>
+              </li>
+            ))}
           </ul>
         )}
       </section>

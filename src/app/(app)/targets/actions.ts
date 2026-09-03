@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getSessionContext } from "@/utils/supabase/auth";
-import { numOrNull, intOrNull, str } from "@/lib/form";
+import { numOrNull, str } from "@/lib/form";
 
 /**
  * Slaat alle 12 maandtargets voor één jaar in één keer op.
@@ -22,14 +22,13 @@ export async function saveYearTargets(fd: FormData) {
     year: number;
     month: number;
     target_revenue: number | null;
-    target_placements: number | null;
+    target_placements: null;
   }[] = [];
   const emptyMonths: number[] = [];
 
   for (let month = 1; month <= 12; month++) {
     const revenue = numOrNull(fd, `revenue_${month}`);
-    const placements = intOrNull(fd, `placements_${month}`);
-    if (revenue == null && placements == null) {
+    if (revenue == null) {
       emptyMonths.push(month);
     } else {
       toUpsert.push({
@@ -37,7 +36,7 @@ export async function saveYearTargets(fd: FormData) {
         year,
         month,
         target_revenue: revenue,
-        target_placements: placements,
+        target_placements: null,
       });
     }
   }

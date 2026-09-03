@@ -4,21 +4,19 @@ import { btnPrimary } from "@/components/ui";
 import { eur, MONTH_NAMES } from "@/lib/format";
 import { saveYearTargets } from "./actions";
 
-export type MonthInput = { revenue: string; placements: string };
+export type MonthInput = { revenue: string };
 
 const cell =
-  "w-28 rounded-md border border-zinc-300 bg-white px-2 py-1 text-sm text-right tabular-nums dark:border-zinc-700 dark:bg-zinc-900";
+  "w-32 rounded-md border border-zinc-300 bg-white px-2 py-1 text-sm text-right tabular-nums dark:border-zinc-700 dark:bg-zinc-900";
 
 export function TargetsForm({
   year,
   initial,
   realisedRevenue,
-  realisedPlacements,
 }: {
   year: number;
   initial: Record<number, MonthInput>;
   realisedRevenue: number[];
-  realisedPlacements: number[];
 }) {
   return (
     <form action={saveYearTargets} className="mt-6">
@@ -31,11 +29,9 @@ export function TargetsForm({
               <th className="px-4 py-2.5 text-right font-medium">
                 Target omzet
               </th>
-              <th className="px-4 py-2.5 text-right font-medium">Behaald</th>
               <th className="px-4 py-2.5 text-right font-medium">
-                Target plaatsingen
+                Behaald excl. btw
               </th>
-              <th className="px-4 py-2.5 text-right font-medium">Behaald</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
@@ -53,18 +49,6 @@ export function TargetsForm({
                 </td>
                 <td className="px-4 py-2 text-right tabular-nums text-zinc-500">
                   {eur(realisedRevenue[m] ?? 0)}
-                </td>
-                <td className="px-4 py-2 text-right">
-                  <input
-                    name={`placements_${m}`}
-                    inputMode="numeric"
-                    defaultValue={initial[m]?.placements ?? ""}
-                    placeholder="0"
-                    className={`${cell} w-20`}
-                  />
-                </td>
-                <td className="px-4 py-2 text-right tabular-nums text-zinc-500">
-                  {realisedPlacements[m] ?? 0}
                 </td>
               </tr>
             ))}
