@@ -19,11 +19,13 @@ export function FeeAgreementForm({
   clients,
   initial,
   submitLabel,
+  lockedClientId,
 }: {
   action: Action;
   clients: { id: string; name: string }[];
   initial?: FeeAgreement;
   submitLabel: string;
+  lockedClientId?: string;
 }) {
   const [state, formAction, pending] = useActionState(action, emptyFormState);
 
@@ -45,19 +47,32 @@ export function FeeAgreementForm({
           <label htmlFor="client_id" className={labelClass}>
             Klant <span className="text-red-500">*</span>
           </label>
-          <select
-            id="client_id"
-            name="client_id"
-            defaultValue={initial?.client_id ?? ""}
-            className={inputClass}
-          >
-            <option value="">— Kies een klant —</option>
-            {clients.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
+          {lockedClientId ? (
+            <>
+              <input type="hidden" name="client_id" value={lockedClientId} />
+              <input
+                className={inputClass}
+                disabled
+                value={
+                  clients.find((c) => c.id === lockedClientId)?.name ?? "—"
+                }
+              />
+            </>
+          ) : (
+            <select
+              id="client_id"
+              name="client_id"
+              defaultValue={initial?.client_id ?? ""}
+              className={inputClass}
+            >
+              <option value="">— Kies een klant —</option>
+              {clients.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          )}
           {state.fieldErrors.client_id && (
             <p className="text-xs text-red-600">
               {state.fieldErrors.client_id}

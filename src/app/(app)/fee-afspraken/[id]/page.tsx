@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { BackLink } from "@/components/page-header";
 import { btnDanger } from "@/components/ui";
 import { getSessionContext } from "@/utils/supabase/auth";
-import type { FeeAgreement } from "@/lib/types";
+import type { Client, FeeAgreement } from "@/lib/types";
 import { FeeAgreementForm } from "../fee-agreement-form";
 import { deleteFeeAfspraak, updateFeeAfspraak } from "../actions";
 
@@ -27,10 +27,18 @@ export default async function FeeAfspraakDetailPage({
 
   if (!agreement) notFound();
 
+  const clientName =
+    (clients as Pick<Client, "id" | "name">[] | null)?.find(
+      (c) => c.id === agreement.client_id,
+    )?.name ?? "Klant";
+
   return (
     <div className="mx-auto max-w-2xl">
-      <BackLink href="/fee-afspraken" label="Fee-afspraken" />
-      <h1 className="mt-2 text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+      <BackLink
+        href={`/klanten/${agreement.client_id}`}
+        label={clientName}
+      />
+      <h1 className="mt-2 font-[family-name:var(--font-roc)] text-2xl font-medium tracking-tight text-navy dark:text-cream">
         Fee-afspraak
       </h1>
 
@@ -39,6 +47,7 @@ export default async function FeeAfspraakDetailPage({
           action={updateFeeAfspraak}
           clients={clients ?? []}
           initial={agreement}
+          lockedClientId={agreement.client_id}
           submitLabel="Wijzigingen opslaan"
         />
       </div>
@@ -46,6 +55,11 @@ export default async function FeeAfspraakDetailPage({
       <div className="mt-10 border-t border-zinc-200 pt-6 dark:border-zinc-800">
         <form action={deleteFeeAfspraak}>
           <input type="hidden" name="id" value={agreement.id} />
+          <input
+            type="hidden"
+            name="client_id"
+            value={agreement.client_id}
+          />
           <button type="submit" className={btnDanger}>
             Fee-afspraak verwijderen
           </button>

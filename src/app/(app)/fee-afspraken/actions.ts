@@ -49,16 +49,14 @@ export async function createFeeAfspraak(
   const { fieldErrors, values } = parse(fd);
   if (Object.keys(fieldErrors).length > 0) return fieldError(fieldErrors);
 
-  const { data, error } = await supabase
+  const { error } = await supabase
     .from("fee_agreements")
-    .insert({ ...values, organization_id: organizationId })
-    .select("id")
-    .single();
+    .insert({ ...values, organization_id: organizationId });
 
-  if (error || !data) return formError("Opslaan mislukt. Probeer het opnieuw.");
+  if (error) return formError("Opslaan mislukt. Probeer het opnieuw.");
 
-  revalidatePath("/fee-afspraken");
-  redirect(`/fee-afspraken/${data.id}`);
+  revalidatePath(`/klanten/${values.client_id}`);
+  redirect(`/klanten/${values.client_id}`);
 }
 
 export async function updateFeeAfspraak(
@@ -78,17 +76,21 @@ export async function updateFeeAfspraak(
     .eq("id", id);
   if (error) return formError("Opslaan mislukt. Probeer het opnieuw.");
 
-  revalidatePath("/fee-afspraken");
+  revalidatePath(`/klanten/${values.client_id}`);
   revalidatePath(`/fee-afspraken/${id}`);
-  redirect(`/fee-afspraken/${id}`);
+  redirect(`/klanten/${values.client_id}`);
 }
 
 export async function deleteFeeAfspraak(fd: FormData) {
   const { supabase } = await getSessionContext();
   const id = str(fd, "id");
+  const clientId = str(fd, "client_id");
   if (!id) return;
 
   await supabase.from("fee_agreements").delete().eq("id", id);
-  revalidatePath("/fee-afspraken");
-  redirect("/fee-afspraken");
+  if (clientId) {
+    revalidatePath(`/klanten/${clientId}`);
+    redirect(`/klanten/${clientId}`);
+  }
+  redirect("/klanten");
 }

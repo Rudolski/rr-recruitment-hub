@@ -12,13 +12,15 @@ import { btnDanger } from "@/components/ui";
 import { eur, eur2, formatDate } from "@/lib/format";
 import { splitOmzet } from "@/lib/omzet";
 import { getSessionContext } from "@/utils/supabase/auth";
-import type {
-  Client,
-  Contact,
-  Invoice,
-  Placement,
-  StoredFile,
-  Vacancy,
+import {
+  FEE_AGREEMENT_TYPE_LABELS,
+  type Client,
+  type Contact,
+  type FeeAgreement,
+  type Invoice,
+  type Placement,
+  type StoredFile,
+  type Vacancy,
 } from "@/lib/types";
 import { ClientForm } from "../client-form";
 import { deleteKlant, updateKlant } from "../actions";
@@ -47,6 +49,7 @@ export default async function KlantDetailPage({
 
   const [
     { data: contacts },
+    { data: feeAgreements },
     { data: vacancies },
     { data: placements },
     { data: invoices },
@@ -58,6 +61,12 @@ export default async function KlantDetailPage({
       .eq("client_id", id)
       .order("is_primary", { ascending: false })
       .returns<Contact[]>(),
+    supabase
+      .from("fee_agreements")
+      .select("*")
+      .eq("client_id", id)
+      .order("created_at", { ascending: false })
+      .returns<FeeAgreement[]>(),
     supabase
       .from("vacancies")
       .select("*")
@@ -86,6 +95,13 @@ export default async function KlantDetailPage({
 
   const vacancyTitle = new Map((vacancies ?? []).map((v) => [v.id, v.title]));
   const omzet = splitOmzet(invoices ?? []);
+
+  const feeSummary = (fa: FeeAgreement) => {
+    if (fa.type === "percentage")
+      return fa.percentage != null ? `${fa.percentage}%` : "—";
+    if (fa.type === "vast_bedrag") return eur(fa.fixed_amount);
+    return "Staffel";
+  };
   const filesTableMissing =
     !!filesError && /stored_files/.test(filesError.message);
 
@@ -123,6 +139,42 @@ export default async function KlantDetailPage({
                 .join(", ")}`}
           </span>
         </p>
+      </section>
+
+      {/* Fee-afspraken */}
+      <section className="mt-8">
+        <div className="flex items-center justify-between">
+          <h2 className={sectionTitle}>Fee-afspraken</h2>
+          <Link
+            href={`/fee-afspraken/nieuw?klant=${client.id}`}
+            className={addLink}
+          >
+            Toevoegen
+          </Link>
+        </div>
+        {!feeAgreements || feeAgreements.length === 0 ? (
+          <p className="mt-2 text-sm text-zinc-500">Nog geen fee-afspraak.</p>
+        ) : (
+          <ul className="mt-3 space-y-2">
+            {feeAgreements.map((fa) => (
+              <li key={fa.id} className={rowCard}>
+                <Link
+                  href={`/fee-afspraken/${fa.id}`}
+                  className="font-medium text-navy hover:underline dark:text-cream"
+                >
+                  {FEE_AGREEMENT_TYPE_LABELS[
+                    fa.type as keyof typeof FEE_AGREEMENT_TYPE_LABELS
+                  ] ?? fa.type}{" "}
+                  · {feeSummary(fa)}
+                </Link>
+                <span className="text-zinc-500">
+                  {fa.minimum_fee != null && `min. ${eur(fa.minimum_fee)}`}
+                  {fa.valid_from && ` · vanaf ${formatDate(fa.valid_from)}`}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       {/* Contactpersonen */}

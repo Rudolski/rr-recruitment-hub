@@ -72,12 +72,6 @@ export const navSections: NavSection[] = [
     title: "Financieel",
     items: [
       {
-        label: "Fee-afspraken",
-        href: "/fee-afspraken",
-        description:
-          "Percentage, staffel of vast bedrag per klant, met een eventuele minimum fee.",
-      },
-      {
         label: "Samenwerkingsovereenkomst",
         href: "/tools/samenwerkingsovereenkomst",
         description:
