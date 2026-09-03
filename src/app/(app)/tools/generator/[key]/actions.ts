@@ -5,10 +5,7 @@ import { getSessionContext } from "@/utils/supabase/auth";
 import { str } from "@/lib/form";
 import { AnthropicError, generateText } from "@/lib/anthropic";
 import { getGenerator } from "@/lib/generators";
-
-export type GenerateResult = { text: string | null; error: string | null };
-
-export const emptyGenerateResult: GenerateResult = { text: null, error: null };
+import type { GenerateResult } from "./result";
 
 export async function runGenerator(
   _prev: GenerateResult,

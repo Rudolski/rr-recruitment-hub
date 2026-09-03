@@ -4,11 +4,8 @@ import { useActionState, useState } from "react";
 import { btnPrimary, inputClass, labelClass } from "@/components/ui";
 import { formatDate } from "@/lib/format";
 import type { GeneratorField } from "@/lib/generators";
-import {
-  emptyGenerateResult,
-  runGenerator,
-  type GenerateResult,
-} from "./actions";
+import { runGenerator } from "./actions";
+import { emptyGenerateResult, type GenerateResult } from "./result";
 
 type HistoryItem = {
   id: string;
