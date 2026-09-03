@@ -46,6 +46,14 @@ const META: Record<
   },
 };
 
+const BASE_PATH: Record<KlantenScope, string> = {
+  actief: "/klanten",
+  prospects: "/prospects",
+  archief: "/archief",
+};
+
+type SortKey = "name" | "vacancies" | "placements" | "created";
+
 const todayIso = () => new Date().toISOString().slice(0, 10);
 
 export async function KlantenList({
@@ -77,6 +85,19 @@ export async function KlantenList({
       ? sp.status
       : null;
 
+  const showStatus = scope !== "actief";
+  const showCounts = scope === "actief";
+
+  const allowedSort: SortKey[] = showCounts
+    ? ["name", "vacancies", "placements", "created"]
+    : ["name", "created"];
+  const sortKey: SortKey = (allowedSort as string[]).includes(
+    typeof sp.sort === "string" ? sp.sort : "",
+  )
+    ? (sp.sort as SortKey)
+    : "name";
+  const dir: "asc" | "desc" = sp.dir === "desc" ? "desc" : "asc";
+
   let query = supabase
     .from("clients")
     .select("*")
@@ -87,6 +108,28 @@ export async function KlantenList({
   else query = query.in("status", stage ? [stage] : PROSPECT_STATUSES);
 
   const { data: clients, error } = await query.returns<Client[]>();
+
+  // Aantallen (alleen op de klantenpagina)
+  const openVac = new Map<string, number>();
+  const placementCount = new Map<string, number>();
+  if (showCounts && clients && clients.length > 0) {
+    const ids = clients.map((c) => c.id);
+    const [{ data: vac }, { data: pls }] = await Promise.all([
+      supabase
+        .from("vacancies")
+        .select("client_id")
+        .eq("status", "open")
+        .in("client_id", ids),
+      supabase.from("placements").select("client_id").in("client_id", ids),
+    ]);
+    for (const v of vac ?? [])
+      openVac.set(v.client_id, (openVac.get(v.client_id) ?? 0) + 1);
+    for (const p of pls ?? [])
+      placementCount.set(
+        p.client_id,
+        (placementCount.get(p.client_id) ?? 0) + 1,
+      );
+  }
 
   const withNotes = scope !== "archief" && !!clients && clients.length > 0;
   const latestNote = new Map<string, ClientNote>();
@@ -112,8 +155,49 @@ export async function KlantenList({
     }
   }
 
-  const showStatus = scope !== "actief";
+  const sorted = [...(clients ?? [])].sort((a, b) => {
+    let cmp = 0;
+    if (sortKey === "vacancies") {
+      cmp = (openVac.get(a.id) ?? 0) - (openVac.get(b.id) ?? 0);
+    } else if (sortKey === "placements") {
+      cmp = (placementCount.get(a.id) ?? 0) - (placementCount.get(b.id) ?? 0);
+    } else if (sortKey === "created") {
+      cmp = (a.created_at ?? "").localeCompare(b.created_at ?? "");
+    } else {
+      cmp = a.name.localeCompare(b.name, "nl");
+    }
+    if (cmp === 0) cmp = a.name.localeCompare(b.name, "nl");
+    return dir === "desc" ? -cmp : cmp;
+  });
+
   const today = todayIso();
+
+  function sortHref(key: SortKey) {
+    const params = new URLSearchParams();
+    if (scope === "prospects" && stage) params.set("status", stage);
+    const nextDir =
+      sortKey === key && dir === "asc"
+        ? "desc"
+        : sortKey === key && dir === "desc"
+          ? "asc"
+          : key === "name"
+            ? "asc"
+            : "desc";
+    params.set("sort", key);
+    params.set("dir", nextDir);
+    return `${BASE_PATH[scope]}?${params.toString()}`;
+  }
+
+  const SortHead = ({ label, sortBy }: { label: string; sortBy: SortKey }) => (
+    <th className={th}>
+      <Link href={sortHref(sortBy)} className="inline-flex items-center gap-1 hover:underline">
+        {label}
+        <span className="text-zinc-400">
+          {sortKey === sortBy ? (dir === "asc" ? "▲" : "▼") : "↕"}
+        </span>
+      </Link>
+    </th>
+  );
 
   return (
     <div className="mx-auto max-w-5xl">
@@ -164,14 +248,20 @@ export async function KlantenList({
           <table className={table}>
             <thead className={thead}>
               <tr>
-                <th className={th}>Naam</th>
+                <SortHead label="Naam" sortBy="name" />
                 {showStatus && <th className={th}>Status</th>}
+                {showCounts && (
+                  <>
+                    <SortHead label="Vac. open" sortBy="vacancies" />
+                    <SortHead label="Plaatsingen" sortBy="placements" />
+                  </>
+                )}
                 {withNotes && <th className={th}>Laatste notitie / opvolgen</th>}
-                <th className={th}>Aangemaakt</th>
+                <SortHead label="Aangemaakt" sortBy="created" />
               </tr>
             </thead>
             <tbody className={tbody}>
-              {clients.map((client) => {
+              {sorted.map((client) => {
                 const note = latestNote.get(client.id);
                 const fu = nextFollowUp.get(client.id);
                 const overdue = fu != null && fu <= today;
@@ -189,6 +279,16 @@ export async function KlantenList({
                       <td className={td}>
                         <ClientStatusBadge status={client.status} />
                       </td>
+                    )}
+                    {showCounts && (
+                      <>
+                        <td className={`${td} text-right tabular-nums`}>
+                          {openVac.get(client.id) ?? 0}
+                        </td>
+                        <td className={`${td} text-right tabular-nums`}>
+                          {placementCount.get(client.id) ?? 0}
+                        </td>
+                      </>
                     )}
                     {withNotes && (
                       <td className={`${td} max-w-xs`}>
