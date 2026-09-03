@@ -58,26 +58,16 @@ export const GENERATORS: Generator[] = [
     key: "kandidaatintro",
     label: "Kandidaatintroductie",
     description:
-      "Introductie richting de klant op basis van cv en intake-aantekeningen.",
-    // Eigen pagina met cv- en aantekeningenvelden:
-    // src/app/(app)/tools/generator/kandidaatintro/
+      "Introductie richting de klant op basis van cv en gespreksaantekeningen.",
+    // Eigen pagina: src/app/(app)/tools/generator/kandidaatintro/
     fields: [
-      { name: "kandidaat", label: "Naam kandidaat", type: "text", required: true },
-      { name: "vacature", label: "Voor welke vacature", type: "text" },
-      { name: "cv", label: "CV (plak de tekst)", type: "textarea" },
-      {
-        name: "aantekeningen",
-        label: "Aantekeningen / transcriptie intake",
-        type: "textarea",
-      },
+      { name: "cv", label: "CV / profieltekst", type: "textarea", required: true },
     ],
     system: KANDIDAATINTRO_SYSTEM,
     maxTokens: 3000,
     buildPrompt: (v) =>
-      `Klant: onbekend\nVacature / functie: ${v.vacature || "onbekend"}\n\n===== Kandidaat 1: ${
-        v.kandidaat || "(naam onbekend)"
-      } =====\n\nCV:\n${v.cv || "(geen cv aangeleverd)"}\n\nAantekeningen intakegesprek en/of transcriptie:\n${
-        v.aantekeningen || "(geen aantekeningen aangeleverd)"
+      `Klant: onbekend\nVacature: onbekend\n\n=== CV van de kandidaat ===\n${
+        v.cv ?? ""
       }`,
   },
   {

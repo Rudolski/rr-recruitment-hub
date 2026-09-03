@@ -1,10 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import pdfParse from "pdf-parse/lib/pdf-parse.js";
 import { getSessionContext } from "@/utils/supabase/auth";
 import { str } from "@/lib/form";
 import { AnthropicError, generateText } from "@/lib/anthropic";
+import { extractFileText } from "@/lib/extract-file";
 import {
   VACATURE_VARIANT_LABELS,
   buildVacaturetekstPrompt,
@@ -13,20 +13,6 @@ import {
   type VacatureVariant,
 } from "@/lib/vacaturetekst";
 import type { GenerateResult } from "../[key]/result";
-
-async function extractFile(file: File): Promise<string> {
-  const buf = Buffer.from(await file.arrayBuffer());
-  if (file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")) {
-    try {
-      const { text } = await pdfParse(buf);
-      return text.trim();
-    } catch {
-      return "";
-    }
-  }
-  // txt en overige platte tekst
-  return buf.toString("utf8").trim();
-}
 
 export async function runVacaturetekst(
   _prev: GenerateResult,
@@ -50,7 +36,7 @@ export async function runVacaturetekst(
   let original = str(fd, "original_text");
   const file = fd.get("original_file");
   if (file instanceof File && file.size > 0) {
-    const fromFile = await extractFile(file);
+    const fromFile = await extractFileText(file);
     original = [original, fromFile].filter(Boolean).join("\n\n");
   }
 
