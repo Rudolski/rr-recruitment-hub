@@ -5,6 +5,7 @@
  * Claude-laag (src/lib/anthropic.ts). De kandidaatintroductie heeft
  * daarnaast een eigen, uitgebreidere pagina.
  */
+import { BOOLEAN_SYSTEM, buildBooleanPrompt } from "@/lib/boolean-search";
 import { KANDIDAATINTRO_SYSTEM } from "@/lib/kandidaatintro";
 
 export type GeneratorField = {
@@ -74,21 +75,26 @@ export const GENERATORS: Generator[] = [
     key: "boolean",
     label: "Boolean search",
     description:
-      "Een LinkedIn/Recruiter boolean zoekstring op basis van functie en skills.",
+      "Boolean zoekstring op basis van de vacaturetekst, aantekeningen, locatie en uit te sluiten termen.",
+    // Eigen pagina: src/app/(app)/tools/generator/boolean/
     fields: [
-      { name: "functies", label: "Functietitels en synoniemen", type: "textarea", required: true },
-      { name: "skills", label: "Vaardigheden / keywords", type: "textarea" },
+      {
+        name: "origineel",
+        label: "Vacaturetekst",
+        type: "textarea",
+        required: true,
+      },
       { name: "locatie", label: "Locatie", type: "text" },
       { name: "uitsluiten", label: "Uit te sluiten termen", type: "text" },
     ],
-    system: `${HOUSE_STYLE} Lever uitsluitend één boolean zoekstring terug, met AND, OR, NOT, haakjes en aanhalingstekens waar nodig. Geef daarna op een nieuwe regel na "Toelichting:" hooguit twee zinnen uitleg.`,
+    system: BOOLEAN_SYSTEM,
     buildPrompt: (v) =>
-      `Stel een boolean zoekstring op.\n\n${block(v, [
-        ["functies", "Functietitels/synoniemen"],
-        ["skills", "Vaardigheden"],
-        ["locatie", "Locatie"],
-        ["uitsluiten", "Uitsluiten"],
-      ])}`,
+      buildBooleanPrompt({
+        original: v.origineel ?? "",
+        notes: "",
+        locatie: v.locatie ?? "",
+        uitsluiten: v.uitsluiten ?? "",
+      }),
     maxTokens: 700,
   },
   {
