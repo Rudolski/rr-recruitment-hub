@@ -132,6 +132,8 @@ export default async function VacaturesPage({
                 <th className={th}>Titel</th>
                 <th className={th}>Klant</th>
                 <th className={th}>Status</th>
+                <th className={th}>Consultant</th>
+                <th className={th}>Partner %</th>
                 <th className={th}>Verw. fee</th>
                 <th className={th}>Verw. maand</th>
                 <th className={th}>Kans %</th>

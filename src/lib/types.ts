@@ -63,6 +63,14 @@ export const PROSPECT_STATUSES: ClientStatus[] = [
 /* Vacatures                                                      */
 /* -------------------------------------------------------------- */
 
+/** Wie de opdracht doet. Uitbreidbaar zodra er meer consultants zijn. */
+export const CONSULTANTS = ["ruud", "juul"] as const;
+export type Consultant = (typeof CONSULTANTS)[number];
+export const CONSULTANT_LABELS: Record<Consultant, string> = {
+  ruud: "Ruud Reinhoud",
+  juul: "Juul Grubben",
+};
+
 export const VACANCY_STATUSES = [
   "open",
   "on_hold",

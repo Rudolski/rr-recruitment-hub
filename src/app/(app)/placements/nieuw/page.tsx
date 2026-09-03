@@ -45,6 +45,8 @@ export default async function NieuwePlacementPage({
           defaultVacancyId={str("vacature")}
           defaultClientId={str("klant")}
           defaultFee={str("fee")}
+          defaultPartnerName={str("partner")}
+          defaultPartnerPct={str("partnerpct")}
         />
       </div>
     </div>

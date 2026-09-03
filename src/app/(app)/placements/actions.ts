@@ -6,7 +6,6 @@ import { getSessionContext } from "@/utils/supabase/auth";
 import {
   fieldError,
   formError,
-  intOrNull,
   nullableStr,
   numOrNull,
   str,
@@ -25,6 +24,11 @@ function parsePlacement(fd: FormData) {
   if (!vacancyId) fieldErrors.vacancy_id = "Kies een vacature.";
   if (!candidateName) fieldErrors.candidate_name = "Vul de kandidaatnaam in.";
 
+  const partnerName = nullableStr(fd, "partner_name");
+  const partnerShare = partnerName
+    ? numOrNull(fd, "partner_share_amount")
+    : null;
+
   return {
     clientId,
     fieldErrors,
@@ -36,8 +40,8 @@ function parsePlacement(fd: FormData) {
       gross_annual_salary: numOrNull(fd, "gross_annual_salary"),
       fee_amount: numOrNull(fd, "fee_amount"),
       fee_percentage: numOrNull(fd, "fee_percentage"),
-      guarantee_months: intOrNull(fd, "guarantee_months"),
-      guarantee_end_date: nullableStr(fd, "guarantee_end_date"),
+      partner_name: partnerName,
+      partner_share_amount: partnerShare,
       status: isOneOf(PLACEMENT_STATUSES, statusRaw) ? statusRaw : "actief",
     },
   };
@@ -81,6 +85,21 @@ export async function createPlacement(
         commitment > 0
           ? `Placement-fee (na aftrek commitment € ${commitment})`
           : "Placement-fee",
+    });
+  }
+
+  // Negatieve factuurregel voor het partneraandeel (bijv. Juul), zodat de
+  // netto-omzet automatisch klopt.
+  if (values.partner_name && (values.partner_share_amount ?? 0) > 0) {
+    await supabase.from("invoices").insert({
+      organization_id: organizationId,
+      client_id: clientId,
+      placement_id: placement.id,
+      amount_excl_btw: -Math.abs(values.partner_share_amount as number),
+      btw_percentage: 21,
+      status: "concept",
+      partner_name: values.partner_name,
+      notes: `Aandeel ${values.partner_name}`,
     });
   }
 

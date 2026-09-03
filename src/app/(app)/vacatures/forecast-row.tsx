@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 import { VacancyStatusBadge } from "@/components/status-badge";
 import { td, tr } from "@/components/ui";
-import type { Vacancy } from "@/lib/types";
+import { CONSULTANTS, CONSULTANT_LABELS, type Vacancy } from "@/lib/types";
 import { updateVacatureForecast } from "./actions";
 
 const cell =
@@ -19,6 +19,8 @@ export function ForecastRow({
   vacancy: Vacancy;
   clientName: string;
 }) {
+  const [consultant, setConsultant] = useState(vacancy.consultant ?? "");
+  const [partnerPct, setPartnerPct] = useState(numStr(vacancy.partner_pct));
   const [fee, setFee] = useState(numStr(vacancy.expected_fee));
   const [month, setMonth] = useState(
     vacancy.expected_close_month?.slice(0, 7) ?? "",
@@ -31,6 +33,8 @@ export function ForecastRow({
   function save() {
     const fd = new FormData();
     fd.set("id", vacancy.id);
+    fd.set("consultant", consultant);
+    fd.set("partner_pct", partnerPct);
     fd.set("expected_fee", fee);
     fd.set("expected_close_month", month);
     fd.set("success_probability", prob);
@@ -61,6 +65,30 @@ export function ForecastRow({
       <td className={`${td} text-zinc-600 dark:text-zinc-400`}>{clientName}</td>
       <td className={td}>
         <VacancyStatusBadge status={vacancy.status} />
+      </td>
+      <td className={td}>
+        <select
+          aria-label="Consultant"
+          value={consultant}
+          onChange={(e) => onChange(setConsultant)(e.target.value)}
+          className={`${cell} w-32`}
+        >
+          <option value="">—</option>
+          {CONSULTANTS.map((c) => (
+            <option key={c} value={c}>
+              {CONSULTANT_LABELS[c]}
+            </option>
+          ))}
+        </select>
+      </td>
+      <td className={td}>
+        <input
+          inputMode="decimal"
+          aria-label="Aandeel partner (%)"
+          value={partnerPct}
+          onChange={(e) => onChange(setPartnerPct)(e.target.value)}
+          className={`${cell} w-16 text-right tabular-nums`}
+        />
       </td>
       <td className={td}>
         <input

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { emptyFormState, type FormState } from "@/lib/form";
 import { btnGhost, btnPrimary, inputClass, labelClass } from "@/components/ui";
 import {
@@ -15,6 +15,10 @@ type Option = { id: string; name: string };
 type VacancyOption = { id: string; title: string; client_id: string };
 
 const num = (v: number | null | undefined) => (v == null ? "" : String(v));
+const toNum = (v: string) => Number(v.replace(",", "."));
+
+/** Mogelijke partners voor een omzetverdeling. Uitbreidbaar. */
+const PARTNERS = ["Juul"] as const;
 
 export function PlacementForm({
   action,
@@ -26,6 +30,8 @@ export function PlacementForm({
   defaultVacancyId,
   defaultClientId,
   defaultFee,
+  defaultPartnerName,
+  defaultPartnerPct,
 }: {
   action: Action;
   clients: Option[];
@@ -36,6 +42,8 @@ export function PlacementForm({
   defaultVacancyId?: string;
   defaultClientId?: string;
   defaultFee?: string;
+  defaultPartnerName?: string;
+  defaultPartnerPct?: string;
 }) {
   const [state, formAction, pending] = useActionState(action, emptyFormState);
   const [clientId, setClientId] = useState(
@@ -47,21 +55,35 @@ export function PlacementForm({
   const [feePercentage, setFeePercentage] = useState(
     num(initial?.fee_percentage),
   );
-  const [feeAmount, setFeeAmount] = useState(
-    num(initial?.fee_amount) || defaultFee || "",
+
+  // Fee wordt automatisch berekend uit bruto jaarsalaris × fee-percentage.
+  const s = toNum(grossSalary);
+  const p = toNum(feePercentage);
+  const computedFee =
+    grossSalary && feePercentage && Number.isFinite(s) && Number.isFinite(p)
+      ? String(Math.round(s * (p / 100)))
+      : num(initial?.fee_amount) || defaultFee || "";
+
+  const [partnerName, setPartnerName] = useState(
+    initial?.partner_name ?? defaultPartnerName ?? "",
   );
-  const [feeEdited, setFeeEdited] = useState(
-    !!initial?.fee_amount || !!defaultFee,
+  const [partnerShare, setPartnerShare] = useState(
+    num(initial?.partner_share_amount),
+  );
+  const [partnerEdited, setPartnerEdited] = useState(
+    initial?.partner_share_amount != null,
   );
 
-  function autoFee(salary: string, pct: string) {
-    if (feeEdited) return;
-    const s = Number(salary.replace(",", "."));
-    const p = Number(pct.replace(",", "."));
-    if (Number.isFinite(s) && Number.isFinite(p) && salary && pct) {
-      setFeeAmount(String(Math.round(s * (p / 100))));
+  // Aandeel partner automatisch uit fee × meegegeven percentage (bijv. van de
+  // vacature), zolang het veld niet handmatig is aangepast.
+  useEffect(() => {
+    if (partnerEdited || !partnerName || !defaultPartnerPct) return;
+    const fee = toNum(computedFee);
+    const pct = toNum(defaultPartnerPct);
+    if (Number.isFinite(fee) && Number.isFinite(pct) && computedFee) {
+      setPartnerShare(String(Math.round(fee * (pct / 100))));
     }
-  }
+  }, [partnerName, defaultPartnerPct, computedFee, partnerEdited]);
 
   return (
     <form action={formAction} className="max-w-2xl space-y-5">
@@ -188,10 +210,7 @@ export function PlacementForm({
             name="gross_annual_salary"
             inputMode="numeric"
             value={grossSalary}
-            onChange={(e) => {
-              setGrossSalary(e.target.value);
-              autoFee(e.target.value, feePercentage);
-            }}
+            onChange={(e) => setGrossSalary(e.target.value)}
             className={inputClass}
           />
         </div>
@@ -203,12 +222,9 @@ export function PlacementForm({
           <input
             id="fee_percentage"
             name="fee_percentage"
-            inputMode="numeric"
+            inputMode="decimal"
             value={feePercentage}
-            onChange={(e) => {
-              setFeePercentage(e.target.value);
-              autoFee(grossSalary, e.target.value);
-            }}
+            onChange={(e) => setFeePercentage(e.target.value)}
             className={inputClass}
           />
         </div>
@@ -220,47 +236,63 @@ export function PlacementForm({
           <input
             id="fee_amount"
             name="fee_amount"
-            inputMode="numeric"
-            value={feeAmount}
-            onChange={(e) => {
-              setFeeAmount(e.target.value);
-              setFeeEdited(true);
-            }}
-            className={inputClass}
+            readOnly
+            value={computedFee}
+            className={`${inputClass} bg-zinc-50 dark:bg-zinc-900/60`}
           />
-          {!feeEdited && (
-            <p className="text-xs text-zinc-400">
-              Wordt berekend uit salaris × percentage; overschrijven kan.
-            </p>
-          )}
-        </div>
-
-        <div className="space-y-1.5">
-          <label htmlFor="guarantee_months" className={labelClass}>
-            Garantie (maanden)
-          </label>
-          <input
-            id="guarantee_months"
-            name="guarantee_months"
-            inputMode="numeric"
-            defaultValue={num(initial?.guarantee_months)}
-            className={inputClass}
-          />
-        </div>
-
-        <div className="space-y-1.5">
-          <label htmlFor="guarantee_end_date" className={labelClass}>
-            Einde garantie
-          </label>
-          <input
-            id="guarantee_end_date"
-            name="guarantee_end_date"
-            type="date"
-            defaultValue={initial?.guarantee_end_date ?? ""}
-            className={inputClass}
-          />
+          <p className="text-xs text-zinc-400">
+            Automatisch: bruto jaarsalaris × fee-percentage.
+          </p>
         </div>
       </div>
+
+      <fieldset className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
+        <legend className="px-1 text-xs font-medium uppercase tracking-wider text-zinc-500">
+          Verdeling
+        </legend>
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <label htmlFor="partner_name" className={labelClass}>
+              Aandeel naar
+            </label>
+            <select
+              id="partner_name"
+              name="partner_name"
+              value={partnerName}
+              onChange={(e) => setPartnerName(e.target.value)}
+              className={inputClass}
+            >
+              <option value="">— Niemand —</option>
+              {PARTNERS.map((name) => (
+                <option key={name} value={name}>
+                  {name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-1.5">
+            <label htmlFor="partner_share_amount" className={labelClass}>
+              Bedrag partner (€)
+            </label>
+            <input
+              id="partner_share_amount"
+              name="partner_share_amount"
+              inputMode="numeric"
+              value={partnerShare}
+              onChange={(e) => {
+                setPartnerShare(e.target.value);
+                setPartnerEdited(true);
+              }}
+              disabled={!partnerName}
+              className={inputClass}
+            />
+          </div>
+        </div>
+        <p className="mt-3 text-xs text-zinc-400">
+          Wordt bij opslaan als negatieve factuurregel voor deze partner
+          vastgelegd, zodat de netto-omzet (zonder partneraandeel) klopt.
+        </p>
+      </fieldset>
 
       {withInvoiceSection && (
         <fieldset className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">

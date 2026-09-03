@@ -8,7 +8,6 @@ import { getSessionContext } from "@/utils/supabase/auth";
 import type { Client, Placement, Vacancy } from "@/lib/types";
 import { VacancyForm } from "../vacancy-form";
 import { deleteVacature, updateVacature } from "../actions";
-import { loadFeeAgreementOptions } from "../helpers";
 
 export const metadata = { title: "Vacature · RR Recruitment Hub" };
 
@@ -28,20 +27,18 @@ export default async function VacatureDetailPage({
 
   if (!vacancy) notFound();
 
-  const [{ data: clients }, { data: placements }, feeAgreements] =
-    await Promise.all([
-      supabase
-        .from("clients")
-        .select("id, name")
-        .order("name", { ascending: true }),
-      supabase
-        .from("placements")
-        .select("*")
-        .eq("vacancy_id", id)
-        .order("created_at", { ascending: false })
-        .returns<Placement[]>(),
-      loadFeeAgreementOptions(supabase),
-    ]);
+  const [{ data: clients }, { data: placements }] = await Promise.all([
+    supabase
+      .from("clients")
+      .select("id, name")
+      .order("name", { ascending: true }),
+    supabase
+      .from("placements")
+      .select("*")
+      .eq("vacancy_id", id)
+      .order("created_at", { ascending: false })
+      .returns<Placement[]>(),
+  ]);
 
   const clientName =
     (clients as Pick<Client, "id" | "name">[] | null)?.find(
@@ -54,7 +51,10 @@ export default async function VacatureDetailPage({
 
   const placeUrl =
     `/placements/nieuw?vacature=${vacancy.id}&klant=${vacancy.client_id}` +
-    (vacancy.expected_fee != null ? `&fee=${vacancy.expected_fee}` : "");
+    (vacancy.expected_fee != null ? `&fee=${vacancy.expected_fee}` : "") +
+    (Number(vacancy.partner_pct) > 0
+      ? `&partner=Juul&partnerpct=${vacancy.partner_pct}`
+      : "");
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -119,7 +119,6 @@ export default async function VacatureDetailPage({
         <VacancyForm
           action={updateVacature}
           clients={clients ?? []}
-          feeAgreements={feeAgreements}
           initial={vacancy}
           submitLabel="Wijzigingen opslaan"
         />

@@ -52,39 +52,25 @@ export function ClientForm({
         )}
       </div>
 
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-        <div className="space-y-1.5">
-          <label htmlFor="status" className={labelClass}>
-            Status <span className="text-red-500">*</span>
-          </label>
-          <select
-            id="status"
-            name="status"
-            defaultValue={initial?.status ?? "nieuw"}
-            className={inputClass}
-          >
-            {CLIENT_STATUSES.map((status) => (
-              <option key={status} value={status}>
-                {CLIENT_STATUS_LABELS[status]}
-              </option>
-            ))}
-          </select>
-          {state.fieldErrors.status && (
-            <p className="text-xs text-red-600">{state.fieldErrors.status}</p>
-          )}
-        </div>
-
-        <div className="space-y-1.5">
-          <label htmlFor="kvk_number" className={labelClass}>
-            KvK-nummer
-          </label>
-          <input
-            id="kvk_number"
-            name="kvk_number"
-            defaultValue={initial?.kvk_number ?? ""}
-            className={inputClass}
-          />
-        </div>
+      <div className="max-w-xs space-y-1.5">
+        <label htmlFor="status" className={labelClass}>
+          Status <span className="text-red-500">*</span>
+        </label>
+        <select
+          id="status"
+          name="status"
+          defaultValue={initial?.status ?? "nieuw"}
+          className={inputClass}
+        >
+          {CLIENT_STATUSES.map((status) => (
+            <option key={status} value={status}>
+              {CLIENT_STATUS_LABELS[status]}
+            </option>
+          ))}
+        </select>
+        {state.fieldErrors.status && (
+          <p className="text-xs text-red-600">{state.fieldErrors.status}</p>
+        )}
       </div>
 
       <div className="space-y-1.5">

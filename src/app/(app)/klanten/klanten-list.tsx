@@ -18,8 +18,8 @@ import { getSessionContext } from "@/utils/supabase/auth";
 import {
   CLIENT_STATUS_LABELS,
   PROSPECT_STATUSES,
-  isOneOf,
   type Client,
+  type ClientNote,
 } from "@/lib/types";
 
 export type KlantenScope = "actief" | "prospects" | "archief";
@@ -31,7 +31,7 @@ const META: Record<
   actief: {
     title: "Klanten",
     description: "Opdrachtgevers met de status Klant.",
-    empty: "Nog geen actieve klanten.",
+    empty: "Nog geen klanten.",
   },
   prospects: {
     title: "Prospects",
@@ -45,6 +45,8 @@ const META: Record<
     empty: "Archief is leeg.",
   },
 };
+
+const todayIso = () => new Date().toISOString().slice(0, 10);
 
 export async function KlantenList({
   scope,
@@ -86,6 +88,33 @@ export async function KlantenList({
 
   const { data: clients, error } = await query.returns<Client[]>();
 
+  const withNotes = scope !== "archief" && !!clients && clients.length > 0;
+  const latestNote = new Map<string, ClientNote>();
+  const nextFollowUp = new Map<string, string>();
+  if (withNotes) {
+    const ids = clients!.map((c) => c.id);
+    const { data: notes } = await supabase
+      .from("client_notes")
+      .select("*")
+      .in("client_id", ids)
+      .order("created_at", { ascending: false })
+      .returns<ClientNote[]>();
+    for (const n of notes ?? []) {
+      if (!latestNote.has(n.client_id)) latestNote.set(n.client_id, n);
+    }
+    // eerstvolgende openstaande opvolging per klant
+    const open = [...(notes ?? [])]
+      .filter((n) => n.follow_up_on && !n.follow_up_done)
+      .sort((a, b) => (a.follow_up_on ?? "").localeCompare(b.follow_up_on ?? ""));
+    for (const n of open) {
+      if (n.follow_up_on && !nextFollowUp.has(n.client_id))
+        nextFollowUp.set(n.client_id, n.follow_up_on);
+    }
+  }
+
+  const showStatus = scope !== "actief";
+  const today = todayIso();
+
   return (
     <div className="mx-auto max-w-5xl">
       <PageHeader
@@ -124,9 +153,7 @@ export async function KlantenList({
         </form>
       )}
 
-      {error && (
-        <p className={errorBox}>Laden mislukt: {error.message}</p>
-      )}
+      {error && <p className={errorBox}>Laden mislukt: {error.message}</p>}
 
       {!error && (!clients || clients.length === 0) && (
         <div className={emptyState}>{meta.empty}</div>
@@ -138,29 +165,64 @@ export async function KlantenList({
             <thead className={thead}>
               <tr>
                 <th className={th}>Naam</th>
-                <th className={th}>Status</th>
+                {showStatus && <th className={th}>Status</th>}
+                {withNotes && <th className={th}>Laatste notitie / opvolgen</th>}
                 <th className={th}>Aangemaakt</th>
               </tr>
             </thead>
             <tbody className={tbody}>
-              {clients.map((client) => (
-                <tr key={client.id} className={tr}>
-                  <td className={td}>
-                    <Link
-                      href={`/klanten/${client.id}`}
-                      className="font-medium text-navy hover:underline dark:text-cream"
-                    >
-                      {client.name}
-                    </Link>
-                  </td>
-                  <td className={td}>
-                    <ClientStatusBadge status={client.status} />
-                  </td>
-                  <td className={`${td} text-zinc-500`}>
-                    {formatDate(client.created_at)}
-                  </td>
-                </tr>
-              ))}
+              {clients.map((client) => {
+                const note = latestNote.get(client.id);
+                const fu = nextFollowUp.get(client.id);
+                const overdue = fu != null && fu <= today;
+                return (
+                  <tr key={client.id} className={tr}>
+                    <td className={td}>
+                      <Link
+                        href={`/klanten/${client.id}`}
+                        className="font-medium text-navy hover:underline dark:text-cream"
+                      >
+                        {client.name}
+                      </Link>
+                    </td>
+                    {showStatus && (
+                      <td className={td}>
+                        <ClientStatusBadge status={client.status} />
+                      </td>
+                    )}
+                    {withNotes && (
+                      <td className={`${td} max-w-xs`}>
+                        {fu && (
+                          <span
+                            className={`mr-2 rounded-full px-1.5 py-0.5 text-[11px] ${
+                              overdue
+                                ? "bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300"
+                                : "bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300"
+                            }`}
+                          >
+                            {formatDate(fu)}
+                          </span>
+                        )}
+                        <span className="text-zinc-600 dark:text-zinc-400">
+                          {note ? (
+                            <span
+                              className="line-clamp-1"
+                              title={note.body}
+                            >
+                              {note.body}
+                            </span>
+                          ) : (
+                            "—"
+                          )}
+                        </span>
+                      </td>
+                    )}
+                    <td className={`${td} text-zinc-500`}>
+                      {formatDate(client.created_at)}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

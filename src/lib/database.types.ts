@@ -174,6 +174,10 @@ export type Database = {
           expected_fee: number | null;
           expected_close_month: string | null;
           success_probability: number | null;
+          consultant: string | null;
+          partner_pct: number | null;
+          fee_pct: number | null;
+          exclusivity_until: string | null;
           description: string | null;
           requirements: string | null;
           opened_at: string;
@@ -196,6 +200,10 @@ export type Database = {
           expected_fee?: number | null;
           expected_close_month?: string | null;
           success_probability?: number | null;
+          consultant?: string | null;
+          partner_pct?: number | null;
+          fee_pct?: number | null;
+          exclusivity_until?: string | null;
           description?: string | null;
           requirements?: string | null;
           opened_at?: string;
@@ -216,6 +224,10 @@ export type Database = {
           expected_fee?: number | null;
           expected_close_month?: string | null;
           success_probability?: number | null;
+          consultant?: string | null;
+          partner_pct?: number | null;
+          fee_pct?: number | null;
+          exclusivity_until?: string | null;
           description?: string | null;
           requirements?: string | null;
           opened_at?: string;
@@ -230,6 +242,8 @@ export type Database = {
           organization_id: string;
           client_id: string;
           candidate_name: string | null;
+          partner_name: string | null;
+          partner_share_amount: number | null;
           vacancy_id: string;
           start_date: string | null;
           gross_annual_salary: number | null;
@@ -245,6 +259,8 @@ export type Database = {
           organization_id: string;
           client_id: string;
           candidate_name?: string | null;
+          partner_name?: string | null;
+          partner_share_amount?: number | null;
           vacancy_id: string;
           start_date?: string | null;
           gross_annual_salary?: number | null;
@@ -258,6 +274,8 @@ export type Database = {
         Update: {
           client_id?: string;
           candidate_name?: string | null;
+          partner_name?: string | null;
+          partner_share_amount?: number | null;
           vacancy_id?: string;
           start_date?: string | null;
           gross_annual_salary?: number | null;

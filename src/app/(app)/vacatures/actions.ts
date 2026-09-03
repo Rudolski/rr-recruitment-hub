@@ -11,7 +11,7 @@ import {
   str,
   type FormState,
 } from "@/lib/form";
-import { VACANCY_STATUSES, isOneOf } from "@/lib/types";
+import { CONSULTANTS, VACANCY_STATUSES, isOneOf } from "@/lib/types";
 
 function monthToDate(value: string): string | null {
   // "YYYY-MM" -> "YYYY-MM-01"
@@ -21,6 +21,11 @@ function monthToDate(value: string): string | null {
 function clampPct(n: number | null): number | null {
   if (n == null) return null;
   return Math.min(100, Math.max(0, n));
+}
+
+function consultantOrNull(fd: FormData): string | null {
+  const v = str(fd, "consultant");
+  return (CONSULTANTS as readonly string[]).includes(v) ? v : null;
 }
 
 function parse(fd: FormData) {
@@ -39,19 +44,14 @@ function parse(fd: FormData) {
       client_id: clientId,
       title,
       status: isOneOf(VACANCY_STATUSES, statusRaw) ? statusRaw : "open",
-      fee_agreement_id: nullableStr(fd, "fee_agreement_id"),
-      function_group: nullableStr(fd, "function_group"),
-      location: nullableStr(fd, "location"),
-      employment_type: nullableStr(fd, "employment_type"),
-      salary_min: numOrNull(fd, "salary_min"),
-      salary_max: numOrNull(fd, "salary_max"),
+      consultant: consultantOrNull(fd),
+      fee_pct: clampPct(numOrNull(fd, "fee_pct")),
+      partner_pct: clampPct(numOrNull(fd, "partner_pct")),
       expected_fee: numOrNull(fd, "expected_fee"),
       expected_close_month: monthToDate(str(fd, "expected_close_month")),
       success_probability: clampPct(numOrNull(fd, "success_probability")),
-      description: nullableStr(fd, "description"),
-      requirements: nullableStr(fd, "requirements"),
       opened_at: openedAt || new Date().toISOString().slice(0, 10),
-      closed_at: nullableStr(fd, "closed_at"),
+      exclusivity_until: nullableStr(fd, "exclusivity_until"),
     },
   };
 }
@@ -111,6 +111,8 @@ export async function updateVacatureForecast(fd: FormData) {
   await supabase
     .from("vacancies")
     .update({
+      consultant: consultantOrNull(fd),
+      partner_pct: clampPct(numOrNull(fd, "partner_pct")),
       expected_fee: numOrNull(fd, "expected_fee"),
       expected_close_month: monthToDate(str(fd, "expected_close_month")),
       success_probability: clampPct(numOrNull(fd, "success_probability")),

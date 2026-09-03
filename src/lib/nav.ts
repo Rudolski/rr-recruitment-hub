@@ -30,7 +30,7 @@ export const navSections: NavSection[] = [
       {
         label: "Klanten",
         href: "/klanten",
-        description: "Actieve opdrachtgevers.",
+        description: "Opdrachtgevers met de status Klant.",
       },
       {
         label: "Prospects",
@@ -39,14 +39,14 @@ export const navSections: NavSection[] = [
           "Relaties in de funnel: nieuw, in outreach, warm, afspraak gepland of voorstel gestuurd.",
       },
       {
-        label: "Archief",
-        href: "/archief",
-        description: "Inactieve relaties.",
-      },
-      {
         label: "Contactpersonen",
         href: "/contactpersonen",
         description: "Alle contactpersonen, gekoppeld aan een relatie.",
+      },
+      {
+        label: "Archief",
+        href: "/archief",
+        description: "Inactieve relaties.",
       },
     ],
   },

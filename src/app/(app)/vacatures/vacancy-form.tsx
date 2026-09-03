@@ -5,6 +5,8 @@ import { useActionState } from "react";
 import { emptyFormState, type FormState } from "@/lib/form";
 import { btnGhost, btnPrimary, inputClass, labelClass } from "@/components/ui";
 import {
+  CONSULTANTS,
+  CONSULTANT_LABELS,
   VACANCY_STATUSES,
   VACANCY_STATUS_LABELS,
   type Vacancy,
@@ -17,14 +19,12 @@ const num = (v: number | null | undefined) => (v == null ? "" : String(v));
 export function VacancyForm({
   action,
   clients,
-  feeAgreements = [],
   initial,
   submitLabel,
   lockedClientId,
 }: {
   action: Action;
   clients: { id: string; name: string }[];
-  feeAgreements?: { id: string; label: string }[];
   initial?: Vacancy;
   submitLabel: string;
   lockedClientId?: string;
@@ -102,27 +102,6 @@ export function VacancyForm({
         </div>
       </div>
 
-      {feeAgreements.length > 0 && (
-        <div className="space-y-1.5">
-          <label htmlFor="fee_agreement_id" className={labelClass}>
-            Fee-afspraak
-          </label>
-          <select
-            id="fee_agreement_id"
-            name="fee_agreement_id"
-            defaultValue={initial?.fee_agreement_id ?? ""}
-            className={inputClass}
-          >
-            <option value="">— Geen —</option>
-            {feeAgreements.map((fa) => (
-              <option key={fa.id} value={fa.id}>
-                {fa.label}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
-
       <div className="space-y-1.5">
         <label htmlFor="title" className={labelClass}>
           Titel <span className="text-red-500">*</span>
@@ -141,62 +120,50 @@ export function VacancyForm({
 
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
         <div className="space-y-1.5">
-          <label htmlFor="function_group" className={labelClass}>
-            Functiegroep
+          <label htmlFor="consultant" className={labelClass}>
+            Consultant
+          </label>
+          <select
+            id="consultant"
+            name="consultant"
+            defaultValue={initial?.consultant ?? ""}
+            className={inputClass}
+          >
+            <option value="">—</option>
+            {CONSULTANTS.map((c) => (
+              <option key={c} value={c}>
+                {CONSULTANT_LABELS[c]}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="space-y-1.5">
+          <label htmlFor="fee_pct" className={labelClass}>
+            Fee-percentage (%)
           </label>
           <input
-            id="function_group"
-            name="function_group"
-            defaultValue={initial?.function_group ?? ""}
+            id="fee_pct"
+            name="fee_pct"
+            inputMode="decimal"
+            defaultValue={num(initial?.fee_pct)}
             className={inputClass}
           />
         </div>
         <div className="space-y-1.5">
-          <label htmlFor="location" className={labelClass}>
-            Locatie
+          <label htmlFor="partner_pct" className={labelClass}>
+            Aandeel partner (%)
           </label>
           <input
-            id="location"
-            name="location"
-            defaultValue={initial?.location ?? ""}
+            id="partner_pct"
+            name="partner_pct"
+            inputMode="decimal"
+            placeholder="0"
+            defaultValue={num(initial?.partner_pct)}
             className={inputClass}
           />
-        </div>
-        <div className="space-y-1.5">
-          <label htmlFor="employment_type" className={labelClass}>
-            Dienstverband
-          </label>
-          <input
-            id="employment_type"
-            name="employment_type"
-            placeholder="Vast, interim, …"
-            defaultValue={initial?.employment_type ?? ""}
-            className={inputClass}
-          />
-        </div>
-        <div className="space-y-1.5">
-          <label htmlFor="salary_min" className={labelClass}>
-            Salaris min (€/jr)
-          </label>
-          <input
-            id="salary_min"
-            name="salary_min"
-            inputMode="numeric"
-            defaultValue={num(initial?.salary_min)}
-            className={inputClass}
-          />
-        </div>
-        <div className="space-y-1.5">
-          <label htmlFor="salary_max" className={labelClass}>
-            Salaris max (€/jr)
-          </label>
-          <input
-            id="salary_max"
-            name="salary_max"
-            inputMode="numeric"
-            defaultValue={num(initial?.salary_max)}
-            className={inputClass}
-          />
+          <p className="text-xs text-zinc-400">
+            Deel van de fee dat naar de andere consultant (bijv. Juul) gaat.
+          </p>
         </div>
       </div>
 
@@ -262,43 +229,17 @@ export function VacancyForm({
           />
         </div>
         <div className="space-y-1.5">
-          <label htmlFor="closed_at" className={labelClass}>
-            Gesloten op
+          <label htmlFor="exclusivity_until" className={labelClass}>
+            Einddatum exclusiviteit
           </label>
           <input
-            id="closed_at"
-            name="closed_at"
+            id="exclusivity_until"
+            name="exclusivity_until"
             type="date"
-            defaultValue={initial?.closed_at ?? ""}
+            defaultValue={initial?.exclusivity_until ?? ""}
             className={inputClass}
           />
         </div>
-      </div>
-
-      <div className="space-y-1.5">
-        <label htmlFor="description" className={labelClass}>
-          Omschrijving
-        </label>
-        <textarea
-          id="description"
-          name="description"
-          rows={3}
-          defaultValue={initial?.description ?? ""}
-          className={inputClass}
-        />
-      </div>
-
-      <div className="space-y-1.5">
-        <label htmlFor="requirements" className={labelClass}>
-          Functie-eisen
-        </label>
-        <textarea
-          id="requirements"
-          name="requirements"
-          rows={3}
-          defaultValue={initial?.requirements ?? ""}
-          className={inputClass}
-        />
       </div>
 
       <div className="flex items-center gap-3 pt-1">
