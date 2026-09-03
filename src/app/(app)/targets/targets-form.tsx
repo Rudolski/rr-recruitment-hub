@@ -1,7 +1,7 @@
 "use client";
 
 import { btnPrimary } from "@/components/ui";
-import { eur, MONTH_NAMES } from "@/lib/format";
+import { eur, MONTH_NAMES, pctLabel } from "@/lib/format";
 import { saveYearTargets } from "./actions";
 
 export type MonthInput = { revenue: string };
@@ -32,30 +32,45 @@ export function TargetsForm({
               <th className="px-4 py-2.5 text-right font-medium">
                 Behaald excl. btw
               </th>
+              <th className="px-4 py-2.5 text-right font-medium">% behaald</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
-            {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
-              <tr key={m}>
-                <td className="px-4 py-2 capitalize">{MONTH_NAMES[m]}</td>
-                <td className="px-4 py-2 text-right">
-                  <input
-                    name={`revenue_${m}`}
-                    inputMode="numeric"
-                    defaultValue={initial[m]?.revenue ?? ""}
-                    placeholder="0"
-                    className={cell}
-                  />
-                </td>
-                <td className="px-4 py-2 text-right tabular-nums text-zinc-500">
-                  {eur(realisedRevenue[m] ?? 0)}
-                </td>
-              </tr>
-            ))}
+            {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => {
+              const target = Number(initial[m]?.revenue || 0);
+              const realised = realisedRevenue[m] ?? 0;
+              const pct = pctLabel(realised, target);
+              return (
+                <tr key={m}>
+                  <td className="px-4 py-2 capitalize">{MONTH_NAMES[m]}</td>
+                  <td className="px-4 py-2 text-right">
+                    <input
+                      name={`revenue_${m}`}
+                      inputMode="numeric"
+                      defaultValue={initial[m]?.revenue ?? ""}
+                      placeholder="0"
+                      className={cell}
+                    />
+                  </td>
+                  <td className="px-4 py-2 text-right tabular-nums text-zinc-500">
+                    {eur(realised)}
+                  </td>
+                  <td
+                    className={`px-4 py-2 text-right tabular-nums font-medium ${pct.tone}`}
+                  >
+                    {pct.text}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
-      <button type="submit" className={`${btnPrimary} mt-4`}>
+      <p className="mt-2 text-xs text-zinc-400">
+        Het percentage is gebaseerd op het opgeslagen target. Sla eerst op om
+        een gewijzigd target mee te rekenen.
+      </p>
+      <button type="submit" className={`${btnPrimary} mt-3`}>
         Targets opslaan
       </button>
     </form>

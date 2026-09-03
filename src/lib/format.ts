@@ -69,3 +69,19 @@ export const MONTH_NAMES = [
 export const QUARTER_OF_MONTH = [
   0, 1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4,
 ] as const;
+
+/** Percentage behaald van een target, met een kleurtint. */
+export function pctLabel(
+  realised: number,
+  target: number,
+): { text: string; tone: string } {
+  if (!target) return { text: "—", tone: "text-zinc-400" };
+  const p = Math.round((realised / target) * 100);
+  const tone =
+    p >= 100
+      ? "text-green-600 dark:text-green-400"
+      : p >= 75
+        ? "text-amber-600 dark:text-amber-400"
+        : "text-zinc-600 dark:text-zinc-400";
+  return { text: `${p}%`, tone };
+}

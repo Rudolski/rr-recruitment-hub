@@ -1,6 +1,6 @@
 import { PageHeader } from "@/components/page-header";
 import { errorBox } from "@/components/ui";
-import { eur, QUARTER_OF_MONTH } from "@/lib/format";
+import { eur, pctLabel, QUARTER_OF_MONTH } from "@/lib/format";
 import { getSessionContext } from "@/utils/supabase/auth";
 import {
   REALISED_INVOICE_STATUSES,
@@ -140,24 +140,33 @@ export default async function TargetsPage({
                 <th className="px-4 py-2.5 text-left font-medium">Periode</th>
                 <th className="px-4 py-2.5 text-right font-medium">Target</th>
                 <th className="px-4 py-2.5 text-right font-medium">Behaald</th>
+                <th className="px-4 py-2.5 text-right font-medium">% behaald</th>
                 <th className="px-4 py-2.5 text-right font-medium">Verschil</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
-              {[1, 2, 3, 4].map((quarter) => (
-                <tr key={quarter}>
-                  <td className="px-4 py-2">Q{quarter}</td>
-                  <td className="px-4 py-2 text-right tabular-nums">
-                    {eur(q.target[quarter])}
-                  </td>
-                  <td className="px-4 py-2 text-right tabular-nums">
-                    {eur(q.realised[quarter])}
-                  </td>
-                  <td className="px-4 py-2 text-right tabular-nums text-zinc-500">
-                    {eur(q.realised[quarter] - q.target[quarter])}
-                  </td>
-                </tr>
-              ))}
+              {[1, 2, 3, 4].map((quarter) => {
+                const pct = pctLabel(q.realised[quarter], q.target[quarter]);
+                return (
+                  <tr key={quarter}>
+                    <td className="px-4 py-2">Q{quarter}</td>
+                    <td className="px-4 py-2 text-right tabular-nums">
+                      {eur(q.target[quarter])}
+                    </td>
+                    <td className="px-4 py-2 text-right tabular-nums">
+                      {eur(q.realised[quarter])}
+                    </td>
+                    <td
+                      className={`px-4 py-2 text-right font-medium tabular-nums ${pct.tone}`}
+                    >
+                      {pct.text}
+                    </td>
+                    <td className="px-4 py-2 text-right tabular-nums text-zinc-500">
+                      {eur(q.realised[quarter] - q.target[quarter])}
+                    </td>
+                  </tr>
+                );
+              })}
               <tr className="border-t border-zinc-200 font-medium dark:border-zinc-800">
                 <td className="px-4 py-2">Jaar</td>
                 <td className="px-4 py-2 text-right tabular-nums">
@@ -165,6 +174,13 @@ export default async function TargetsPage({
                 </td>
                 <td className="px-4 py-2 text-right tabular-nums">
                   {eur(yearRealised)}
+                </td>
+                <td
+                  className={`px-4 py-2 text-right tabular-nums ${
+                    pctLabel(yearRealised, yearTarget).tone
+                  }`}
+                >
+                  {pctLabel(yearRealised, yearTarget).text}
                 </td>
                 <td className="px-4 py-2 text-right tabular-nums text-zinc-500">
                   {eur(yearRealised - yearTarget)}
