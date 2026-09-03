@@ -36,7 +36,17 @@ function pick<T extends Record<string, string>>(
 
 export function ClientStatusBadge({ status }: { status: string }) {
   const tone: Tone =
-    status === "actief" ? "green" : status === "prospect" ? "amber" : "zinc";
+    status === "actief"
+      ? "green"
+      : status === "warm" ||
+          status === "afspraak_gepland" ||
+          status === "voorstel_gestuurd"
+        ? "amber"
+        : status === "in_outreach"
+          ? "blue"
+          : status === "inactief"
+            ? "zinc"
+            : "zinc";
   return <Badge label={pick(CLIENT_STATUS_LABELS, status)} tone={tone} />;
 }
 

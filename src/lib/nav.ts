@@ -38,10 +38,16 @@ export const navSections: NavSection[] = [
     title: "Relatiebeheer",
     items: [
       {
+        label: "Acquisitie",
+        href: "/acquisitie",
+        description:
+          "De acquisitie-funnel per klant en de openstaande opvolgacties.",
+      },
+      {
         label: "Klanten",
         href: "/klanten",
         description:
-          "Opdrachtgevers met status prospect, actief of inactief, inclusief sector, regio en account owner.",
+          "Opdrachtgevers met acquisitiestatus, sector, regio en account owner.",
       },
       {
         label: "Contactpersonen",

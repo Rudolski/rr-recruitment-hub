@@ -25,7 +25,7 @@ function parse(fd: FormData) {
     fieldErrors,
     values: {
       name,
-      status: isOneOf(CLIENT_STATUSES, statusRaw) ? statusRaw : "prospect",
+      status: isOneOf(CLIENT_STATUSES, statusRaw) ? statusRaw : "nieuw",
       kvk_number: nullableStr(fd, "kvk_number"),
       sector: nullableStr(fd, "sector"),
       region: nullableStr(fd, "region"),
@@ -81,6 +81,19 @@ export async function updateKlant(
   revalidatePath("/klanten");
   revalidatePath(`/klanten/${id}`);
   redirect(`/klanten/${id}`);
+}
+
+/** Snel wijzigen van de acquisitiestatus vanaf de klant- of acquisitiepagina. */
+export async function setClientStatus(fd: FormData) {
+  const { supabase } = await getSessionContext();
+  const id = str(fd, "id");
+  const status = str(fd, "status");
+  if (!id || !isOneOf(CLIENT_STATUSES, status)) return;
+
+  await supabase.from("clients").update({ status }).eq("id", id);
+  revalidatePath("/klanten");
+  revalidatePath(`/klanten/${id}`);
+  revalidatePath("/acquisitie");
 }
 
 export async function deleteKlant(fd: FormData) {

@@ -1,20 +1,23 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BackLink } from "@/components/page-header";
+import { ClientNotes } from "@/components/client-notes";
 import { FileManager } from "@/components/file-manager";
 import { InvoiceLines } from "@/components/invoice-lines";
 import {
-  ClientStatusBadge,
   PlacementStatusBadge,
   VacancyStatusBadge,
 } from "@/components/status-badge";
-import { btnDanger } from "@/components/ui";
+import { btnDanger, inputClass } from "@/components/ui";
 import { eur, eur2, formatDate } from "@/lib/format";
 import { splitOmzet } from "@/lib/omzet";
 import { getSessionContext } from "@/utils/supabase/auth";
 import {
+  CLIENT_STATUSES,
+  CLIENT_STATUS_LABELS,
   FEE_AGREEMENT_TYPE_LABELS,
   type Client,
+  type ClientNote,
   type Contact,
   type FeeAgreement,
   type Invoice,
@@ -23,7 +26,7 @@ import {
   type Vacancy,
 } from "@/lib/types";
 import { ClientForm } from "../client-form";
-import { deleteKlant, updateKlant } from "../actions";
+import { deleteKlant, setClientStatus, updateKlant } from "../actions";
 
 export const metadata = { title: "Klant · RR Recruitment Hub" };
 
@@ -49,6 +52,7 @@ export default async function KlantDetailPage({
 
   const [
     { data: contacts },
+    { data: notes },
     { data: feeAgreements },
     { data: vacancies },
     { data: placements },
@@ -61,6 +65,12 @@ export default async function KlantDetailPage({
       .eq("client_id", id)
       .order("is_primary", { ascending: false })
       .returns<Contact[]>(),
+    supabase
+      .from("client_notes")
+      .select("*")
+      .eq("client_id", id)
+      .order("created_at", { ascending: false })
+      .returns<ClientNote[]>(),
     supabase
       .from("fee_agreements")
       .select("*")
@@ -108,12 +118,37 @@ export default async function KlantDetailPage({
   return (
     <div className="mx-auto max-w-3xl">
       <BackLink href="/klanten" label="Klanten" />
-      <div className="mt-2 flex items-center gap-3">
+      <div className="mt-2 flex flex-wrap items-center gap-3">
         <h1 className="font-[family-name:var(--font-roc)] text-2xl font-medium tracking-tight text-navy dark:text-cream">
           {client.name}
         </h1>
-        <ClientStatusBadge status={client.status} />
+        <form action={setClientStatus}>
+          <input type="hidden" name="id" value={client.id} />
+          <select
+            name="status"
+            defaultValue={client.status}
+            className={`${inputClass} w-auto py-1 text-xs`}
+          >
+            {CLIENT_STATUSES.map((s) => (
+              <option key={s} value={s}>
+                {CLIENT_STATUS_LABELS[s]}
+              </option>
+            ))}
+          </select>
+          <button
+            type="submit"
+            className="ml-1 rounded-md border border-zinc-300 px-2 py-1 text-xs hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
+          >
+            Zet status
+          </button>
+        </form>
       </div>
+
+      {/* Notities & opvolging */}
+      <section className="mt-6">
+        <h2 className={`${sectionTitle} mb-3`}>Notities &amp; opvolging</h2>
+        <ClientNotes notes={notes ?? []} clientId={client.id} />
+      </section>
 
       {/* Omzet */}
       <section className="mt-6 rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">

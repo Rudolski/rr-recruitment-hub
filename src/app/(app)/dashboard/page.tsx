@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
 import { errorBox } from "@/components/ui";
-import { eur, eur2, formatMonth, MONTH_NAMES } from "@/lib/format";
+import { eur, eur2, formatDate, formatMonth, MONTH_NAMES } from "@/lib/format";
 import { getSessionContext } from "@/utils/supabase/auth";
 import {
   REALISED_INVOICE_STATUSES,
   type Client,
+  type ClientNote,
   type Invoice,
   type MonthlyTarget,
   type Vacancy,
@@ -72,6 +73,23 @@ export default async function DashboardPage({
     .select("id, name")
     .order("name")
     .returns<Pick<Client, "id" | "name">[]>();
+
+  /* -------- Opvolgacties (komende 7 dagen + te laat) -------- */
+  const weekAhead = new Date(now.getTime() + 7 * 864e5)
+    .toISOString()
+    .slice(0, 10);
+  const { data: followUps } = await supabase
+    .from("client_notes")
+    .select("id, client_id, body, follow_up_on")
+    .eq("follow_up_done", false)
+    .not("follow_up_on", "is", null)
+    .lte("follow_up_on", weekAhead)
+    .order("follow_up_on", { ascending: true })
+    .returns<
+      Pick<ClientNote, "id" | "client_id" | "body" | "follow_up_on">[]
+    >();
+  const clientNameAll = new Map((clients ?? []).map((c) => [c.id, c.name]));
+  const todayStr = now.toISOString().slice(0, 10);
 
   async function realisedInvoices(from: string, to: string) {
     let q = supabase
@@ -272,6 +290,46 @@ export default async function DashboardPage({
           <p className="mt-1 text-xs text-zinc-400">fee × slagingskans</p>
         </div>
       </div>
+
+      {followUps && followUps.length > 0 && (
+        <section className="mt-8 rounded-lg border border-terra/40 bg-terra/5 p-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-navy dark:text-cream">
+              Opvolgen ({followUps.length})
+            </h2>
+            <Link href="/acquisitie" className="text-xs text-terra underline">
+              Naar acquisitie
+            </Link>
+          </div>
+          <ul className="mt-2 space-y-1">
+            {followUps.slice(0, 8).map((f) => {
+              const overdue = (f.follow_up_on ?? "") < todayStr;
+              return (
+                <li key={f.id} className="flex gap-3 text-sm">
+                  <span
+                    className={`w-20 shrink-0 tabular-nums ${
+                      overdue
+                        ? "font-medium text-red-600"
+                        : "text-zinc-500"
+                    }`}
+                  >
+                    {formatDate(f.follow_up_on)}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate">
+                    <Link
+                      href={`/klanten/${f.client_id}`}
+                      className="font-medium text-navy hover:underline dark:text-cream"
+                    >
+                      {clientNameAll.get(f.client_id) ?? "Klant"}
+                    </Link>
+                    <span className="ml-2 text-zinc-500">{f.body}</span>
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
 
       <RevenueChart
         year={year}

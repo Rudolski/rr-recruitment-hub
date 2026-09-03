@@ -8,6 +8,7 @@ type Tables = Database["public"]["Tables"];
 
 export type Client = Tables["clients"]["Row"];
 export type Contact = Tables["contacts"]["Row"];
+export type ClientNote = Tables["client_notes"]["Row"];
 export type Vacancy = Tables["vacancies"]["Row"];
 export type Placement = Tables["placements"]["Row"];
 export type Invoice = Tables["invoices"]["Row"];
@@ -19,13 +20,35 @@ export type StoredFile = Tables["stored_files"]["Row"];
 /* Klanten                                                        */
 /* -------------------------------------------------------------- */
 
-export const CLIENT_STATUSES = ["prospect", "actief", "inactief"] as const;
+export const CLIENT_STATUSES = [
+  "nieuw",
+  "in_outreach",
+  "warm",
+  "afspraak_gepland",
+  "voorstel_gestuurd",
+  "actief",
+  "inactief",
+] as const;
 export type ClientStatus = (typeof CLIENT_STATUSES)[number];
 export const CLIENT_STATUS_LABELS: Record<ClientStatus, string> = {
-  prospect: "Prospect",
+  nieuw: "Nieuw",
+  in_outreach: "In outreach",
+  warm: "Warm",
+  afspraak_gepland: "Afspraak gepland",
+  voorstel_gestuurd: "Voorstel gestuurd",
   actief: "Actief",
   inactief: "Inactief",
 };
+
+/** Volgorde van de acquisitie-funnel (zonder inactief). */
+export const ACQUISITION_FUNNEL: ClientStatus[] = [
+  "nieuw",
+  "in_outreach",
+  "warm",
+  "afspraak_gepland",
+  "voorstel_gestuurd",
+  "actief",
+];
 
 /* -------------------------------------------------------------- */
 /* Vacatures                                                      */

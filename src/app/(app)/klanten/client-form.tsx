@@ -8,7 +8,7 @@ import {
   type Client,
 } from "@/lib/types";
 import { emptyFormState, type FormState } from "@/lib/form";
-import { inputClass, labelClass } from "@/components/ui";
+import { btnGhost, btnPrimary, inputClass, labelClass } from "@/components/ui";
 
 type Action = (prev: FormState, formData: FormData) => Promise<FormState>;
 
@@ -60,7 +60,7 @@ export function ClientForm({
           <select
             id="status"
             name="status"
-            defaultValue={initial?.status ?? "prospect"}
+            defaultValue={initial?.status ?? "nieuw"}
             className={inputClass}
           >
             {CLIENT_STATUSES.map((status) => (
@@ -125,16 +125,12 @@ export function ClientForm({
       </div>
 
       <div className="flex items-center gap-3 pt-1">
-        <button
-          type="submit"
-          disabled={pending}
-          className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-800 disabled:opacity-60 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
-        >
+        <button type="submit" disabled={pending} className={btnPrimary}>
           {pending ? "Bezig met opslaan…" : submitLabel}
         </button>
         <Link
           href={initial ? `/klanten/${initial.id}` : "/klanten"}
-          className="text-sm text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+          className={btnGhost}
         >
           Annuleren
         </Link>

@@ -324,6 +324,37 @@ export type Database = {
         };
         Relationships: [];
       };
+      client_notes: {
+        Row: {
+          id: string;
+          organization_id: string;
+          client_id: string;
+          author_id: string | null;
+          body: string;
+          follow_up_on: string | null;
+          follow_up_done: boolean;
+          follow_up_done_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          client_id: string;
+          author_id?: string | null;
+          body: string;
+          follow_up_on?: string | null;
+          follow_up_done?: boolean;
+          follow_up_done_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          body?: string;
+          follow_up_on?: string | null;
+          follow_up_done?: boolean;
+          follow_up_done_at?: string | null;
+        };
+        Relationships: [];
+      };
       stored_files: {
         Row: {
           id: string;
