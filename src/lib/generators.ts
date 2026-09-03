@@ -1,9 +1,11 @@
 /**
- * Definities van de vijf AI-generatoren (fase 3). Elke generator
- * heeft invoervelden, een systeemprompt en een functie die de
+ * Definities van de AI-generatoren (fase 3). Elke generator heeft
+ * invoervelden, een systeemprompt en een functie die de
  * gebruikersprompt opbouwt. Ze delen allemaal dezelfde server-side
- * Claude-laag (src/lib/anthropic.ts).
+ * Claude-laag (src/lib/anthropic.ts). De kandidaatintroductie heeft
+ * daarnaast een eigen, uitgebreidere pagina.
  */
+import { KANDIDAATINTRO_SYSTEM } from "@/lib/kandidaatintro";
 
 export type GeneratorField = {
   name: string;
@@ -64,27 +66,27 @@ export const GENERATORS: Generator[] = [
     key: "kandidaatintro",
     label: "Kandidaatintroductie",
     description:
-      "Een introductie van een kandidaat richting de opdrachtgever.",
+      "Introductie richting de klant op basis van cv en intake-aantekeningen.",
+    // Eigen pagina met cv- en aantekeningenvelden:
+    // src/app/(app)/tools/generator/kandidaatintro/
     fields: [
       { name: "kandidaat", label: "Naam kandidaat", type: "text", required: true },
       { name: "vacature", label: "Voor welke vacature", type: "text" },
-      { name: "huidige_functie", label: "Huidige functie", type: "text" },
-      { name: "sterke_punten", label: "Sterke punten", type: "textarea" },
-      { name: "motivatie", label: "Motivatie", type: "textarea" },
-      { name: "beschikbaarheid", label: "Beschikbaarheid", type: "text" },
-      { name: "salaris", label: "Salarisindicatie", type: "text" },
+      { name: "cv", label: "CV (plak de tekst)", type: "textarea" },
+      {
+        name: "aantekeningen",
+        label: "Aantekeningen / transcriptie intake",
+        type: "textarea",
+      },
     ],
-    system: `${HOUSE_STYLE} Schrijf 3 tot 5 korte alinea's: wie is de kandidaat, waarom past die bij deze rol, motivatie, en praktische zaken (beschikbaarheid, salarisindicatie). Enthousiast maar eerlijk.`,
+    system: KANDIDAATINTRO_SYSTEM,
+    maxTokens: 3000,
     buildPrompt: (v) =>
-      `Schrijf een kandidaatintroductie voor de opdrachtgever.\n\n${block(v, [
-        ["kandidaat", "Kandidaat"],
-        ["vacature", "Vacature"],
-        ["huidige_functie", "Huidige functie"],
-        ["sterke_punten", "Sterke punten"],
-        ["motivatie", "Motivatie"],
-        ["beschikbaarheid", "Beschikbaarheid"],
-        ["salaris", "Salarisindicatie"],
-      ])}`,
+      `Klant: onbekend\nVacature / functie: ${v.vacature || "onbekend"}\n\n===== Kandidaat 1: ${
+        v.kandidaat || "(naam onbekend)"
+      } =====\n\nCV:\n${v.cv || "(geen cv aangeleverd)"}\n\nAantekeningen intakegesprek en/of transcriptie:\n${
+        v.aantekeningen || "(geen aantekeningen aangeleverd)"
+      }`,
   },
   {
     key: "boolean",
