@@ -9,14 +9,23 @@ export function Sidebar({ userEmail }: { userEmail: string }) {
   const pathname = usePathname();
 
   return (
-    <aside className="flex w-60 shrink-0 flex-col border-r border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
-      <div className="border-b border-zinc-200 px-5 py-4 dark:border-zinc-800">
+    <aside className="flex w-60 shrink-0 flex-col border-r border-zinc-200 bg-cream dark:border-zinc-800 dark:bg-navy">
+      <div className="border-b border-zinc-200 px-5 py-5 dark:border-zinc-800">
         <Link href="/dashboard" className="block">
-          <span className="text-sm font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
-            RR Recruitment Hub
-          </span>
-          <span className="mt-0.5 block text-xs text-zinc-500">
-            Interne werkomgeving
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/brand/logo-main.svg"
+            alt="RR Recruitment"
+            className="h-6 w-auto dark:hidden"
+          />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/brand/logo-main-white.svg"
+            alt="RR Recruitment"
+            className="hidden h-6 w-auto dark:block"
+          />
+          <span className="mt-1.5 block text-[11px] uppercase tracking-wider text-zinc-500">
+            Recruitment Hub
           </span>
         </Link>
       </div>
@@ -39,8 +48,8 @@ export function Sidebar({ userEmail }: { userEmail: string }) {
                       aria-current={active ? "page" : undefined}
                       className={`block rounded-md px-2 py-1.5 text-sm transition-colors ${
                         active
-                          ? "bg-zinc-100 font-medium text-zinc-900 dark:bg-zinc-800 dark:text-zinc-50"
-                          : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-zinc-100"
+                          ? "bg-terra/10 font-medium text-terra dark:bg-terra/20 dark:text-cream"
+                          : "text-zinc-600 hover:bg-zinc-100 hover:text-navy dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-cream"
                       }`}
                     >
                       {item.label}

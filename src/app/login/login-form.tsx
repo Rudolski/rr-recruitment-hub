@@ -59,7 +59,7 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
       <button
         type="submit"
         disabled={pending}
-        className="w-full rounded-md bg-zinc-900 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-800 disabled:opacity-60 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
+        className="w-full rounded-md bg-terra px-3 py-2 text-sm font-medium text-cream transition-colors hover:bg-terra-dark disabled:opacity-60"
       >
         {pending ? "Bezig met inloggen…" : "Inloggen"}
       </button>

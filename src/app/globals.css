@@ -1,26 +1,49 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #fff7ec;
+  --foreground: #0d1e2e;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-manrope);
+  --font-display: var(--font-roc);
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* RR Recruitment huisstijl */
+  --color-cream: #fff7ec;
+  --color-navy: #0d1e2e;
+  --color-denim: #19537b;
+  --color-terra: #a95e3f;
+  --color-terra-dark: #8f4d33;
+  --color-lightblue: #71a1c3;
+
+  /* Neutrale schaal, warm getint op de huisstijl. De hele app gebruikt
+     zinc-*; door die hier te herdefiniëren verschuift alles mee. */
+  --color-zinc-50: #faf3e6;
+  --color-zinc-100: #f3e8d4;
+  --color-zinc-200: #e8dbc2;
+  --color-zinc-300: #d6c4a4;
+  --color-zinc-400: #a99f8b;
+  --color-zinc-500: #7c7360;
+  --color-zinc-600: #574f40;
+  --color-zinc-700: #3a4551;
+  --color-zinc-800: #1f2e3c;
+  --color-zinc-900: #0d1e2e;
+  --color-zinc-950: #091722;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #0d1e2e;
+    --foreground: #fff7ec;
   }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), "Segoe UI", Helvetica, Arial, sans-serif;
 }

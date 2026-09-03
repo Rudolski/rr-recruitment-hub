@@ -24,7 +24,7 @@ export function PageHeader({
   return (
     <div className="flex items-start justify-between gap-4">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+        <h1 className="font-[family-name:var(--font-roc)] text-2xl font-medium tracking-tight text-navy dark:text-cream">
           {title}
         </h1>
         {description && (

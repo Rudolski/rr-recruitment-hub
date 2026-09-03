@@ -7,10 +7,14 @@ export const labelClass =
   "block text-sm font-medium text-zinc-700 dark:text-zinc-300";
 
 export const btnPrimary =
-  "rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-800 disabled:opacity-60 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white";
+  "rounded-md bg-terra px-4 py-2 text-sm font-medium text-cream transition-colors hover:bg-terra-dark disabled:opacity-60";
 
 export const btnGhost =
   "text-sm text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100";
+
+/** Kop in het huisstijl-lettertype (Roc Grotesk). */
+export const heading =
+  "font-[family-name:var(--font-roc)] tracking-tight";
 
 export const btnDanger =
   "rounded-md border border-red-300 px-3 py-2 text-sm font-medium text-red-700 transition-colors hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950";
