@@ -5,6 +5,7 @@
 --  * placement houdt alleen een kandidaatnaam als tekst
 --  * facturen krijgen een partner-tag (bv. Juul) voor omzet met/zonder
 --    partneraandeel
+-- Idempotent: veilig om nog eens te draaien.
 -- Uit te voeren op het development Supabase project.
 -- ============================================================
 
@@ -13,11 +14,21 @@ drop table if exists applications cascade;
 
 -- Placement: kandidaatnaam als tekst i.p.v. koppeling
 alter table placements add column if not exists candidate_name text;
-update placements p
-  set candidate_name = c.name
-  from candidates c
-  where c.id = p.candidate_id
-    and p.candidate_name is null;
+
+do $$
+begin
+  if exists (select from information_schema.tables where table_name = 'candidates')
+     and exists (
+       select from information_schema.columns
+       where table_name = 'placements' and column_name = 'candidate_id'
+     ) then
+    update placements p
+      set candidate_name = c.name
+      from candidates c
+      where c.id = p.candidate_id and p.candidate_name is null;
+  end if;
+end $$;
+
 alter table placements drop column if exists candidate_id;
 alter table placements drop column if exists application_id;
 
