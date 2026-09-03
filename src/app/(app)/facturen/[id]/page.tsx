@@ -6,7 +6,6 @@ import { getSessionContext } from "@/utils/supabase/auth";
 import type { Invoice } from "@/lib/types";
 import { InvoiceForm } from "../invoice-form";
 import { deleteFactuur, updateFactuur } from "../actions";
-import { loadPlacementOptions } from "../helpers";
 
 export const metadata = { title: "Factuur · RR Recruitment Hub" };
 
@@ -26,10 +25,10 @@ export default async function FactuurDetailPage({
 
   if (!invoice) notFound();
 
-  const [{ data: clients }, placements] = await Promise.all([
-    supabase.from("clients").select("id, name").order("name"),
-    loadPlacementOptions(supabase),
-  ]);
+  const { data: clients } = await supabase
+    .from("clients")
+    .select("id, name")
+    .order("name");
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -46,7 +45,6 @@ export default async function FactuurDetailPage({
         <InvoiceForm
           action={updateFactuur}
           clients={clients ?? []}
-          placements={placements}
           initial={invoice}
           submitLabel="Wijzigingen opslaan"
         />

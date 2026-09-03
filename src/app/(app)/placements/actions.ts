@@ -80,10 +80,16 @@ export async function createPlacement(
       values.partner_name && (values.partner_share_amount ?? 0) > 0
         ? Math.abs(values.partner_share_amount as number)
         : null;
+    const { data: vacancy } = await supabase
+      .from("vacancies")
+      .select("title")
+      .eq("id", values.vacancy_id)
+      .maybeSingle<{ title: string }>();
     await supabase.from("invoices").insert({
       organization_id: organizationId,
       client_id: clientId,
       placement_id: placement.id,
+      vacancy_label: vacancy?.title ?? null,
       amount_excl_btw: amount,
       btw_percentage: 21,
       status: "concept",

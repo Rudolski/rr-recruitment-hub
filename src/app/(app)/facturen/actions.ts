@@ -35,6 +35,7 @@ function parse(fd: FormData) {
     values: {
       client_id: clientId,
       placement_id: nullableStr(fd, "placement_id"),
+      vacancy_label: nullableStr(fd, "vacancy_label"),
       invoice_number: nullableStr(fd, "invoice_number"),
       entity_name: nullableStr(fd, "entity_name"),
       partner_name: partnerShare ? partnerName : null,

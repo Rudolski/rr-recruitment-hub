@@ -19,19 +19,19 @@ const num = (v: number | null | undefined) => (v == null ? "" : String(v));
 export function InvoiceForm({
   action,
   clients,
-  placements,
   initial,
   submitLabel,
   lockedPlacementId,
   defaultClientId,
+  defaultVacancyLabel,
 }: {
   action: Action;
   clients: Option[];
-  placements: Option[];
   initial?: Invoice;
   submitLabel: string;
   lockedPlacementId?: string;
   defaultClientId?: string;
+  defaultVacancyLabel?: string;
 }) {
   const [state, formAction, pending] = useActionState(action, emptyFormState);
   const [amount, setAmount] = useState(num(initial?.amount_excl_btw));
@@ -94,41 +94,25 @@ export function InvoiceForm({
         </div>
 
         <div className="space-y-1.5">
-          <label htmlFor="placement_id" className={labelClass}>
-            Placement (optioneel)
+          <label htmlFor="vacancy_label" className={labelClass}>
+            Vacature
           </label>
-          {lockedPlacementId ? (
-            <>
-              <input
-                type="hidden"
-                name="placement_id"
-                value={lockedPlacementId}
-              />
-              <input
-                className={inputClass}
-                disabled
-                value={
-                  placements.find((p) => p.id === lockedPlacementId)?.name ??
-                  "Gekoppeld"
-                }
-              />
-            </>
-          ) : (
-            <select
-              id="placement_id"
-              name="placement_id"
-              defaultValue={initial?.placement_id ?? ""}
-              className={inputClass}
-            >
-              <option value="">— Geen —</option>
-              {placements.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
-          )}
+          <input
+            id="vacancy_label"
+            name="vacancy_label"
+            defaultValue={initial?.vacancy_label ?? defaultVacancyLabel ?? ""}
+            placeholder="Welke vacature is vervuld"
+            className={inputClass}
+          />
         </div>
+
+        {(lockedPlacementId ?? initial?.placement_id) && (
+          <input
+            type="hidden"
+            name="placement_id"
+            value={lockedPlacementId ?? initial?.placement_id ?? ""}
+          />
+        )}
 
         <div className="space-y-1.5">
           <label htmlFor="invoice_number" className={labelClass}>

@@ -41,6 +41,12 @@ export default async function PlacementDetailPage({
         .returns<Invoice[]>(),
     ]);
 
+  const vacancyTitle =
+    (vacancies ?? []).find((v) => v.id === placement.vacancy_id)?.title ?? "";
+  const extraInvoiceUrl =
+    `/facturen/nieuw?placement=${placement.id}&klant=${placement.client_id}` +
+    (vacancyTitle ? `&vacature=${encodeURIComponent(vacancyTitle)}` : "");
+
   return (
     <div className="mx-auto max-w-3xl">
       <BackLink href="/placements" label="Placements" />
@@ -64,7 +70,7 @@ export default async function PlacementDetailPage({
             Facturen
           </h2>
           <Link
-            href={`/facturen/nieuw?placement=${placement.id}`}
+            href={extraInvoiceUrl}
             className="text-sm text-terra underline hover:text-terra-dark"
           >
             Extra factuurregel

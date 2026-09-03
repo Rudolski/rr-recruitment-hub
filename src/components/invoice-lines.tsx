@@ -46,7 +46,7 @@ export function InvoiceLines({ invoices }: { invoices: Invoice[] }) {
             className="min-w-0 flex-1 hover:underline"
           >
             <span className="font-medium text-navy dark:text-cream">
-              {inv.invoice_number || inv.notes || "(zonder nummer)"}
+              {inv.invoice_number || inv.vacancy_label || inv.notes || "(zonder nummer)"}
             </span>
             <span className="ml-2 tabular-nums text-zinc-500">
               {eur2(inv.amount_excl_btw)} excl. btw
