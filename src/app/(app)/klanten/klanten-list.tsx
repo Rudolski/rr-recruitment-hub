@@ -52,7 +52,7 @@ const BASE_PATH: Record<KlantenScope, string> = {
   archief: "/archief",
 };
 
-type SortKey = "name" | "vacancies" | "placements" | "created";
+type SortKey = "name" | "vacancies" | "placements";
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
 
@@ -89,8 +89,8 @@ export async function KlantenList({
   const showCounts = scope === "actief";
 
   const allowedSort: SortKey[] = showCounts
-    ? ["name", "vacancies", "placements", "created"]
-    : ["name", "created"];
+    ? ["name", "vacancies", "placements"]
+    : ["name"];
   const sortKey: SortKey = (allowedSort as string[]).includes(
     typeof sp.sort === "string" ? sp.sort : "",
   )
@@ -161,8 +161,6 @@ export async function KlantenList({
       cmp = (openVac.get(a.id) ?? 0) - (openVac.get(b.id) ?? 0);
     } else if (sortKey === "placements") {
       cmp = (placementCount.get(a.id) ?? 0) - (placementCount.get(b.id) ?? 0);
-    } else if (sortKey === "created") {
-      cmp = (a.created_at ?? "").localeCompare(b.created_at ?? "");
     } else {
       cmp = a.name.localeCompare(b.name, "nl");
     }
@@ -257,7 +255,6 @@ export async function KlantenList({
                   </>
                 )}
                 {withNotes && <th className={th}>Laatste notitie / opvolgen</th>}
-                <SortHead label="Aangemaakt" sortBy="created" />
               </tr>
             </thead>
             <tbody className={tbody}>
@@ -317,9 +314,6 @@ export async function KlantenList({
                         </span>
                       </td>
                     )}
-                    <td className={`${td} text-zinc-500`}>
-                      {formatDate(client.created_at)}
-                    </td>
                   </tr>
                 );
               })}
