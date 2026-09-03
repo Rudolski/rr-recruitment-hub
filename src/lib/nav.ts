@@ -106,6 +106,12 @@ export const navSections: NavSection[] = [
           "Vul de samenwerkingsovereenkomst per klant en download 'm als Word-document.",
       },
       {
+        label: "Fee calculator",
+        href: "/tools/fee-calculator",
+        description:
+          "Losstaand rekentooltje: fee op basis van jaarsalaris en percentage, geen opslag.",
+      },
+      {
         label: "Huisstijl & bestanden",
         href: "/rr-recruitment",
         description:
@@ -138,17 +144,6 @@ export const navSections: NavSection[] = [
       href: `/tools/generator/${g.key}`,
       description: g.description,
     })),
-  },
-  {
-    title: "Tools",
-    items: [
-      {
-        label: "Fee calculator",
-        href: "/tools/fee-calculator",
-        description:
-          "Losstaand rekentooltje: fee op basis van jaarsalaris en percentage, geen opslag.",
-      },
-    ],
   },
 ];
 

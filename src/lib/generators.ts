@@ -134,34 +134,6 @@ export const GENERATORS: Generator[] = [
       ])}`,
     maxTokens: 700,
   },
-  {
-    key: "contract",
-    label: "Contract / bevestiging",
-    description:
-      "Een plaatsingsbevestiging tussen RR Recruitment en de opdrachtgever.",
-    fields: [
-      { name: "opdrachtgever", label: "Opdrachtgever", type: "text", required: true },
-      { name: "kandidaat", label: "Kandidaat", type: "text", required: true },
-      { name: "functie", label: "Functie", type: "text", required: true },
-      { name: "startdatum", label: "Startdatum", type: "text" },
-      { name: "salaris", label: "Bruto jaarsalaris", type: "text" },
-      { name: "fee", label: "Fee (bedrag of %)", type: "text" },
-      { name: "garantie", label: "Garantietermijn", type: "text" },
-      { name: "bijzonderheden", label: "Bijzonderheden", type: "textarea" },
-    ],
-    system: `${HOUSE_STYLE} Schrijf een zakelijke plaatsingsbevestiging: aanhef, bevestiging van de plaatsing met de kerngegevens, de fee-afspraak en betaaltermijn, de garantieregeling, en een afsluiting. Zet duidelijk bovenaan dat dit een concept is dat juridisch gecontroleerd moet worden.`,
-    buildPrompt: (v) =>
-      `Schrijf een plaatsingsbevestiging.\n\n${block(v, [
-        ["opdrachtgever", "Opdrachtgever"],
-        ["kandidaat", "Kandidaat"],
-        ["functie", "Functie"],
-        ["startdatum", "Startdatum"],
-        ["salaris", "Bruto jaarsalaris"],
-        ["fee", "Fee"],
-        ["garantie", "Garantietermijn"],
-        ["bijzonderheden", "Bijzonderheden"],
-      ])}`,
-  },
 ];
 
 export function getGenerator(key: string): Generator | undefined {
