@@ -1,7 +1,14 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
 import { errorBox } from "@/components/ui";
-import { eur, eur2, formatDate, formatMonth, MONTH_NAMES } from "@/lib/format";
+import {
+  eur,
+  eur2,
+  formatDate,
+  formatMonth,
+  MONTH_NAMES,
+  pctLabel,
+} from "@/lib/format";
 import { getSessionContext } from "@/utils/supabase/auth";
 import {
   REALISED_INVOICE_STATUSES,
@@ -132,6 +139,25 @@ export default async function DashboardPage({
       targetMonthly = t;
     }
   }
+
+  /* -------- Omzet t.o.v. target tot op heden (incl. lopende maand) -------- */
+  const monthsElapsed =
+    year < currentYear ? 12 : year > currentYear ? 0 : now.getMonth() + 1;
+  const ytdBuckets = monthlyBuckets(thisYearInvoices);
+  const ytdRevenue = ytdBuckets
+    .slice(1, monthsElapsed + 1)
+    .reduce((a, b) => a + b, 0);
+  const ytdTarget = targetMonthly
+    ? targetMonthly.slice(1, monthsElapsed + 1).reduce((a, b) => a + b, 0)
+    : null;
+  const ytdPct = ytdTarget != null ? pctLabel(ytdRevenue, ytdTarget) : null;
+  const ytdDelta = ytdTarget != null ? ytdRevenue - ytdTarget : null;
+  const ytdLabel =
+    monthsElapsed === 0
+      ? null
+      : monthsElapsed >= 12
+        ? `heel ${year}`
+        : `t/m ${MONTH_NAMES[monthsElapsed]} ${year}`;
 
   /* -------- Prognose lopende + volgende maand -------- */
   const thisMonth = monthKey(now);
@@ -269,6 +295,37 @@ export default async function DashboardPage({
                 .map((p) => `${p.name} ${eur2(p.amount)}`)
                 .join(" · ")}
             </p>
+          )}
+          {ytdLabel && (
+            <div className="mt-3 border-t border-zinc-100 pt-2 dark:border-zinc-800">
+              <p className="text-xs uppercase tracking-wider text-zinc-500">
+                T.o.v. target ({ytdLabel})
+              </p>
+              <p className="mt-0.5 text-sm text-zinc-700 dark:text-zinc-300">
+                Behaald{" "}
+                <span className="font-medium text-zinc-900 dark:text-zinc-50">
+                  {eur2(ytdRevenue)}
+                </span>
+                {ytdTarget != null && ytdPct && ytdDelta != null && (
+                  <>
+                    {" "}
+                    · target {eur2(ytdTarget)} ·{" "}
+                    <span className={ytdPct.tone}>
+                      {ytdDelta >= 0 ? "+" : "−"}
+                      {eur2(Math.abs(ytdDelta))} ({ytdPct.text})
+                    </span>
+                  </>
+                )}
+              </p>
+              {ytdTarget == null && !clientFilter && (
+                <p className="mt-0.5 text-xs text-zinc-400">
+                  Geen maandtargets voor {year}.{" "}
+                  <Link href="/targets" className="underline">
+                    Targets invullen
+                  </Link>
+                </p>
+              )}
+            </div>
           )}
         </div>
         <div className="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
