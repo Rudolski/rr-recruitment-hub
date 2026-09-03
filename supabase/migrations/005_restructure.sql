@@ -31,8 +31,10 @@ create index if not exists idx_invoices_partner on invoices(partner_name);
 comment on column invoices.partner_name is
   'Gezet = deze factuurregel is een uitbetaling aan die partner (bedrag negatief). Leeg = normale klantfactuur.';
 
--- Bestaande import-regels van Juul taggen
+-- Bestaande import-regels van Juul taggen: alleen de negatieve
+-- uitbetalingsregels, niet de gewone klantfacturen.
 update invoices
   set partner_name = 'Juul'
   where partner_name is null
-    and (notes ilike '%aandeel Juul%' or notes ilike '%- JUUL%');
+    and amount_excl_btw < 0
+    and notes ilike '%juul%';
