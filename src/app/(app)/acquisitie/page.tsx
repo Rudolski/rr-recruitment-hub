@@ -124,8 +124,9 @@ export default async function AcquisitiePage() {
                     <button
                       type="submit"
                       className="rounded-md border border-zinc-300 px-2 py-1 text-xs hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
+                      title="Haalt deze opvolgactie uit de lijst"
                     >
-                      Afgehandeld
+                      Markeer als afgehandeld
                     </button>
                   </form>
                 </li>
