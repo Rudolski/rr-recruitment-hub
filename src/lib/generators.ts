@@ -40,27 +40,19 @@ export const GENERATORS: Generator[] = [
     key: "vacaturetekst",
     label: "Vacaturetekst",
     description:
-      "Een wervende maar realistische vacaturetekst op basis van de kernpunten.",
+      "Herschrijf de originele vacature naar een tekst voor de RR-website (met naam / anoniem) of een banensite.",
+    // Eigen pagina: src/app/(app)/tools/generator/vacaturetekst/
     fields: [
-      { name: "functietitel", label: "Functietitel", type: "text", required: true },
-      { name: "bedrijf", label: "Bedrijf / opdrachtgever", type: "text" },
-      { name: "locatie", label: "Locatie", type: "text" },
-      { name: "taken", label: "Belangrijkste taken", type: "textarea" },
-      { name: "eisen", label: "Functie-eisen", type: "textarea" },
-      { name: "voorwaarden", label: "Arbeidsvoorwaarden", type: "textarea" },
-      { name: "toon", label: "Gewenste toon", type: "text", placeholder: "bijv. informeel, formeel" },
+      {
+        name: "origineel",
+        label: "Originele vacaturetekst",
+        type: "textarea",
+        required: true,
+      },
     ],
-    system: `${HOUSE_STYLE} Structureer de vacaturetekst met korte alinea's en waar nuttig opsommingstekens: intro over de rol, wat je gaat doen, wat we vragen, wat we bieden, en een korte call to action.`,
-    buildPrompt: (v) =>
-      `Schrijf een vacaturetekst.\n\n${block(v, [
-        ["functietitel", "Functietitel"],
-        ["bedrijf", "Bedrijf"],
-        ["locatie", "Locatie"],
-        ["taken", "Taken"],
-        ["eisen", "Eisen"],
-        ["voorwaarden", "Arbeidsvoorwaarden"],
-        ["toon", "Gewenste toon"],
-      ])}`,
+    system: `${HOUSE_STYLE}`,
+    buildPrompt: (v) => `Herschrijf deze vacaturetekst.\n\n${v.origineel ?? ""}`,
+    maxTokens: 4000,
   },
   {
     key: "kandidaatintro",
