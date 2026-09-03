@@ -70,6 +70,41 @@ export const QUARTER_OF_MONTH = [
   0, 1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4,
 ] as const;
 
+const shortMonthFmt = new Intl.DateTimeFormat("nl-NL", {
+  month: "short",
+  year: "numeric",
+});
+
+/**
+ * Opties voor een maandkeuze (value "YYYY-MM", label "sep 2026"): van twee
+ * maanden terug tot vijftien vooruit, plus een eventuele bestaande waarde
+ * die buiten dat bereik valt zodat die niet verdwijnt.
+ */
+export function monthOptions(
+  current?: string | null,
+): { value: string; label: string }[] {
+  const now = new Date();
+  const opts: { value: string; label: string }[] = [];
+  for (let i = -2; i <= 15; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+    const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
+      2,
+      "0",
+    )}`;
+    opts.push({ value, label: shortMonthFmt.format(d) });
+  }
+  if (
+    current &&
+    /^\d{4}-\d{2}$/.test(current) &&
+    !opts.some((o) => o.value === current)
+  ) {
+    const [y, m] = current.split("-").map(Number);
+    const d = new Date(y, m - 1, 1);
+    opts.unshift({ value: current, label: shortMonthFmt.format(d) });
+  }
+  return opts;
+}
+
 /** Percentage behaald van een target, met een kleurtint. */
 export function pctLabel(
   realised: number,

@@ -95,32 +95,24 @@ export default async function FacturenPage() {
           <table className={table}>
             <thead className={thead}>
               <tr>
-                <th className={th}>Nummer</th>
                 <th className={th}>Klant</th>
                 <th className={th}>Excl. btw</th>
                 <th className={th}>Incl. btw</th>
                 <th className={th}>Status</th>
                 <th className={th}>Factuurdatum</th>
+                <th className={th}>Nummer</th>
               </tr>
             </thead>
             <tbody className={tbody}>
               {invoices.map((inv) => (
                 <tr key={inv.id} className={tr}>
-                  <td className={td}>
+                  <td className={`${td} text-zinc-600 dark:text-zinc-400`}>
                     <Link
                       href={`/facturen/${inv.id}`}
                       className="font-medium text-zinc-900 hover:underline dark:text-zinc-100"
                     >
-                      {inv.invoice_number || "(zonder nummer)"}
+                      {clientName.get(inv.client_id) ?? "—"}
                     </Link>
-                    {inv.entity_name && (
-                      <span className="block text-xs text-zinc-400">
-                        {inv.entity_name}
-                      </span>
-                    )}
-                  </td>
-                  <td className={`${td} text-zinc-600 dark:text-zinc-400`}>
-                    {clientName.get(inv.client_id) ?? "—"}
                     {inv.vacancy_label && (
                       <span className="block text-xs text-zinc-400">
                         {inv.vacancy_label}
@@ -144,6 +136,14 @@ export default async function FacturenPage() {
                   </td>
                   <td className={`${td} text-zinc-500`}>
                     {formatDate(inv.issue_date)}
+                  </td>
+                  <td className={`${td} text-zinc-500`}>
+                    {inv.invoice_number || "(zonder nummer)"}
+                    {inv.entity_name && (
+                      <span className="block text-xs text-zinc-400">
+                        {inv.entity_name}
+                      </span>
+                    )}
                   </td>
                 </tr>
               ))}

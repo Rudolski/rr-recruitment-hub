@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 import { VacancyStatusBadge } from "@/components/status-badge";
 import { td, tr } from "@/components/ui";
+import { monthOptions } from "@/lib/format";
 import { CONSULTANTS, CONSULTANT_LABELS, type Vacancy } from "@/lib/types";
 import { updateVacatureForecast } from "./actions";
 
@@ -100,13 +101,19 @@ export function ForecastRow({
         />
       </td>
       <td className={td}>
-        <input
-          type="month"
+        <select
           aria-label="Verwachte maand"
           value={month}
           onChange={(e) => onChange(setMonth)(e.target.value)}
-          className={cell}
-        />
+          className={`${cell} w-32`}
+        >
+          <option value="">—</option>
+          {monthOptions(month).map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
       </td>
       <td className={td}>
         <input

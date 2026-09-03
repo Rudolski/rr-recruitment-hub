@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useActionState } from "react";
 import { emptyFormState, type FormState } from "@/lib/form";
+import { monthOptions } from "@/lib/format";
 import { btnGhost, btnPrimary, inputClass, labelClass } from "@/components/ui";
 import {
   CONSULTANTS,
@@ -188,13 +189,21 @@ export function VacancyForm({
             <label htmlFor="expected_close_month" className={labelClass}>
               Verwachte maand
             </label>
-            <input
+            <select
               id="expected_close_month"
               name="expected_close_month"
-              type="month"
               defaultValue={initial?.expected_close_month?.slice(0, 7) ?? ""}
               className={inputClass}
-            />
+            >
+              <option value="">—</option>
+              {monthOptions(initial?.expected_close_month?.slice(0, 7)).map(
+                (o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ),
+              )}
+            </select>
           </div>
           <div className="space-y-1.5">
             <label htmlFor="success_probability" className={labelClass}>
