@@ -30,7 +30,7 @@ const META: Record<
 > = {
   actief: {
     title: "Klanten",
-    description: "Opdrachtgevers met status actief.",
+    description: "Opdrachtgevers met de status Klant.",
     empty: "Nog geen actieve klanten.",
   },
   prospects: {

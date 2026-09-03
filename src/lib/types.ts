@@ -36,7 +36,7 @@ export const CLIENT_STATUS_LABELS: Record<ClientStatus, string> = {
   warm: "Warm",
   afspraak_gepland: "Afspraak gepland",
   voorstel_gestuurd: "Voorstel gestuurd",
-  actief: "Actief",
+  actief: "Klant",
   inactief: "Inactief",
 };
 
