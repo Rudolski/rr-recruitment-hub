@@ -37,12 +37,16 @@ export function InvoiceForm({
   const [amount, setAmount] = useState(num(initial?.amount_excl_btw));
   const [btw, setBtw] = useState(num(initial?.btw_percentage ?? 21));
   const [partnerName, setPartnerName] = useState(initial?.partner_name ?? "");
+  const [partnerShare, setPartnerShare] = useState(
+    num(initial?.partner_share_amount),
+  );
 
-  // Een partnerregel is altijd een uitbetaling: bedrag automatisch negatief.
-  function negateForPartner(raw: string, partner: string) {
-    const n = Number(raw.replace(",", "."));
-    return partner.trim() && Number.isFinite(n) && n > 0 ? String(-n) : raw;
-  }
+  const netto = useMemo(() => {
+    const a = Number(amount.replace(",", "."));
+    const s = Number(partnerShare.replace(",", "."));
+    if (!Number.isFinite(a)) return null;
+    return a - (partnerName.trim() && Number.isFinite(s) ? s : 0);
+  }, [amount, partnerShare, partnerName]);
 
   const inclBtw = useMemo(() => {
     const a = Number(amount.replace(",", "."));
@@ -154,27 +158,6 @@ export function InvoiceForm({
         </div>
 
         <div className="space-y-1.5">
-          <label htmlFor="partner_name" className={labelClass}>
-            Partner (bv. Juul)
-          </label>
-          <input
-            id="partner_name"
-            name="partner_name"
-            value={partnerName}
-            onChange={(e) => {
-              setPartnerName(e.target.value);
-              setAmount((a) => negateForPartner(a, e.target.value));
-            }}
-            placeholder="leeg = normale klantfactuur"
-            className={inputClass}
-          />
-          <p className="text-xs text-zinc-400">
-            Ingevuld = deze regel is een uitbetaling aan die partner. Het
-            bedrag wordt automatisch negatief en gaat van je netto-omzet af.
-          </p>
-        </div>
-
-        <div className="space-y-1.5">
           <label htmlFor="amount_excl_btw" className={labelClass}>
             Bedrag excl. btw (€) <span className="text-red-500">*</span>
           </label>
@@ -184,16 +167,49 @@ export function InvoiceForm({
             inputMode="numeric"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
-            onBlur={(e) =>
-              setAmount(negateForPartner(e.target.value, partnerName))
-            }
             className={inputClass}
           />
+          <p className="text-xs text-zinc-400">
+            Het volledige factuurbedrag aan de klant.
+          </p>
           {state.fieldErrors.amount_excl_btw && (
             <p className="text-xs text-red-600">
               {state.fieldErrors.amount_excl_btw}
             </p>
           )}
+        </div>
+
+        <div className="space-y-1.5">
+          <label htmlFor="partner_name" className={labelClass}>
+            Aandeel naar partner (bv. Juul)
+          </label>
+          <input
+            id="partner_name"
+            name="partner_name"
+            value={partnerName}
+            onChange={(e) => setPartnerName(e.target.value)}
+            placeholder="leeg = volledig voor RR"
+            className={inputClass}
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <label htmlFor="partner_share_amount" className={labelClass}>
+            Bedrag partner (€ excl. btw)
+          </label>
+          <input
+            id="partner_share_amount"
+            name="partner_share_amount"
+            inputMode="numeric"
+            value={partnerShare}
+            onChange={(e) => setPartnerShare(e.target.value)}
+            disabled={!partnerName.trim()}
+            className={inputClass}
+          />
+          <p className="text-xs text-zinc-400">
+            Gaat van de netto-omzet af. Netto voor RR:{" "}
+            {netto == null ? "—" : eur2(netto)}
+          </p>
         </div>
 
         <div className="space-y-1.5">

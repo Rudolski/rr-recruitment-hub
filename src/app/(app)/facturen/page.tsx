@@ -121,19 +121,14 @@ export default async function FacturenPage() {
                   </td>
                   <td className={`${td} text-zinc-600 dark:text-zinc-400`}>
                     {clientName.get(inv.client_id) ?? "—"}
-                    {inv.partner_name && (
+                    {inv.partner_name && inv.partner_share_amount ? (
                       <span className="block text-xs text-amber-600 dark:text-amber-400">
-                        Aandeel {inv.partner_name}
+                        waarvan {eur2(inv.partner_share_amount)} naar{" "}
+                        {inv.partner_name}
                       </span>
-                    )}
+                    ) : null}
                   </td>
-                  <td
-                    className={`${td} ${
-                      inv.partner_name
-                        ? "text-amber-600 dark:text-amber-400"
-                        : "text-zinc-600 dark:text-zinc-400"
-                    }`}
-                  >
+                  <td className={`${td} text-zinc-600 dark:text-zinc-400`}>
                     {eur2(inv.amount_excl_btw)}
                   </td>
                   <td className={`${td} text-zinc-500`}>

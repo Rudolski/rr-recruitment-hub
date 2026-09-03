@@ -300,6 +300,7 @@ export type Database = {
           amount_incl_btw: number;
           status: string;
           partner_name: string | null;
+          partner_share_amount: number | null;
           sent_at: string | null;
           issue_date: string | null;
           due_date: string | null;
@@ -318,6 +319,7 @@ export type Database = {
           btw_percentage?: number;
           status?: string;
           partner_name?: string | null;
+          partner_share_amount?: number | null;
           sent_at?: string | null;
           issue_date?: string | null;
           due_date?: string | null;
@@ -334,6 +336,7 @@ export type Database = {
           btw_percentage?: number;
           status?: string;
           partner_name?: string | null;
+          partner_share_amount?: number | null;
           sent_at?: string | null;
           issue_date?: string | null;
           due_date?: string | null;

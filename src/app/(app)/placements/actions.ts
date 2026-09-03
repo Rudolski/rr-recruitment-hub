@@ -70,10 +70,16 @@ export async function createPlacement(
   }
 
   // Automatisch één factuurregel voor de placement-fee (op concept),
-  // eventueel verminderd met een al gefactureerde commitment fee.
+  // eventueel verminderd met een al gefactureerde commitment fee. Gaat er
+  // een deel naar een partner (bijv. Juul), dan staat dat als aandeel op
+  // dezelfde regel, zodat de netto-omzet klopt.
   if (values.fee_amount != null) {
     const commitment = numOrNull(fd, "commitment_invoiced") ?? 0;
     const amount = values.fee_amount - commitment;
+    const share =
+      values.partner_name && (values.partner_share_amount ?? 0) > 0
+        ? Math.abs(values.partner_share_amount as number)
+        : null;
     await supabase.from("invoices").insert({
       organization_id: organizationId,
       client_id: clientId,
@@ -81,25 +87,12 @@ export async function createPlacement(
       amount_excl_btw: amount,
       btw_percentage: 21,
       status: "concept",
+      partner_name: share ? values.partner_name : null,
+      partner_share_amount: share,
       notes:
         commitment > 0
           ? `Placement-fee (na aftrek commitment € ${commitment})`
           : "Placement-fee",
-    });
-  }
-
-  // Negatieve factuurregel voor het partneraandeel (bijv. Juul), zodat de
-  // netto-omzet automatisch klopt.
-  if (values.partner_name && (values.partner_share_amount ?? 0) > 0) {
-    await supabase.from("invoices").insert({
-      organization_id: organizationId,
-      client_id: clientId,
-      placement_id: placement.id,
-      amount_excl_btw: -Math.abs(values.partner_share_amount as number),
-      btw_percentage: 21,
-      status: "concept",
-      partner_name: values.partner_name,
-      notes: `Aandeel ${values.partner_name}`,
     });
   }
 

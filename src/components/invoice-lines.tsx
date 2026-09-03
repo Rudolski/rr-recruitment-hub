@@ -51,11 +51,11 @@ export function InvoiceLines({ invoices }: { invoices: Invoice[] }) {
             <span className="ml-2 tabular-nums text-zinc-500">
               {eur2(inv.amount_excl_btw)} excl. btw
             </span>
-            {inv.partner_name && (
-              <span className="ml-2 rounded bg-zinc-100 px-1.5 py-0.5 text-[11px] text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
-                partner: {inv.partner_name}
+            {inv.partner_name && inv.partner_share_amount ? (
+              <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-[11px] text-amber-700 dark:bg-amber-950 dark:text-amber-300">
+                {eur2(inv.partner_share_amount)} → {inv.partner_name}
               </span>
-            )}
+            ) : null}
           </Link>
 
           <span className="flex items-center gap-2">

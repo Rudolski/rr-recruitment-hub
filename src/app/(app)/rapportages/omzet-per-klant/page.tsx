@@ -12,6 +12,7 @@ import {
 } from "@/components/ui";
 import { eur2 } from "@/lib/format";
 import { getSessionContext } from "@/utils/supabase/auth";
+import { nettoAmount } from "@/lib/omzet";
 import {
   REALISED_INVOICE_STATUSES,
   type Client,
@@ -68,7 +69,7 @@ export default async function OmzetPerKlantPage({
   const perClient = new Map<string, { revenue: number; count: number }>();
   for (const inv of invoices ?? []) {
     const entry = perClient.get(inv.client_id) ?? { revenue: 0, count: 0 };
-    entry.revenue += Number(inv.amount_excl_btw);
+    entry.revenue += nettoAmount(inv);
     entry.count += 1;
     perClient.set(inv.client_id, entry);
   }

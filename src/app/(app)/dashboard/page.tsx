@@ -11,7 +11,7 @@ import {
   type MonthlyTarget,
   type Vacancy,
 } from "@/lib/types";
-import { splitOmzet } from "@/lib/omzet";
+import { nettoAmount, splitOmzet } from "@/lib/omzet";
 import { RevenueChart } from "./revenue-chart";
 
 export const metadata = { title: "Dashboard · RR Recruitment Hub" };
@@ -29,7 +29,7 @@ function monthlyBuckets(invoices: Invoice[]): number[] {
   for (const inv of invoices) {
     if (!inv.issue_date) continue;
     const m = Number(inv.issue_date.slice(5, 7));
-    b[m] += Number(inv.amount_excl_btw);
+    b[m] += nettoAmount(inv);
   }
   return b;
 }
@@ -174,7 +174,7 @@ export default async function DashboardPage({
   for (const inv of periodInvoices) {
     revenueByClient.set(
       inv.client_id,
-      (revenueByClient.get(inv.client_id) ?? 0) + Number(inv.amount_excl_btw),
+      (revenueByClient.get(inv.client_id) ?? 0) + nettoAmount(inv),
     );
   }
   const topClients = [...revenueByClient.entries()]

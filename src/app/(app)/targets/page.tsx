@@ -7,6 +7,7 @@ import {
   type Invoice,
   type MonthlyTarget,
 } from "@/lib/types";
+import { nettoAmount } from "@/lib/omzet";
 import { TargetsForm, type MonthInput } from "./targets-form";
 
 export const metadata = { title: "Targets · RR Recruitment Hub" };
@@ -76,7 +77,7 @@ export default async function TargetsPage({
   for (const inv of invoices ?? []) {
     if (!inv.issue_date) continue;
     const m = Number(inv.issue_date.slice(5, 7));
-    realisedRevenue[m] += Number(inv.amount_excl_btw);
+    realisedRevenue[m] += nettoAmount(inv);
   }
 
   // Kwartaal- en jaartotalen: opgeteld uit de maanden.

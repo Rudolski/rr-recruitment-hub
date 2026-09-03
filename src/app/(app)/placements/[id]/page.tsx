@@ -72,8 +72,9 @@ export default async function PlacementDetailPage({
         </div>
         <InvoiceLines invoices={invoices ?? []} />
         <p className="mt-2 text-xs text-zinc-400">
-          Voor een Juul-aandeel: extra factuurregel met een negatief bedrag en
-          partner &ldquo;Juul&rdquo;.
+          Een partneraandeel (bijv. Juul) vul je op de factuurregel zelf in bij
+          &ldquo;Aandeel naar partner&rdquo;; het gaat automatisch van de
+          netto-omzet af.
         </p>
       </section>
 
