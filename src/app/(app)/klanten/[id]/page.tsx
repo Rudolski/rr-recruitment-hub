@@ -1,9 +1,11 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
+import { BackLink } from "@/components/page-header";
+import { FileManager } from "@/components/file-manager";
+import { btnDanger } from "@/components/ui";
 import { ClientForm } from "../client-form";
 import { deleteKlant, updateKlant } from "../actions";
 import { getSessionContext } from "@/utils/supabase/auth";
-import type { Client } from "@/lib/types";
+import type { Client, StoredFile } from "@/lib/types";
 
 export const metadata = { title: "Klant · RR Recruitment Hub" };
 
@@ -25,20 +27,25 @@ export default async function KlantDetailPage({
     notFound();
   }
 
+  const { data: files, error: filesError } = await supabase
+    .from("stored_files")
+    .select("*")
+    .eq("client_id", id)
+    .order("created_at", { ascending: false })
+    .returns<StoredFile[]>();
+
+  const filesTableMissing =
+    !!filesError && /stored_files/.test(filesError.message);
+
   return (
     <div className="mx-auto max-w-2xl">
-      <Link
-        href="/klanten"
-        className="text-sm text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200"
-      >
-        ← Klanten
-      </Link>
-      <h1 className="mt-2 text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+      <BackLink href="/klanten" label="Klanten" />
+      <h1 className="mt-2 font-[family-name:var(--font-roc)] text-2xl font-medium tracking-tight text-navy dark:text-cream">
         {client.name}
       </h1>
       <p className="mt-1 text-sm text-zinc-500">
-        Gegevens. Tabbladen voor contacten, vacatures, placements en facturen
-        volgen later.
+        Gegevens en bestanden. Tabbladen voor contacten, vacatures, placements en
+        facturen volgen later.
       </p>
 
       <div className="mt-6">
@@ -49,13 +56,24 @@ export default async function KlantDetailPage({
         />
       </div>
 
+      <section className="mt-10 border-t border-zinc-200 pt-6 dark:border-zinc-800">
+        <h2 className="mb-3 text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+          Bestanden
+        </h2>
+        {filesTableMissing ? (
+          <p className="text-sm text-zinc-500">
+            Bestandsopslag nog niet ingericht — draai{" "}
+            <code>supabase/migrations/004_file_storage.sql</code>.
+          </p>
+        ) : (
+          <FileManager files={files ?? []} scope="client" clientId={client.id} />
+        )}
+      </section>
+
       <div className="mt-10 border-t border-zinc-200 pt-6 dark:border-zinc-800">
         <form action={deleteKlant}>
           <input type="hidden" name="id" value={client.id} />
-          <button
-            type="submit"
-            className="rounded-md border border-red-300 px-3 py-2 text-sm font-medium text-red-700 transition-colors hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950"
-          >
+          <button type="submit" className={btnDanger}>
             Klant verwijderen
           </button>
         </form>

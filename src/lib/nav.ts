@@ -84,6 +84,12 @@ export const navSections: NavSection[] = [
           "Percentage, staffel of vast bedrag per klant, met een eventuele minimum fee.",
       },
       {
+        label: "Samenwerkingsovereenkomst",
+        href: "/tools/samenwerkingsovereenkomst",
+        description:
+          "Vul de samenwerkingsovereenkomst per klant en download 'm als Word-document.",
+      },
+      {
         label: "Facturen",
         href: "/facturen",
         description:
@@ -120,6 +126,17 @@ export const navSections: NavSection[] = [
       href: `/tools/generator/${g.key}`,
       description: g.description,
     })),
+  },
+  {
+    title: "RR Recruitment",
+    items: [
+      {
+        label: "Huisstijl & bestanden",
+        href: "/rr-recruitment",
+        description:
+          "Logo's, beeldmerk, afbeeldingen en stijldocumenten centraal.",
+      },
+    ],
   },
 ];
 

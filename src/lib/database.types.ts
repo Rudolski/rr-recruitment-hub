@@ -393,6 +393,38 @@ export type Database = {
         };
         Relationships: [];
       };
+      stored_files: {
+        Row: {
+          id: string;
+          organization_id: string;
+          uploaded_by: string | null;
+          scope: string;
+          client_id: string | null;
+          storage_path: string;
+          filename: string;
+          mime_type: string | null;
+          size_bytes: number | null;
+          label: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          uploaded_by?: string | null;
+          scope: string;
+          client_id?: string | null;
+          storage_path: string;
+          filename: string;
+          mime_type?: string | null;
+          size_bytes?: number | null;
+          label?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          label?: string | null;
+        };
+        Relationships: [];
+      };
       generated_documents: {
         Row: {
           id: string;
