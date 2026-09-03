@@ -85,30 +85,6 @@ export function ClientForm({
             className={inputClass}
           />
         </div>
-
-        <div className="space-y-1.5">
-          <label htmlFor="sector" className={labelClass}>
-            Sector
-          </label>
-          <input
-            id="sector"
-            name="sector"
-            defaultValue={initial?.sector ?? ""}
-            className={inputClass}
-          />
-        </div>
-
-        <div className="space-y-1.5">
-          <label htmlFor="region" className={labelClass}>
-            Regio
-          </label>
-          <input
-            id="region"
-            name="region"
-            defaultValue={initial?.region ?? ""}
-            className={inputClass}
-          />
-        </div>
       </div>
 
       <div className="space-y-1.5">

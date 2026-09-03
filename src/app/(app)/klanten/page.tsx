@@ -1,108 +1,149 @@
 import Link from "next/link";
+import { PageHeader } from "@/components/page-header";
 import { ClientStatusBadge } from "@/components/status-badge";
+import {
+  btnPrimary,
+  emptyState,
+  errorBox,
+  table,
+  tableWrap,
+  tbody,
+  td,
+  th,
+  thead,
+  tr,
+} from "@/components/ui";
+import { formatDate } from "@/lib/format";
 import { getSessionContext } from "@/utils/supabase/auth";
-import type { Client } from "@/lib/types";
+import {
+  CLIENT_STATUSES,
+  CLIENT_STATUS_LABELS,
+  isOneOf,
+  type Client,
+} from "@/lib/types";
 
 export const metadata = { title: "Klanten · RR Recruitment Hub" };
 
-const dateFmt = new Intl.DateTimeFormat("nl-NL", {
-  day: "numeric",
-  month: "short",
-  year: "numeric",
-});
-
-export default async function KlantenPage() {
+export default async function KlantenPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
   const { supabase, organizationId } = await getSessionContext();
 
   if (!organizationId) {
     return (
       <div className="mx-auto max-w-3xl">
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
-          Klanten
-        </h1>
-        <p className="mt-4 rounded-md bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:bg-amber-950 dark:text-amber-200">
+        <PageHeader title="Klanten" />
+        <p className={errorBox}>
           Je account is nog niet aan een organisatie gekoppeld. Draai{" "}
-          <code>supabase/seed.sql</code> in de Supabase SQL Editor.
+          <code>supabase/seed.sql</code>.
         </p>
       </div>
     );
   }
 
-  const { data: clients, error } = await supabase
+  const sp = await searchParams;
+  const statusFilter =
+    typeof sp.status === "string" && isOneOf(CLIENT_STATUSES, sp.status)
+      ? sp.status
+      : null;
+
+  let query = supabase
     .from("clients")
     .select("*")
-    .order("name", { ascending: true })
-    .returns<Client[]>();
+    .order("name", { ascending: true });
+  if (statusFilter) query = query.eq("status", statusFilter);
+
+  const { data: clients, error } = await query.returns<Client[]>();
+
+  const selectClass =
+    "mt-1 rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900";
 
   return (
     <div className="mx-auto max-w-5xl">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
-          Klanten
-        </h1>
-        <Link
-          href="/klanten/nieuw"
-          className="rounded-md bg-zinc-900 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
+      <PageHeader
+        title="Klanten"
+        action={
+          <Link href="/klanten/nieuw" className={btnPrimary}>
+            Nieuwe klant
+          </Link>
+        }
+      />
+
+      <form className="mt-6 flex items-end gap-3" method="get">
+        <label className="text-sm">
+          <span className="block text-xs text-zinc-500">Status</span>
+          <select
+            name="status"
+            defaultValue={statusFilter ?? ""}
+            className={selectClass}
+          >
+            <option value="">Alle</option>
+            {CLIENT_STATUSES.map((s) => (
+              <option key={s} value={s}>
+                {CLIENT_STATUS_LABELS[s]}
+              </option>
+            ))}
+          </select>
+        </label>
+        <button
+          type="submit"
+          className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-900"
         >
-          Nieuwe klant
-        </Link>
-      </div>
+          Toepassen
+        </button>
+      </form>
 
       {error && (
-        <p className="mt-6 rounded-md bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-950 dark:text-red-300">
-          Klanten laden mislukt: {error.message}
-        </p>
+        <p className={errorBox}>Klanten laden mislukt: {error.message}</p>
       )}
 
       {!error && (!clients || clients.length === 0) && (
-        <div className="mt-8 rounded-lg border border-dashed border-zinc-300 bg-zinc-50 px-5 py-10 text-center dark:border-zinc-700 dark:bg-zinc-900">
-          <p className="text-sm text-zinc-500">Nog geen klanten.</p>
-          <Link
-            href="/klanten/nieuw"
-            className="mt-3 inline-block text-sm font-medium text-zinc-900 underline dark:text-zinc-100"
-          >
-            Voeg de eerste klant toe
-          </Link>
+        <div className={emptyState}>
+          {statusFilter ? (
+            "Geen klanten met deze status."
+          ) : (
+            <>
+              Nog geen klanten.{" "}
+              <Link
+                href="/klanten/nieuw"
+                className="font-medium text-zinc-900 underline dark:text-zinc-100"
+              >
+                Voeg de eerste toe
+              </Link>
+              .
+            </>
+          )}
         </div>
       )}
 
       {!error && clients && clients.length > 0 && (
-        <div className="mt-6 overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-800">
-          <table className="w-full text-left text-sm">
-            <thead className="border-b border-zinc-200 bg-zinc-50 text-xs uppercase tracking-wider text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900">
+        <div className={tableWrap}>
+          <table className={table}>
+            <thead className={thead}>
               <tr>
-                <th className="px-4 py-2.5 font-medium">Naam</th>
-                <th className="px-4 py-2.5 font-medium">Status</th>
-                <th className="px-4 py-2.5 font-medium">Sector</th>
-                <th className="px-4 py-2.5 font-medium">Regio</th>
-                <th className="px-4 py-2.5 font-medium">Aangemaakt</th>
+                <th className={th}>Naam</th>
+                <th className={th}>Status</th>
+                <th className={th}>Aangemaakt</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+            <tbody className={tbody}>
               {clients.map((client) => (
-                <tr
-                  key={client.id}
-                  className="hover:bg-zinc-50 dark:hover:bg-zinc-900"
-                >
-                  <td className="px-4 py-3">
+                <tr key={client.id} className={tr}>
+                  <td className={td}>
                     <Link
                       href={`/klanten/${client.id}`}
-                      className="font-medium text-zinc-900 hover:underline dark:text-zinc-100"
+                      className="font-medium text-navy hover:underline dark:text-cream"
                     >
                       {client.name}
                     </Link>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className={td}>
                     <ClientStatusBadge status={client.status} />
                   </td>
-                  <td className="px-4 py-3 text-zinc-600 dark:text-zinc-400">
-                    {client.sector ?? "—"}
-                  </td>
-                  <td className="px-4 py-3 text-zinc-600 dark:text-zinc-400">
-                    {client.region ?? "—"}
-                  </td>
-                  <td className="px-4 py-3 text-zinc-500">
-                    {dateFmt.format(new Date(client.created_at))}
+                  <td className={`${td} text-zinc-500`}>
+                    {formatDate(client.created_at)}
                   </td>
                 </tr>
               ))}

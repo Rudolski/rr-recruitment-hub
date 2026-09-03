@@ -27,8 +27,6 @@ function parse(fd: FormData) {
       name,
       status: isOneOf(CLIENT_STATUSES, statusRaw) ? statusRaw : "nieuw",
       kvk_number: nullableStr(fd, "kvk_number"),
-      sector: nullableStr(fd, "sector"),
-      region: nullableStr(fd, "region"),
       notes: nullableStr(fd, "notes"),
     },
   };

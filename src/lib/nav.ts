@@ -47,7 +47,7 @@ export const navSections: NavSection[] = [
         label: "Klanten",
         href: "/klanten",
         description:
-          "Opdrachtgevers met acquisitiestatus, sector, regio en account owner.",
+          "Opdrachtgevers met acquisitiestatus, contactpersonen, vacatures en omzet.",
       },
       {
         label: "Contactpersonen",
