@@ -3,7 +3,6 @@ import { PageHeader } from "@/components/page-header";
 import { errorBox } from "@/components/ui";
 import {
   eur,
-  eur2,
   formatDate,
   formatMonth,
   MONTH_NAMES,
@@ -281,18 +280,18 @@ export default async function DashboardPage({
             Behaalde omzet (netto)
           </p>
           <p className="mt-1 text-2xl font-semibold text-zinc-900 dark:text-zinc-50">
-            {eur2(omzet.netto)}
+            {eur(omzet.netto)}
           </p>
           <p className="mt-1 text-xs text-zinc-400">
             {MONTH_NAMES[fromMonth]}
             {fromMonth !== toMonth ? `–${MONTH_NAMES[toMonth]}` : ""} {year} ·{" "}
-            {omzet.count} facturen · bruto {eur2(omzet.bruto)}
+            {omzet.count} facturen · bruto {eur(omzet.bruto)}
           </p>
           {omzet.partners.length > 0 && (
             <p className="mt-1 text-xs text-zinc-400">
               waarvan naar partners:{" "}
               {omzet.partners
-                .map((p) => `${p.name} ${eur2(p.amount)}`)
+                .map((p) => `${p.name} ${eur(p.amount)}`)
                 .join(" · ")}
             </p>
           )}
@@ -304,15 +303,15 @@ export default async function DashboardPage({
               <p className="mt-0.5 text-sm text-zinc-700 dark:text-zinc-300">
                 Behaald{" "}
                 <span className="font-medium text-zinc-900 dark:text-zinc-50">
-                  {eur2(ytdRevenue)}
+                  {eur(ytdRevenue)}
                 </span>
                 {ytdTarget != null && ytdPct && ytdDelta != null && (
                   <>
                     {" "}
-                    · target {eur2(ytdTarget)} ·{" "}
+                    · target {eur(ytdTarget)} ·{" "}
                     <span className={ytdPct.tone}>
                       {ytdDelta >= 0 ? "+" : "−"}
-                      {eur2(Math.abs(ytdDelta))} ({ytdPct.text})
+                      {eur(Math.abs(ytdDelta))} ({ytdPct.text})
                     </span>
                   </>
                 )}
