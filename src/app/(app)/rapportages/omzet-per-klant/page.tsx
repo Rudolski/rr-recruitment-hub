@@ -132,8 +132,8 @@ export default async function OmzetPerKlantPage({
                 <tr key={r.id} className={tr}>
                   <td className={td}>
                     <Link
-                      href={`/klanten/${r.id}`}
-                      className="font-medium text-zinc-900 hover:underline dark:text-zinc-100"
+                      href={`/rapportages/omzet-per-klant/${r.id}?jaar=${year}`}
+                      className="font-medium text-terra hover:underline"
                     >
                       {r.name}
                     </Link>

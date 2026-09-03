@@ -152,6 +152,26 @@ export default async function DashboardPage({
     .filter((c) => c.month === thisMonth || c.month === nextMonth)
     .sort((a, b) => a.month.localeCompare(b.month));
 
+  /* -------- Top klanten in de periode -------- */
+  const clientName = new Map((clients ?? []).map((c) => [c.id, c.name]));
+  const revenueByClient = new Map<string, number>();
+  for (const inv of periodInvoices) {
+    revenueByClient.set(
+      inv.client_id,
+      (revenueByClient.get(inv.client_id) ?? 0) + Number(inv.amount_excl_btw),
+    );
+  }
+  const topClients = [...revenueByClient.entries()]
+    .map(([cid, amount]) => ({
+      id: cid,
+      name: clientName.get(cid) ?? "—",
+      amount,
+    }))
+    .filter((c) => c.amount > 0)
+    .sort((a, b) => b.amount - a.amount)
+    .slice(0, 10);
+  const topMax = topClients[0]?.amount ?? 1;
+
   return (
     <div className="mx-auto max-w-5xl">
       <PageHeader
@@ -253,6 +273,41 @@ export default async function DashboardPage({
         lastYear={monthlyBuckets(lastYearInvoices)}
         target={targetMonthly}
       />
+
+      {topClients.length > 0 && (
+        <section className="mt-10">
+          <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+            Top klanten ({MONTH_NAMES[fromMonth]}
+            {fromMonth !== toMonth ? `–${MONTH_NAMES[toMonth]}` : ""} {year})
+          </h2>
+          <ul className="mt-3 space-y-1.5">
+            {topClients.map((c) => (
+              <li key={c.id}>
+                <Link
+                  href={`/rapportages/omzet-per-klant/${c.id}?jaar=${year}`}
+                  className="group flex items-center gap-3"
+                >
+                  <span className="w-40 shrink-0 truncate text-sm text-navy group-hover:text-terra dark:text-cream">
+                    {c.name}
+                  </span>
+                  <span className="relative h-5 flex-1 overflow-hidden rounded bg-zinc-100 dark:bg-zinc-800">
+                    <span
+                      className="absolute inset-y-0 left-0 rounded bg-terra/70"
+                      style={{ width: `${(c.amount / topMax) * 100}%` }}
+                    />
+                  </span>
+                  <span className="w-28 shrink-0 text-right text-sm tabular-nums text-zinc-700 dark:text-zinc-300">
+                    {eur(c.amount)}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-2 text-xs text-zinc-400">
+            Klik een klant aan voor de opbouw (facturen en plaatsingen).
+          </p>
+        </section>
+      )}
 
       <section className="mt-10">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
