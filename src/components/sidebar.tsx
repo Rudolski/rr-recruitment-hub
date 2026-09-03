@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "@/app/(app)/actions";
 import { navSections } from "@/lib/nav";
+import { GlobalSearch } from "@/components/global-search";
 
 export function Sidebar({ userEmail }: { userEmail: string }) {
   const pathname = usePathname();
@@ -28,6 +29,10 @@ export function Sidebar({ userEmail }: { userEmail: string }) {
             Recruitment Hub
           </span>
         </Link>
+      </div>
+
+      <div className="px-3 pt-3">
+        <GlobalSearch />
       </div>
 
       <nav className="flex-1 space-y-6 overflow-y-auto px-3 py-4">
