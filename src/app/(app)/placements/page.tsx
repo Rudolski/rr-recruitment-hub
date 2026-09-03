@@ -15,7 +15,7 @@ import {
 } from "@/components/ui";
 import { eur, formatDate } from "@/lib/format";
 import { getSessionContext } from "@/utils/supabase/auth";
-import type { Candidate, Client, Placement, Vacancy } from "@/lib/types";
+import type { Client, Placement, Vacancy } from "@/lib/types";
 
 export const metadata = { title: "Placements · RR Recruitment Hub" };
 
@@ -34,30 +34,22 @@ export default async function PlacementsPage() {
     );
   }
 
-  const [
-    { data: placements, error },
-    { data: clients },
-    { data: candidates },
-    { data: vacancies },
-  ] = await Promise.all([
-    supabase
-      .from("placements")
-      .select("*")
-      .order("start_date", { ascending: false, nullsFirst: false })
-      .returns<Placement[]>(),
-    supabase.from("clients").select("id, name").returns<
-      Pick<Client, "id" | "name">[]
-    >(),
-    supabase.from("candidates").select("id, name").returns<
-      Pick<Candidate, "id" | "name">[]
-    >(),
-    supabase.from("vacancies").select("id, title").returns<
-      Pick<Vacancy, "id" | "title">[]
-    >(),
-  ]);
+  const [{ data: placements, error }, { data: clients }, { data: vacancies }] =
+    await Promise.all([
+      supabase
+        .from("placements")
+        .select("*")
+        .order("start_date", { ascending: false, nullsFirst: false })
+        .returns<Placement[]>(),
+      supabase.from("clients").select("id, name").returns<
+        Pick<Client, "id" | "name">[]
+      >(),
+      supabase.from("vacancies").select("id, title").returns<
+        Pick<Vacancy, "id" | "title">[]
+      >(),
+    ]);
 
   const clientName = new Map((clients ?? []).map((c) => [c.id, c.name]));
-  const candidateName = new Map((candidates ?? []).map((c) => [c.id, c.name]));
   const vacancyTitle = new Map((vacancies ?? []).map((v) => [v.id, v.title]));
 
   return (
@@ -108,7 +100,7 @@ export default async function PlacementsPage() {
                       href={`/placements/${p.id}`}
                       className="font-medium text-zinc-900 hover:underline dark:text-zinc-100"
                     >
-                      {candidateName.get(p.candidate_id) ?? "—"}
+                      {p.candidate_name ?? "—"}
                     </Link>
                   </td>
                   <td className={`${td} text-zinc-600 dark:text-zinc-400`}>

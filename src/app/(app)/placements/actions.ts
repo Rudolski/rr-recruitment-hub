@@ -4,7 +4,6 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getSessionContext } from "@/utils/supabase/auth";
 import {
-  checkbox,
   fieldError,
   formError,
   intOrNull,
@@ -18,23 +17,21 @@ import { PLACEMENT_STATUSES, isOneOf } from "@/lib/types";
 function parsePlacement(fd: FormData) {
   const clientId = str(fd, "client_id");
   const vacancyId = str(fd, "vacancy_id");
-  const candidateId = str(fd, "candidate_id");
+  const candidateName = str(fd, "candidate_name");
   const statusRaw = str(fd, "status");
 
   const fieldErrors: Record<string, string> = {};
   if (!clientId) fieldErrors.client_id = "Kies een klant.";
   if (!vacancyId) fieldErrors.vacancy_id = "Kies een vacature.";
-  if (!candidateId) fieldErrors.candidate_id = "Kies een kandidaat.";
+  if (!candidateName) fieldErrors.candidate_name = "Vul de kandidaatnaam in.";
 
   return {
     clientId,
-    vacancyId,
-    candidateId,
     fieldErrors,
     values: {
       client_id: clientId,
       vacancy_id: vacancyId,
-      candidate_id: candidateId,
+      candidate_name: candidateName,
       start_date: nullableStr(fd, "start_date"),
       gross_annual_salary: numOrNull(fd, "gross_annual_salary"),
       fee_amount: numOrNull(fd, "fee_amount"),
@@ -55,26 +52,12 @@ export async function createPlacement(
     return formError("Je account is nog niet aan een organisatie gekoppeld.");
   }
 
-  const { fieldErrors, values, vacancyId, candidateId, clientId } =
-    parsePlacement(fd);
+  const { fieldErrors, values, clientId } = parsePlacement(fd);
   if (Object.keys(fieldErrors).length > 0) return fieldError(fieldErrors);
-
-  // Koppel automatisch aan de bestaande sollicitatieprocedure en zet
-  // die op 'geplaatst'.
-  const { data: application } = await supabase
-    .from("applications")
-    .select("id")
-    .eq("vacancy_id", vacancyId)
-    .eq("candidate_id", candidateId)
-    .maybeSingle();
 
   const { data: placement, error } = await supabase
     .from("placements")
-    .insert({
-      ...values,
-      application_id: application?.id ?? null,
-      organization_id: organizationId,
-    })
+    .insert({ ...values, organization_id: organizationId })
     .select("id")
     .single();
 
@@ -82,32 +65,22 @@ export async function createPlacement(
     return formError("Opslaan mislukt. Probeer het opnieuw.");
   }
 
-  if (application?.id) {
-    await supabase
-      .from("applications")
-      .update({ stage: "geplaatst", stage_updated_at: new Date().toISOString() })
-      .eq("id", application.id);
-  }
-  await supabase
-    .from("candidates")
-    .update({ status: "geplaatst" })
-    .eq("id", candidateId);
-
-  // Optioneel: meteen een factuurregel (altijd op concept).
-  if (checkbox(fd, "create_invoice")) {
-    const amountExcl = numOrNull(fd, "invoice_amount_excl_btw");
+  // Automatisch één factuurregel voor de placement-fee (op concept),
+  // eventueel verminderd met een al gefactureerde commitment fee.
+  if (values.fee_amount != null) {
+    const commitment = numOrNull(fd, "commitment_invoiced") ?? 0;
+    const amount = values.fee_amount - commitment;
     await supabase.from("invoices").insert({
       organization_id: organizationId,
       client_id: clientId,
       placement_id: placement.id,
-      invoice_number: nullableStr(fd, "invoice_number"),
-      entity_name: nullableStr(fd, "invoice_entity_name"),
-      amount_excl_btw: amountExcl ?? values.fee_amount ?? 0,
-      btw_percentage: numOrNull(fd, "invoice_btw_percentage") ?? 21,
+      amount_excl_btw: amount,
+      btw_percentage: 21,
       status: "concept",
-      issue_date: nullableStr(fd, "invoice_issue_date"),
-      due_date: nullableStr(fd, "invoice_due_date"),
-      notes: nullableStr(fd, "invoice_notes"),
+      notes:
+        commitment > 0
+          ? `Placement-fee (na aftrek commitment € ${commitment})`
+          : "Placement-fee",
     });
   }
 
@@ -143,7 +116,14 @@ export async function deletePlacement(fd: FormData) {
   const id = str(fd, "id");
   if (!id) return;
 
+  // Facturen behouden, maar loskoppelen van de placement.
+  await supabase
+    .from("invoices")
+    .update({ placement_id: null })
+    .eq("placement_id", id);
   await supabase.from("placements").delete().eq("id", id);
+
   revalidatePath("/placements");
+  revalidatePath("/facturen");
   redirect("/placements");
 }

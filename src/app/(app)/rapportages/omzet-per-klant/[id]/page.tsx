@@ -16,7 +16,6 @@ import { eur2, formatDate } from "@/lib/format";
 import { getSessionContext } from "@/utils/supabase/auth";
 import {
   REALISED_INVOICE_STATUSES,
-  type Candidate,
   type Client,
   type Invoice,
   type Placement,
@@ -69,7 +68,7 @@ export default async function KlantOmzetPage({
       .lte("issue_date", `${yearParam}-12-31`);
   }
 
-  const [{ data: invoices }, { data: placements }, { data: vacancies }, { data: candidates }] =
+  const [{ data: invoices }, { data: placements }, { data: vacancies }] =
     await Promise.all([
       invoiceQuery.returns<Invoice[]>(),
       supabase
@@ -83,14 +82,9 @@ export default async function KlantOmzetPage({
         .select("id, title")
         .eq("client_id", id)
         .returns<Pick<Vacancy, "id" | "title">[]>(),
-      supabase
-        .from("candidates")
-        .select("id, name")
-        .returns<Pick<Candidate, "id" | "name">[]>(),
     ]);
 
   const vacancyTitle = new Map((vacancies ?? []).map((v) => [v.id, v.title]));
-  const candidateName = new Map((candidates ?? []).map((c) => [c.id, c.name]));
 
   const realisedStatuses = REALISED_INVOICE_STATUSES as string[];
   const realisedTotal = (invoices ?? [])
@@ -196,7 +190,7 @@ export default async function KlantOmzetPage({
                         href={`/placements/${p.id}`}
                         className="text-terra hover:underline"
                       >
-                        {candidateName.get(p.candidate_id) ?? "—"}
+                        {p.candidate_name ?? "—"}
                       </Link>
                     </td>
                     <td className={`${td} text-zinc-500`}>

@@ -1,6 +1,4 @@
 import {
-  APPLICATION_STAGE_LABELS,
-  CANDIDATE_STATUS_LABELS,
   CLIENT_STATUS_LABELS,
   INVOICE_STATUS_LABELS,
   PLACEMENT_STATUS_LABELS,
@@ -52,30 +50,6 @@ export function VacancyStatusBadge({ status }: { status: string }) {
           ? "red"
           : "zinc";
   return <Badge label={pick(VACANCY_STATUS_LABELS, status)} tone={tone} />;
-}
-
-export function CandidateStatusBadge({ status }: { status: string }) {
-  const tone: Tone =
-    status === "beschikbaar"
-      ? "green"
-      : status === "in_proces"
-        ? "blue"
-        : status === "geplaatst"
-          ? "amber"
-          : "zinc";
-  return <Badge label={pick(CANDIDATE_STATUS_LABELS, status)} tone={tone} />;
-}
-
-export function ApplicationStageBadge({ stage }: { stage: string }) {
-  const tone: Tone =
-    stage === "geplaatst"
-      ? "green"
-      : stage === "afgewezen" || stage === "teruggetrokken"
-        ? "red"
-        : stage === "aanbod"
-          ? "amber"
-          : "blue";
-  return <Badge label={pick(APPLICATION_STAGE_LABELS, stage)} tone={tone} />;
 }
 
 export function PlacementStatusBadge({ status }: { status: string }) {

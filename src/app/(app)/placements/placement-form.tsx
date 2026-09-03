@@ -20,32 +20,40 @@ export function PlacementForm({
   action,
   clients,
   vacancies,
-  candidates,
   initial,
   submitLabel,
   withInvoiceSection = false,
+  defaultVacancyId,
+  defaultClientId,
+  defaultFee,
 }: {
   action: Action;
   clients: Option[];
   vacancies: VacancyOption[];
-  candidates: Option[];
   initial?: Placement;
   submitLabel: string;
   withInvoiceSection?: boolean;
+  defaultVacancyId?: string;
+  defaultClientId?: string;
+  defaultFee?: string;
 }) {
   const [state, formAction, pending] = useActionState(action, emptyFormState);
-  const [clientId, setClientId] = useState(initial?.client_id ?? "");
+  const [clientId, setClientId] = useState(
+    initial?.client_id ?? defaultClientId ?? "",
+  );
   const [grossSalary, setGrossSalary] = useState(
     num(initial?.gross_annual_salary),
   );
   const [feePercentage, setFeePercentage] = useState(
     num(initial?.fee_percentage),
   );
-  const [feeAmount, setFeeAmount] = useState(num(initial?.fee_amount));
-  const [feeEdited, setFeeEdited] = useState(!!initial?.fee_amount);
-  const [createInvoice, setCreateInvoice] = useState(false);
+  const [feeAmount, setFeeAmount] = useState(
+    num(initial?.fee_amount) || defaultFee || "",
+  );
+  const [feeEdited, setFeeEdited] = useState(
+    !!initial?.fee_amount || !!defaultFee,
+  );
 
-  // fee = bruto jaarsalaris × fee-percentage, tenzij handmatig aangepast
   function autoFee(salary: string, pct: string) {
     if (feeEdited) return;
     const s = Number(salary.replace(",", "."));
@@ -76,7 +84,7 @@ export function PlacementForm({
           <select
             id="vacancy_id"
             name="vacancy_id"
-            defaultValue={initial?.vacancy_id ?? ""}
+            defaultValue={initial?.vacancy_id ?? defaultVacancyId ?? ""}
             onChange={(e) => {
               const v = vacancies.find((x) => x.id === e.target.value);
               if (v) setClientId(v.client_id);
@@ -98,25 +106,19 @@ export function PlacementForm({
         </div>
 
         <div className="space-y-1.5">
-          <label htmlFor="candidate_id" className={labelClass}>
+          <label htmlFor="candidate_name" className={labelClass}>
             Kandidaat <span className="text-red-500">*</span>
           </label>
-          <select
-            id="candidate_id"
-            name="candidate_id"
-            defaultValue={initial?.candidate_id ?? ""}
+          <input
+            id="candidate_name"
+            name="candidate_name"
+            defaultValue={initial?.candidate_name ?? ""}
+            placeholder="Naam kandidaat"
             className={inputClass}
-          >
-            <option value="">— Kies een kandidaat —</option>
-            {candidates.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-          {state.fieldErrors.candidate_id && (
+          />
+          {state.fieldErrors.candidate_name && (
             <p className="text-xs text-red-600">
-              {state.fieldErrors.candidate_id}
+              {state.fieldErrors.candidate_name}
             </p>
           )}
         </div>
@@ -228,8 +230,7 @@ export function PlacementForm({
           />
           {!feeEdited && (
             <p className="text-xs text-zinc-400">
-              Automatisch berekend uit salaris × percentage; je kunt het
-              overschrijven.
+              Wordt berekend uit salaris × percentage; overschrijven kan.
             </p>
           )}
         </div>
@@ -264,108 +265,28 @@ export function PlacementForm({
       {withInvoiceSection && (
         <fieldset className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
           <legend className="px-1 text-xs font-medium uppercase tracking-wider text-zinc-500">
-            Factuurregistratie
+            Facturatie
           </legend>
-          <label className="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
+          <p className="text-sm text-zinc-500">
+            Bij opslaan maakt de Hub automatisch één factuurregel voor de fee
+            aan (status concept). Je zet die daarna op de placementpagina door
+            naar verstuurd en betaald, of voegt extra regels toe.
+          </p>
+          <div className="mt-3 max-w-xs space-y-1.5">
+            <label htmlFor="commitment_invoiced" className={labelClass}>
+              Reeds als commitment gefactureerd (€)
+            </label>
             <input
-              type="checkbox"
-              name="create_invoice"
-              checked={createInvoice}
-              onChange={(e) => setCreateInvoice(e.target.checked)}
-              className="h-4 w-4 rounded border-zinc-300"
+              id="commitment_invoiced"
+              name="commitment_invoiced"
+              inputMode="numeric"
+              placeholder="0"
+              className={inputClass}
             />
-            Meteen een factuurregel aanmaken (status concept)
-          </label>
-
-          {createInvoice && (
-            <div className="mt-4 grid grid-cols-1 gap-5 sm:grid-cols-2">
-              <div className="space-y-1.5">
-                <label htmlFor="invoice_number" className={labelClass}>
-                  Factuurnummer
-                </label>
-                <input
-                  id="invoice_number"
-                  name="invoice_number"
-                  className={inputClass}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label htmlFor="invoice_entity_name" className={labelClass}>
-                  Entiteitsnaam (indien afwijkend)
-                </label>
-                <input
-                  id="invoice_entity_name"
-                  name="invoice_entity_name"
-                  className={inputClass}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label
-                  htmlFor="invoice_amount_excl_btw"
-                  className={labelClass}
-                >
-                  Bedrag excl. btw (€)
-                </label>
-                <input
-                  id="invoice_amount_excl_btw"
-                  name="invoice_amount_excl_btw"
-                  inputMode="numeric"
-                  defaultValue={feeAmount}
-                  className={inputClass}
-                />
-                <p className="text-xs text-zinc-400">
-                  Leeg = de fee hierboven wordt gebruikt.
-                </p>
-              </div>
-              <div className="space-y-1.5">
-                <label
-                  htmlFor="invoice_btw_percentage"
-                  className={labelClass}
-                >
-                  Btw %
-                </label>
-                <input
-                  id="invoice_btw_percentage"
-                  name="invoice_btw_percentage"
-                  inputMode="numeric"
-                  defaultValue="21"
-                  className={inputClass}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label htmlFor="invoice_issue_date" className={labelClass}>
-                  Factuurdatum
-                </label>
-                <input
-                  id="invoice_issue_date"
-                  name="invoice_issue_date"
-                  type="date"
-                  className={inputClass}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label htmlFor="invoice_due_date" className={labelClass}>
-                  Vervaldatum
-                </label>
-                <input
-                  id="invoice_due_date"
-                  name="invoice_due_date"
-                  type="date"
-                  className={inputClass}
-                />
-              </div>
-              <div className="space-y-1.5 sm:col-span-2">
-                <label htmlFor="invoice_notes" className={labelClass}>
-                  Notitie bij de factuur
-                </label>
-                <input
-                  id="invoice_notes"
-                  name="invoice_notes"
-                  className={inputClass}
-                />
-              </div>
-            </div>
-          )}
+            <p className="text-xs text-zinc-400">
+              Wordt van de fee afgetrokken op de automatische factuurregel.
+            </p>
+          </div>
         </fieldset>
       )}
 

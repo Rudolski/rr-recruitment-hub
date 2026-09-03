@@ -1,13 +1,14 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BackLink } from "@/components/page-header";
-import { btnDanger } from "@/components/ui";
+import { PlacementStatusBadge } from "@/components/status-badge";
+import { btnDanger, btnPrimary } from "@/components/ui";
+import { eur, formatDate } from "@/lib/format";
 import { getSessionContext } from "@/utils/supabase/auth";
-import type { Application, Candidate, Client, Vacancy } from "@/lib/types";
+import type { Client, Placement, Vacancy } from "@/lib/types";
 import { VacancyForm } from "../vacancy-form";
 import { deleteVacature, updateVacature } from "../actions";
 import { loadFeeAgreementOptions } from "../helpers";
-import { Pipeline, type PipelineRow } from "./pipeline";
 
 export const metadata = { title: "Vacature · RR Recruitment Hub" };
 
@@ -27,51 +28,38 @@ export default async function VacatureDetailPage({
 
   if (!vacancy) notFound();
 
-  const [
-    { data: clients },
-    { data: applications },
-    { data: candidates },
-    feeAgreements,
-  ] = await Promise.all([
-    supabase
-      .from("clients")
-      .select("id, name")
-      .order("name", { ascending: true }),
-    supabase
-      .from("applications")
-      .select("*")
-      .eq("vacancy_id", id)
-      .order("created_at", { ascending: true })
-      .returns<Application[]>(),
-    supabase
-      .from("candidates")
-      .select("id, name")
-      .order("name", { ascending: true })
-      .returns<Pick<Candidate, "id" | "name">[]>(),
-    loadFeeAgreementOptions(supabase),
-  ]);
-
-  const candidateName = new Map((candidates ?? []).map((c) => [c.id, c.name]));
-  const rows: PipelineRow[] = (applications ?? []).map((a) => ({
-    id: a.id,
-    candidateId: a.candidate_id,
-    candidateName: candidateName.get(a.candidate_id) ?? "Kandidaat",
-    stage: a.stage,
-  }));
-  const usedCandidateIds = new Set(rows.map((r) => r.candidateId));
-  const addableCandidates = (candidates ?? []).filter(
-    (c) => !usedCandidateIds.has(c.id),
-  );
+  const [{ data: clients }, { data: placements }, feeAgreements] =
+    await Promise.all([
+      supabase
+        .from("clients")
+        .select("id, name")
+        .order("name", { ascending: true }),
+      supabase
+        .from("placements")
+        .select("*")
+        .eq("vacancy_id", id)
+        .order("created_at", { ascending: false })
+        .returns<Placement[]>(),
+      loadFeeAgreementOptions(supabase),
+    ]);
 
   const clientName =
     (clients as Pick<Client, "id" | "name">[] | null)?.find(
       (c) => c.id === vacancy.client_id,
     )?.name ?? null;
 
+  const canPlace =
+    Number(vacancy.success_probability) === 100 &&
+    (placements ?? []).length === 0;
+
+  const placeUrl =
+    `/placements/nieuw?vacature=${vacancy.id}&klant=${vacancy.client_id}` +
+    (vacancy.expected_fee != null ? `&fee=${vacancy.expected_fee}` : "");
+
   return (
     <div className="mx-auto max-w-3xl">
       <BackLink href="/vacatures" label="Vacatures" />
-      <h1 className="mt-2 text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+      <h1 className="mt-2 font-[family-name:var(--font-roc)] text-2xl font-medium tracking-tight text-navy dark:text-cream">
         {vacancy.title}
       </h1>
       {clientName && (
@@ -85,16 +73,44 @@ export default async function VacatureDetailPage({
         </p>
       )}
 
-      <section className="mt-8">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-900 dark:text-zinc-50">
-          Sollicitatieprocedure
-        </h2>
-        <Pipeline
-          vacancyId={vacancy.id}
-          rows={rows}
-          addableCandidates={addableCandidates}
-        />
-      </section>
+      {canPlace && (
+        <div className="mt-5 flex flex-wrap items-center gap-3 rounded-lg border border-terra/40 bg-terra/5 px-4 py-3">
+          <p className="text-sm text-navy dark:text-cream">
+            Slagingskans staat op 100%.
+          </p>
+          <Link href={placeUrl} className={btnPrimary}>
+            Vervuld → placement aanmaken
+          </Link>
+        </div>
+      )}
+
+      {placements && placements.length > 0 && (
+        <section className="mt-8">
+          <h2 className="mb-3 text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+            Placements
+          </h2>
+          <ul className="space-y-2">
+            {placements.map((p) => (
+              <li
+                key={p.id}
+                className="flex items-center justify-between rounded-md border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-800"
+              >
+                <Link
+                  href={`/placements/${p.id}`}
+                  className="font-medium text-navy hover:underline dark:text-cream"
+                >
+                  {p.candidate_name || "Placement"}
+                </Link>
+                <span className="flex items-center gap-3 text-zinc-500">
+                  <span>{formatDate(p.start_date)}</span>
+                  <span className="tabular-nums">{eur(p.fee_amount)}</span>
+                  <PlacementStatusBadge status={p.status} />
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section className="mt-10 border-t border-zinc-200 pt-8 dark:border-zinc-800">
         <h2 className="mb-4 text-sm font-semibold text-zinc-900 dark:text-zinc-50">

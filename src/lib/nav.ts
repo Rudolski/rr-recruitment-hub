@@ -61,12 +61,6 @@ export const navSections: NavSection[] = [
           "Opdrachten per klant, met de forecastvelden verwachte fee, verwachte sluitingsmaand en slagingskans.",
       },
       {
-        label: "Kandidaten",
-        href: "/kandidaten",
-        description:
-          "Kandidatenbestand met status, huidige functie, bron en verwijzing naar het cv.",
-      },
-      {
         label: "Placements",
         href: "/placements",
         description:

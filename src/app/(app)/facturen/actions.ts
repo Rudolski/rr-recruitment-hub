@@ -32,6 +32,7 @@ function parse(fd: FormData) {
       placement_id: nullableStr(fd, "placement_id"),
       invoice_number: nullableStr(fd, "invoice_number"),
       entity_name: nullableStr(fd, "entity_name"),
+      partner_name: nullableStr(fd, "partner_name"),
       amount_excl_btw: amountExcl ?? 0,
       btw_percentage: numOrNull(fd, "btw_percentage") ?? 21,
       issue_date: nullableStr(fd, "issue_date"),
@@ -40,6 +41,38 @@ function parse(fd: FormData) {
       notes: nullableStr(fd, "notes"),
     },
   };
+}
+
+/** Snel doorzetten van de factuurstatus vanaf een placement/klant. */
+export async function advanceInvoiceStatus(fd: FormData) {
+  const { supabase } = await getSessionContext();
+  const id = str(fd, "id");
+  const to = str(fd, "to");
+  if (!id || !isOneOf(INVOICE_STATUSES, to)) return;
+
+  const { data: current } = await supabase
+    .from("invoices")
+    .select("sent_at, paid_date")
+    .eq("id", id)
+    .maybeSingle();
+
+  const patch: {
+    status: string;
+    sent_at?: string;
+    paid_date?: string;
+  } = { status: to };
+  if ((to === "verzonden" || to === "betaald") && !current?.sent_at) {
+    patch.sent_at = new Date().toISOString();
+  }
+  if (to === "betaald" && !current?.paid_date) patch.paid_date = today();
+
+  await supabase.from("invoices").update(patch).eq("id", id);
+
+  revalidatePath("/facturen");
+  revalidatePath(`/facturen/${id}`);
+  revalidatePath("/placements", "layout");
+  revalidatePath("/dashboard");
+  revalidatePath("/klanten", "layout");
 }
 
 export async function createFactuur(

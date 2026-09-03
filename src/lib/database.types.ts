@@ -224,82 +224,12 @@ export type Database = {
         };
         Relationships: [];
       };
-      candidates: {
-        Row: {
-          id: string;
-          organization_id: string;
-          name: string;
-          email: string | null;
-          phone: string | null;
-          current_job_title: string | null;
-          source: string | null;
-          cv_link: string | null;
-          status: string;
-          notes: string | null;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          organization_id: string;
-          name: string;
-          email?: string | null;
-          phone?: string | null;
-          current_job_title?: string | null;
-          source?: string | null;
-          cv_link?: string | null;
-          status?: string;
-          notes?: string | null;
-          created_at?: string;
-        };
-        Update: {
-          name?: string;
-          email?: string | null;
-          phone?: string | null;
-          current_job_title?: string | null;
-          source?: string | null;
-          cv_link?: string | null;
-          status?: string;
-          notes?: string | null;
-        };
-        Relationships: [];
-      };
-      applications: {
-        Row: {
-          id: string;
-          organization_id: string;
-          vacancy_id: string;
-          candidate_id: string;
-          stage: string;
-          stage_updated_at: string;
-          notes: string | null;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          organization_id: string;
-          vacancy_id: string;
-          candidate_id: string;
-          stage?: string;
-          stage_updated_at?: string;
-          notes?: string | null;
-          created_at?: string;
-        };
-        Update: {
-          vacancy_id?: string;
-          candidate_id?: string;
-          stage?: string;
-          stage_updated_at?: string;
-          notes?: string | null;
-        };
-        Relationships: [];
-      };
       placements: {
         Row: {
           id: string;
           organization_id: string;
-          application_id: string | null;
           client_id: string;
-          candidate_id: string;
+          candidate_name: string | null;
           vacancy_id: string;
           start_date: string | null;
           gross_annual_salary: number | null;
@@ -313,9 +243,8 @@ export type Database = {
         Insert: {
           id?: string;
           organization_id: string;
-          application_id?: string | null;
           client_id: string;
-          candidate_id: string;
+          candidate_name?: string | null;
           vacancy_id: string;
           start_date?: string | null;
           gross_annual_salary?: number | null;
@@ -327,9 +256,8 @@ export type Database = {
           created_at?: string;
         };
         Update: {
-          application_id?: string | null;
           client_id?: string;
-          candidate_id?: string;
+          candidate_name?: string | null;
           vacancy_id?: string;
           start_date?: string | null;
           gross_annual_salary?: number | null;
@@ -353,6 +281,7 @@ export type Database = {
           btw_percentage: number;
           amount_incl_btw: number;
           status: string;
+          partner_name: string | null;
           sent_at: string | null;
           issue_date: string | null;
           due_date: string | null;
@@ -370,6 +299,7 @@ export type Database = {
           amount_excl_btw: number;
           btw_percentage?: number;
           status?: string;
+          partner_name?: string | null;
           sent_at?: string | null;
           issue_date?: string | null;
           due_date?: string | null;
@@ -385,6 +315,7 @@ export type Database = {
           amount_excl_btw?: number;
           btw_percentage?: number;
           status?: string;
+          partner_name?: string | null;
           sent_at?: string | null;
           issue_date?: string | null;
           due_date?: string | null;
