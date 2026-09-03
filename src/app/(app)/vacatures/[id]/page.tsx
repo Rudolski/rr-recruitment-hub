@@ -5,8 +5,16 @@ import { PlacementStatusBadge } from "@/components/status-badge";
 import { btnDanger, btnPrimary } from "@/components/ui";
 import { eur, formatDate } from "@/lib/format";
 import { getSessionContext } from "@/utils/supabase/auth";
-import type { Client, Placement, Vacancy } from "@/lib/types";
+import type {
+  Client,
+  Placement,
+  Vacancy,
+  VacancyCandidate,
+  VacancyTask,
+} from "@/lib/types";
 import { VacancyForm } from "../vacancy-form";
+import { VacancyBoard } from "../vacancy-board";
+import { VacancyTasks } from "../vacancy-tasks";
 import { deleteVacature, updateVacature } from "../actions";
 
 export const metadata = { title: "Vacature · RR Recruitment Hub" };
@@ -27,7 +35,12 @@ export default async function VacatureDetailPage({
 
   if (!vacancy) notFound();
 
-  const [{ data: clients }, { data: placements }] = await Promise.all([
+  const [
+    { data: clients },
+    { data: placements },
+    { data: tasks },
+    { data: candidates },
+  ] = await Promise.all([
     supabase
       .from("clients")
       .select("id, name")
@@ -38,6 +51,18 @@ export default async function VacatureDetailPage({
       .eq("vacancy_id", id)
       .order("created_at", { ascending: false })
       .returns<Placement[]>(),
+    supabase
+      .from("vacancy_tasks")
+      .select("*")
+      .eq("vacancy_id", id)
+      .order("created_at", { ascending: true })
+      .returns<VacancyTask[]>(),
+    supabase
+      .from("vacancy_candidates")
+      .select("*")
+      .eq("vacancy_id", id)
+      .order("created_at", { ascending: true })
+      .returns<VacancyCandidate[]>(),
   ]);
 
   const clientName =
@@ -83,6 +108,20 @@ export default async function VacatureDetailPage({
           </Link>
         </div>
       )}
+
+      <section className="mt-8">
+        <h2 className="mb-3 text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+          Kandidaten in procedure
+        </h2>
+        <VacancyBoard candidates={candidates ?? []} vacancyId={vacancy.id} />
+      </section>
+
+      <section className="mt-8">
+        <h2 className="mb-3 text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+          Actiepunten
+        </h2>
+        <VacancyTasks tasks={tasks ?? []} vacancyId={vacancy.id} />
+      </section>
 
       {placements && placements.length > 0 && (
         <section className="mt-8">

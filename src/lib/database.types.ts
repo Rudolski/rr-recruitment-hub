@@ -474,6 +474,64 @@ export type Database = {
         };
         Relationships: [];
       };
+      vacancy_tasks: {
+        Row: {
+          id: string;
+          organization_id: string;
+          vacancy_id: string;
+          body: string;
+          done: boolean;
+          done_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          vacancy_id: string;
+          body: string;
+          done?: boolean;
+          done_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          body?: string;
+          done?: boolean;
+          done_at?: string | null;
+        };
+        Relationships: [];
+      };
+      vacancy_candidates: {
+        Row: {
+          id: string;
+          organization_id: string;
+          vacancy_id: string;
+          first_name: string;
+          stage: string;
+          note: string | null;
+          position: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          vacancy_id: string;
+          first_name: string;
+          stage?: string;
+          note?: string | null;
+          position?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          first_name?: string;
+          stage?: string;
+          note?: string | null;
+          position?: number;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: { [_ in never]: never };
     Functions: {

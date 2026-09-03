@@ -15,6 +15,8 @@ export type Invoice = Tables["invoices"]["Row"];
 export type FeeAgreement = Tables["fee_agreements"]["Row"];
 export type MonthlyTarget = Tables["monthly_targets"]["Row"];
 export type StoredFile = Tables["stored_files"]["Row"];
+export type VacancyTask = Tables["vacancy_tasks"]["Row"];
+export type VacancyCandidate = Tables["vacancy_candidates"]["Row"];
 
 /* -------------------------------------------------------------- */
 /* Klanten                                                        */
@@ -83,6 +85,27 @@ export const VACANCY_STATUS_LABELS: Record<VacancyStatus, string> = {
   on_hold: "On hold",
   vervuld: "Vervuld",
   geannuleerd: "Geannuleerd",
+};
+
+/** Mini-funnel per vacature (alleen voornamen, AVG-proof). */
+export const CANDIDATE_STAGES = [
+  "intake",
+  "voorgesteld",
+  "gesprek_1",
+  "gesprek_2",
+  "abvw",
+  "aangenomen",
+  "afgewezen",
+] as const;
+export type CandidateStage = (typeof CANDIDATE_STAGES)[number];
+export const CANDIDATE_STAGE_LABELS: Record<CandidateStage, string> = {
+  intake: "Intake kandidaat",
+  voorgesteld: "Voorgesteld bij klant",
+  gesprek_1: "1e gesprek bij klant",
+  gesprek_2: "2e gesprek bij klant",
+  abvw: "ABVW",
+  aangenomen: "Aangenomen",
+  afgewezen: "Afgewezen",
 };
 
 /* -------------------------------------------------------------- */
