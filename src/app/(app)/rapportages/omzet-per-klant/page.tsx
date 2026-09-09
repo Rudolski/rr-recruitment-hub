@@ -119,7 +119,36 @@ export default async function OmzetPerKlantPage({
           Geen verzonden facturen met een factuurdatum in {year}.
         </p>
       ) : (
-        <div className={tableWrap}>
+        <>
+          {/* Mobiel: kaart per klant */}
+          <ul className="mt-4 space-y-1.5 md:hidden">
+            {rows.map((r) => (
+              <li
+                key={r.id}
+                className="flex items-center justify-between gap-3 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm dark:border-zinc-800 dark:bg-zinc-950"
+              >
+                <span className="min-w-0">
+                  <Link
+                    href={`/rapportages/omzet-per-klant/${r.id}?jaar=${year}`}
+                    className="font-medium text-terra hover:underline"
+                  >
+                    {r.name}
+                  </Link>
+                  <span className="block text-xs text-zinc-400">
+                    {r.count} factu{r.count === 1 ? "ur" : "ren"}
+                  </span>
+                </span>
+                <span className="shrink-0 tabular-nums">{eur2(r.revenue)}</span>
+              </li>
+            ))}
+            <li className="flex items-center justify-between gap-3 px-3 py-2 text-sm font-medium">
+              <span>Totaal</span>
+              <span className="tabular-nums">{eur2(total)}</span>
+            </li>
+          </ul>
+
+          {/* Tablet en breder: tabel */}
+          <div className={`${tableWrap} hidden md:block`}>
           <table className={table}>
             <thead className={thead}>
               <tr>
@@ -158,7 +187,8 @@ export default async function OmzetPerKlantPage({
               </tr>
             </tfoot>
           </table>
-        </div>
+          </div>
+        </>
       )}
     </div>
   );
