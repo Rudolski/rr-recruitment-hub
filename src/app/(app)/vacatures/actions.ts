@@ -84,7 +84,8 @@ export async function updateVacature(
   _prev: FormState,
   fd: FormData,
 ): Promise<FormState> {
-  const { supabase } = await getSessionContext();
+  const { supabase, organizationId } = await getSessionContext();
+  if (!organizationId) return formError("Geen organisatie.");
   const id = str(fd, "id");
   if (!id) return formError("Onbekende vacature.");
 
@@ -94,7 +95,8 @@ export async function updateVacature(
   const { error } = await supabase
     .from("vacancies")
     .update(values)
-    .eq("id", id);
+    .eq("id", id)
+    .eq("organization_id", organizationId);
   if (error) return formError("Opslaan mislukt. Probeer het opnieuw.");
 
   revalidatePath("/vacatures");
@@ -104,7 +106,8 @@ export async function updateVacature(
 
 /** Snel-bewerken van de drie forecastvelden vanuit de lijst. */
 export async function updateVacatureForecast(fd: FormData) {
-  const { supabase } = await getSessionContext();
+  const { supabase, organizationId } = await getSessionContext();
+  if (!organizationId) return;
   const id = str(fd, "id");
   if (!id) return;
 
@@ -117,7 +120,8 @@ export async function updateVacatureForecast(fd: FormData) {
       expected_close_month: monthToDate(str(fd, "expected_close_month")),
       success_probability: clampPct(numOrNull(fd, "success_probability")),
     })
-    .eq("id", id);
+    .eq("id", id)
+    .eq("organization_id", organizationId);
 
   revalidatePath("/vacatures");
   revalidatePath(`/vacatures/${id}`);
@@ -125,11 +129,16 @@ export async function updateVacatureForecast(fd: FormData) {
 }
 
 export async function deleteVacature(fd: FormData) {
-  const { supabase } = await getSessionContext();
+  const { supabase, organizationId } = await getSessionContext();
+  if (!organizationId) return;
   const id = str(fd, "id");
   if (!id) return;
 
-  await supabase.from("vacancies").delete().eq("id", id);
+  await supabase
+    .from("vacancies")
+    .delete()
+    .eq("id", id)
+    .eq("organization_id", organizationId);
   revalidatePath("/vacatures");
   redirect("/vacatures");
 }

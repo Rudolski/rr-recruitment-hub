@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
+import { SortHeader, cmpText, readSort } from "@/components/sort-header";
 import {
   btnPrimary,
   emptyState,
@@ -8,7 +9,6 @@ import {
   tableWrap,
   tbody,
   td,
-  th,
   thead,
   tr,
 } from "@/components/ui";
@@ -17,7 +17,20 @@ import type { Client, Contact } from "@/lib/types";
 
 export const metadata = { title: "Contactpersonen · RR Recruitment Hub" };
 
-export default async function ContactpersonenPage() {
+const SORT_KEYS = [
+  "name",
+  "client",
+  "role",
+  "email",
+  "phone",
+  "primary",
+] as const;
+
+export default async function ContactpersonenPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
   const { supabase, organizationId } = await getSessionContext();
 
   if (!organizationId) {
@@ -46,6 +59,41 @@ export default async function ContactpersonenPage() {
   ]);
 
   const clientName = new Map((clients ?? []).map((c) => [c.id, c.name]));
+
+  const { sort, dir } = readSort(await searchParams, SORT_KEYS, "name");
+  const sorted = [...(contacts ?? [])].sort((a, b) => {
+    let cmp = 0;
+    switch (sort) {
+      case "client":
+        cmp = cmpText(
+          clientName.get(a.client_id),
+          clientName.get(b.client_id),
+        );
+        break;
+      case "role":
+        cmp = cmpText(a.role, b.role);
+        break;
+      case "email":
+        cmp = cmpText(a.email, b.email);
+        break;
+      case "phone":
+        cmp = cmpText(a.phone, b.phone);
+        break;
+      case "primary":
+        cmp = (a.is_primary ? 1 : 0) - (b.is_primary ? 1 : 0);
+        break;
+      default:
+        cmp = cmpText(a.name, b.name);
+    }
+    if (cmp === 0) cmp = cmpText(a.name, b.name);
+    return dir === "desc" ? -cmp : cmp;
+  });
+
+  const headerProps = {
+    activeKey: sort,
+    dir,
+    basePath: "/contactpersonen",
+  };
 
   return (
     <div className="mx-auto max-w-5xl">
@@ -79,16 +127,24 @@ export default async function ContactpersonenPage() {
           <table className={table}>
             <thead className={thead}>
               <tr>
-                <th className={th}>Naam</th>
-                <th className={th}>Klant</th>
-                <th className={th}>Rol</th>
-                <th className={th}>E-mail</th>
-                <th className={th}>Telefoon</th>
-                <th className={th}>Primair</th>
+                <SortHeader label="Naam" columnKey="name" {...headerProps} />
+                <SortHeader label="Klant" columnKey="client" {...headerProps} />
+                <SortHeader label="Rol" columnKey="role" {...headerProps} />
+                <SortHeader label="E-mail" columnKey="email" {...headerProps} />
+                <SortHeader
+                  label="Telefoon"
+                  columnKey="phone"
+                  {...headerProps}
+                />
+                <SortHeader
+                  label="Primair"
+                  columnKey="primary"
+                  {...headerProps}
+                />
               </tr>
             </thead>
             <tbody className={tbody}>
-              {contacts.map((c) => (
+              {sorted.map((c) => (
                 <tr key={c.id} className={tr}>
                   <td className={td}>
                     <Link

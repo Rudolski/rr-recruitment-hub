@@ -33,12 +33,6 @@ export const navSections: NavSection[] = [
         description: "Opdrachtgevers met de status Klant.",
       },
       {
-        label: "Prospects",
-        href: "/prospects",
-        description:
-          "Relaties in de funnel: nieuw, in outreach, warm, afspraak gepland of voorstel gestuurd.",
-      },
-      {
         label: "Contactpersonen",
         href: "/contactpersonen",
         description: "Alle contactpersonen, gekoppeld aan een relatie.",
@@ -60,6 +54,12 @@ export const navSections: NavSection[] = [
           "Openstaande opdrachten met de forecastvelden (verwachte fee, maand, slagingskans).",
       },
       {
+        label: "Vacature-radar",
+        href: "/radar",
+        description:
+          "Dagelijkse scan van de carrièrepagina's van klanten en concurrenten; nieuw gevonden vacatures.",
+      },
+      {
         label: "Placements",
         href: "/placements",
         description:
@@ -73,8 +73,7 @@ export const navSections: NavSection[] = [
       {
         label: "Dashboard",
         href: "/dashboard",
-        description:
-          "Behaalde omzet (netto/bruto), prognose en de opvolgacties van deze week.",
+        description: "Behaalde omzet (netto/bruto) en de prognose.",
       },
       {
         label: "Targets",

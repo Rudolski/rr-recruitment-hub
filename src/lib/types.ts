@@ -17,6 +17,27 @@ export type MonthlyTarget = Tables["monthly_targets"]["Row"];
 export type StoredFile = Tables["stored_files"]["Row"];
 export type VacancyTask = Tables["vacancy_tasks"]["Row"];
 export type VacancyCandidate = Tables["vacancy_candidates"]["Row"];
+export type WatchSource = Tables["watch_sources"]["Row"];
+export type WatchVacancy = Tables["watch_vacancies"]["Row"];
+
+/* -------------------------------------------------------------- */
+/* Vacature-radar                                                 */
+/* -------------------------------------------------------------- */
+
+export const WATCH_KINDS = ["klant", "concurrent", "prospect"] as const;
+export type WatchKind = (typeof WATCH_KINDS)[number];
+export const WATCH_KIND_LABELS: Record<WatchKind, string> = {
+  klant: "Klant",
+  concurrent: "Concurrent",
+  prospect: "Prospect",
+};
+
+export const WATCH_MODES = ["html", "sitemap"] as const;
+export type WatchMode = (typeof WATCH_MODES)[number];
+export const WATCH_MODE_LABELS: Record<WatchMode, string> = {
+  html: "HTML-lijst",
+  sitemap: "Sitemap / RSS",
+};
 
 /* -------------------------------------------------------------- */
 /* Klanten                                                        */

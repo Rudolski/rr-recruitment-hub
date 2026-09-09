@@ -20,7 +20,11 @@ import type { Client, Invoice } from "@/lib/types";
 
 export const metadata = { title: "Facturen · RR Recruitment Hub" };
 
-export default async function FacturenPage() {
+export default async function FacturenPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
   const { supabase, organizationId } = await getSessionContext();
 
   if (!organizationId) {
@@ -47,7 +51,18 @@ export default async function FacturenPage() {
   ]);
 
   const clientName = new Map((clients ?? []).map((c) => [c.id, c.name]));
-  const omzet = splitOmzet(invoices ?? []);
+
+  const sp = await searchParams;
+  const klantFilter = (typeof sp.klant === "string" ? sp.klant : "").trim();
+  const allInvoices = invoices ?? [];
+  const filtered = klantFilter
+    ? allInvoices.filter((inv) =>
+        (clientName.get(inv.client_id) ?? "")
+          .toLowerCase()
+          .includes(klantFilter.toLowerCase()),
+      )
+    : allInvoices;
+  const omzet = splitOmzet(filtered);
 
   return (
     <div className="mx-auto max-w-6xl">
@@ -61,10 +76,38 @@ export default async function FacturenPage() {
         }
       />
 
+      <form className="mt-6 flex items-end gap-3" method="get">
+        <label className="text-sm">
+          <span className="block text-xs text-zinc-500">Klant</span>
+          <input
+            type="text"
+            name="klant"
+            defaultValue={klantFilter}
+            placeholder="Klantnaam…"
+            className="mt-1 rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+          />
+        </label>
+        <button
+          type="submit"
+          className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-900"
+        >
+          Toepassen
+        </button>
+        {klantFilter && (
+          <Link
+            href="/facturen"
+            className="px-3 py-1.5 text-sm text-zinc-500 hover:underline"
+          >
+            Wissen
+          </Link>
+        )}
+      </form>
+
       {error && <p className={errorBox}>Laden mislukt: {error.message}</p>}
 
-      {!error && invoices && invoices.length > 0 && (
+      {!error && filtered.length > 0 && (
         <p className="mt-4 text-sm text-zinc-500">
+          {klantFilter && `${filtered.length} factu${filtered.length === 1 ? "ur" : "ren"} · `}
           Behaalde omzet (verzonden en verder, excl. btw): netto{" "}
           <span className="font-medium text-zinc-900 dark:text-zinc-100">
             {eur2(omzet.netto)}
@@ -77,7 +120,13 @@ export default async function FacturenPage() {
         </p>
       )}
 
-      {!error && (!invoices || invoices.length === 0) && (
+      {!error && filtered.length === 0 && klantFilter && (
+        <div className={emptyState}>
+          Geen facturen voor een klant met &ldquo;{klantFilter}&rdquo; in de naam.
+        </div>
+      )}
+
+      {!error && filtered.length === 0 && !klantFilter && (
         <div className={emptyState}>
           Nog geen facturen.{" "}
           <Link
@@ -90,7 +139,7 @@ export default async function FacturenPage() {
         </div>
       )}
 
-      {!error && invoices && invoices.length > 0 && (
+      {!error && filtered.length > 0 && (
         <div className={tableWrap}>
           <table className={table}>
             <thead className={thead}>
@@ -104,7 +153,7 @@ export default async function FacturenPage() {
               </tr>
             </thead>
             <tbody className={tbody}>
-              {invoices.map((inv) => (
+              {filtered.map((inv) => (
                 <tr key={inv.id} className={tr}>
                   <td className={`${td} text-zinc-600 dark:text-zinc-400`}>
                     <Link

@@ -1,18 +1,11 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
 import { errorBox } from "@/components/ui";
-import {
-  eur,
-  formatDate,
-  formatMonth,
-  MONTH_NAMES,
-  pctLabel,
-} from "@/lib/format";
+import { eur, formatMonth, MONTH_NAMES, pctLabel } from "@/lib/format";
 import { getSessionContext } from "@/utils/supabase/auth";
 import {
   REALISED_INVOICE_STATUSES,
   type Client,
-  type ClientNote,
   type Invoice,
   type MonthlyTarget,
   type Vacancy,
@@ -79,23 +72,6 @@ export default async function DashboardPage({
     .select("id, name")
     .order("name")
     .returns<Pick<Client, "id" | "name">[]>();
-
-  /* -------- Opvolgacties (komende 7 dagen + te laat) -------- */
-  const weekAhead = new Date(now.getTime() + 7 * 864e5)
-    .toISOString()
-    .slice(0, 10);
-  const { data: followUps } = await supabase
-    .from("client_notes")
-    .select("id, client_id, body, follow_up_on")
-    .eq("follow_up_done", false)
-    .not("follow_up_on", "is", null)
-    .lte("follow_up_on", weekAhead)
-    .order("follow_up_on", { ascending: true })
-    .returns<
-      Pick<ClientNote, "id" | "client_id" | "body" | "follow_up_on">[]
-    >();
-  const clientNameAll = new Map((clients ?? []).map((c) => [c.id, c.name]));
-  const todayStr = now.toISOString().slice(0, 10);
 
   async function realisedInvoices(from: string, to: string) {
     let q = supabase
@@ -185,6 +161,33 @@ export default async function DashboardPage({
   const forecastNext = contributions
     .filter((c) => c.month === nextMonth)
     .reduce((s, c) => s + c.value, 0);
+
+  /* -------- Targets voor de prognosemaanden -------- */
+  const forecastTargets = new Map<string, number>();
+  if (!clientFilter) {
+    const fcYears = [
+      ...new Set([thisMonth, nextMonth].map((m) => Number(m.slice(0, 4)))),
+    ];
+    const { data: fcT } = await supabase
+      .from("monthly_targets")
+      .select("year, month, target_revenue")
+      .in("year", fcYears)
+      .returns<Pick<MonthlyTarget, "year" | "month" | "target_revenue">[]>();
+    for (const row of fcT ?? []) {
+      forecastTargets.set(
+        `${row.year}-${String(row.month).padStart(2, "0")}`,
+        Number(row.target_revenue ?? 0),
+      );
+    }
+  }
+
+  // Groen op/boven target, rood eronder, neutraal als er geen target is.
+  const toneVsTarget = (value: number, target: number | null | undefined) =>
+    target == null
+      ? "text-zinc-900 dark:text-zinc-50"
+      : value >= target
+        ? "text-green-600 dark:text-green-500"
+        : "text-red-600 dark:text-red-500";
 
   const years = [currentYear + 1, currentYear, currentYear - 1, currentYear - 2];
   const selectClass =
@@ -309,7 +312,13 @@ export default async function DashboardPage({
                   <>
                     {" "}
                     · target {eur(ytdTarget)} ·{" "}
-                    <span className={ytdPct.tone}>
+                    <span
+                      className={
+                        ytdDelta >= 0
+                          ? "font-medium text-green-600 dark:text-green-500"
+                          : "font-medium text-red-600 dark:text-red-500"
+                      }
+                    >
                       {ytdDelta >= 0 ? "+" : "−"}
                       {eur(Math.abs(ytdDelta))} ({ytdPct.text})
                     </span>
@@ -327,65 +336,41 @@ export default async function DashboardPage({
             </div>
           )}
         </div>
-        <div className="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
-          <p className="text-xs uppercase tracking-wider text-zinc-500">
-            Prognose {formatMonth(`${thisMonth}-01`)}
-          </p>
-          <p className="mt-1 text-2xl font-semibold text-zinc-900 dark:text-zinc-50">
-            {eur(forecastThis)}
-          </p>
-          <p className="mt-1 text-xs text-zinc-400">fee × slagingskans</p>
-        </div>
-        <div className="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
-          <p className="text-xs uppercase tracking-wider text-zinc-500">
-            Prognose {formatMonth(`${nextMonth}-01`)}
-          </p>
-          <p className="mt-1 text-2xl font-semibold text-zinc-900 dark:text-zinc-50">
-            {eur(forecastNext)}
-          </p>
-          <p className="mt-1 text-xs text-zinc-400">fee × slagingskans</p>
-        </div>
+        {[
+          { month: thisMonth, value: forecastThis },
+          { month: nextMonth, value: forecastNext },
+        ].map(({ month, value }) => {
+          const target = forecastTargets.get(month) ?? null;
+          const delta = target != null ? value - target : null;
+          return (
+            <div
+              key={month}
+              className="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950"
+            >
+              <p className="text-xs uppercase tracking-wider text-zinc-500">
+                Prognose {formatMonth(`${month}-01`)}
+              </p>
+              <p
+                className={`mt-1 text-2xl font-semibold ${toneVsTarget(value, target)}`}
+              >
+                {eur(value)}
+              </p>
+              <p className="mt-1 text-xs text-zinc-400">
+                fee × slagingskans
+                {target != null && delta != null && (
+                  <>
+                    {" · target "}
+                    {eur(target)}
+                    {" · "}
+                    {delta >= 0 ? "+" : "−"}
+                    {eur(Math.abs(delta))}
+                  </>
+                )}
+              </p>
+            </div>
+          );
+        })}
       </div>
-
-      {followUps && followUps.length > 0 && (
-        <section className="mt-8 rounded-lg border border-terra/40 bg-terra/5 p-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-navy dark:text-cream">
-              Opvolgen ({followUps.length})
-            </h2>
-            <Link href="/acquisitie" className="text-xs text-terra underline">
-              Naar acquisitie
-            </Link>
-          </div>
-          <ul className="mt-2 space-y-1">
-            {followUps.slice(0, 8).map((f) => {
-              const overdue = (f.follow_up_on ?? "") < todayStr;
-              return (
-                <li key={f.id} className="flex gap-3 text-sm">
-                  <span
-                    className={`w-20 shrink-0 tabular-nums ${
-                      overdue
-                        ? "font-medium text-red-600"
-                        : "text-zinc-500"
-                    }`}
-                  >
-                    {formatDate(f.follow_up_on)}
-                  </span>
-                  <span className="min-w-0 flex-1 truncate">
-                    <Link
-                      href={`/klanten/${f.client_id}`}
-                      className="font-medium text-navy hover:underline dark:text-cream"
-                    >
-                      {clientNameAll.get(f.client_id) ?? "Klant"}
-                    </Link>
-                    <span className="ml-2 text-zinc-500">{f.body}</span>
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-      )}
 
       <RevenueChart
         year={year}

@@ -51,6 +51,7 @@ export function FileManager({
             type="file"
             name="file"
             required
+            accept=".pdf,.png,.jpg,.jpeg,.webp,.gif,.svg,.txt,.csv,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
             className="mt-1 block max-w-[16rem] text-sm file:mr-3 file:rounded-md file:border file:border-zinc-300 file:bg-white file:px-2 file:py-1 file:text-sm dark:file:border-zinc-700 dark:file:bg-zinc-900"
           />
         </label>

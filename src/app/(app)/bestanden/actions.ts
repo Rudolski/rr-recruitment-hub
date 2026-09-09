@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getSessionContext } from "@/utils/supabase/auth";
 import { str } from "@/lib/form";
+import { checkUpload } from "@/lib/upload";
 import type { StoredFile } from "@/lib/types";
 
 const BUCKET = "files";
@@ -28,6 +29,9 @@ export async function uploadFile(fd: FormData) {
 
   if (!(file instanceof File) || file.size === 0) return;
   if (scope === "client" && !clientId) return;
+
+  // Grootte en bestandstype server-side afdwingen.
+  if (!checkUpload(file).ok) return;
 
   const folder =
     scope === "brand"
@@ -58,7 +62,8 @@ export async function uploadFile(fd: FormData) {
 }
 
 export async function deleteFile(fd: FormData) {
-  const { supabase } = await getSessionContext();
+  const { supabase, organizationId } = await getSessionContext();
+  if (!organizationId) return;
   const id = str(fd, "id");
   if (!id) return;
 
@@ -66,18 +71,24 @@ export async function deleteFile(fd: FormData) {
     .from("stored_files")
     .select("*")
     .eq("id", id)
+    .eq("organization_id", organizationId)
     .maybeSingle<StoredFile>();
   if (!row) return;
 
   await supabase.storage.from(BUCKET).remove([row.storage_path]);
-  await supabase.from("stored_files").delete().eq("id", id);
+  await supabase
+    .from("stored_files")
+    .delete()
+    .eq("id", id)
+    .eq("organization_id", organizationId);
 
   if (row.scope === "brand") revalidatePath("/rr-recruitment");
   else if (row.client_id) revalidatePath(`/klanten/${row.client_id}`);
 }
 
 export async function openFile(fd: FormData) {
-  const { supabase } = await getSessionContext();
+  const { supabase, organizationId } = await getSessionContext();
+  if (!organizationId) redirect("/dashboard");
   const id = str(fd, "id");
   if (!id) redirect("/dashboard");
 
@@ -85,6 +96,7 @@ export async function openFile(fd: FormData) {
     .from("stored_files")
     .select("storage_path")
     .eq("id", id)
+    .eq("organization_id", organizationId)
     .maybeSingle<Pick<StoredFile, "storage_path">>();
   if (!row) redirect("/dashboard");
 

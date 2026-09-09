@@ -31,7 +31,15 @@ export async function login(
     };
   }
 
+  // Na het wachtwoord staat de sessie op aal1. Is er een tweede factor
+  // nodig (altijd, want MFA is verplicht), dan eerst langs /mfa.
+  const { data: aal } =
+    await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+
   // redirect() gooit een speciale fout die Next.js afhandelt; buiten
   // een try/catch laten staan.
+  if (aal && aal.currentLevel !== "aal2") {
+    redirect("/mfa");
+  }
   redirect(redirectTo);
 }

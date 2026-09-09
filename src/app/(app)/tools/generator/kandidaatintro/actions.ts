@@ -5,6 +5,7 @@ import { getSessionContext } from "@/utils/supabase/auth";
 import { str } from "@/lib/form";
 import { AnthropicError, generateText } from "@/lib/anthropic";
 import { extractFileText } from "@/lib/extract-file";
+import { ALLOWED_CV_MIME, MAX_CV_BYTES, checkUpload } from "@/lib/upload";
 import {
   KANDIDAATINTRO_SYSTEM,
   buildKandidaatintroPrompt,
@@ -30,6 +31,11 @@ export async function runKandidaatintro(
   let cv = str(fd, "cv_text");
   const file = fd.get("cv_file");
   if (file instanceof File && file.size > 0) {
+    const check = checkUpload(file, {
+      maxBytes: MAX_CV_BYTES,
+      allowed: ALLOWED_CV_MIME,
+    });
+    if (!check.ok) return { text: null, error: check.reason };
     const fromFile = await extractFileText(file);
     cv = [cv, fromFile].filter(Boolean).join("\n\n");
   }

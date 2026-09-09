@@ -63,7 +63,8 @@ export async function updateFeeAfspraak(
   _prev: FormState,
   fd: FormData,
 ): Promise<FormState> {
-  const { supabase } = await getSessionContext();
+  const { supabase, organizationId } = await getSessionContext();
+  if (!organizationId) return formError("Geen organisatie.");
   const id = str(fd, "id");
   if (!id) return formError("Onbekende fee-afspraak.");
 
@@ -73,7 +74,8 @@ export async function updateFeeAfspraak(
   const { error } = await supabase
     .from("fee_agreements")
     .update(values)
-    .eq("id", id);
+    .eq("id", id)
+    .eq("organization_id", organizationId);
   if (error) return formError("Opslaan mislukt. Probeer het opnieuw.");
 
   revalidatePath(`/klanten/${values.client_id}`);
@@ -82,12 +84,17 @@ export async function updateFeeAfspraak(
 }
 
 export async function deleteFeeAfspraak(fd: FormData) {
-  const { supabase } = await getSessionContext();
+  const { supabase, organizationId } = await getSessionContext();
+  if (!organizationId) return;
   const id = str(fd, "id");
   const clientId = str(fd, "client_id");
   if (!id) return;
 
-  await supabase.from("fee_agreements").delete().eq("id", id);
+  await supabase
+    .from("fee_agreements")
+    .delete()
+    .eq("id", id)
+    .eq("organization_id", organizationId);
   if (clientId) {
     revalidatePath(`/klanten/${clientId}`);
     redirect(`/klanten/${clientId}`);
