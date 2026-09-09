@@ -73,9 +73,9 @@ function reducer(state: ProcedureRow[], a: OptAction): ProcedureRow[] {
 }
 
 const headBase =
-  "border-b border-zinc-200 bg-zinc-50 px-3 py-2.5 text-left align-bottom text-xs font-medium uppercase tracking-wider text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900";
+  "border-b border-zinc-200 bg-zinc-50 px-2 py-1.5 text-left align-bottom text-[11px] font-medium uppercase tracking-wide text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900";
 const cellBase =
-  "border-b border-zinc-100 px-2 py-2 align-top dark:border-zinc-800";
+  "border-b border-zinc-100 px-1.5 py-1 align-top dark:border-zinc-800";
 const smallInput =
   "w-full rounded border border-zinc-300 bg-white px-1 py-0.5 text-[11px] text-zinc-700 outline-none focus:border-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200";
 
@@ -170,26 +170,29 @@ export function ProceduresGrid({ rows: initial }: { rows: ProcedureRow[] }) {
           {rows.map((r) => (
             <tr key={r.vacancyId}>
               <td
-                className={`${cellBase} sticky left-0 z-10 min-w-[11rem] border-r bg-white px-3 py-3 dark:bg-zinc-950`}
+                className={`${cellBase} sticky left-0 z-10 w-[13rem] min-w-[13rem] border-r bg-white px-2.5 py-1.5 leading-tight dark:bg-zinc-950`}
               >
-                <span className="block text-xs text-zinc-500">{r.client}</span>
                 <Link
                   href={`/vacatures/${r.vacancyId}`}
                   className="font-medium text-navy hover:underline dark:text-cream"
                 >
                   {r.title}
                 </Link>
+                <span className="text-xs text-zinc-500">
+                  {" "}
+                  · {r.client}
+                </span>
                 {(r.consultant || r.exclusivityUntil) && (
-                  <div className="mt-1 flex flex-wrap gap-1">
+                  <div className="mt-0.5 flex flex-wrap gap-1">
                     {r.consultant && (
-                      <span className="rounded-full bg-zinc-100 px-1.5 py-0.5 text-[10px] text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
+                      <span className="rounded bg-zinc-100 px-1 text-[10px] text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
                         {CONSULTANT_LABELS[
                           r.consultant as keyof typeof CONSULTANT_LABELS
                         ] ?? r.consultant}
                       </span>
                     )}
                     {r.exclusivityUntil && (
-                      <span className="rounded-full bg-amber-50 px-1.5 py-0.5 text-[10px] text-amber-700 dark:bg-amber-950 dark:text-amber-300">
+                      <span className="rounded bg-amber-50 px-1 text-[10px] text-amber-700 dark:bg-amber-950 dark:text-amber-300">
                         excl. t/m {formatDate(r.exclusivityUntil)}
                       </span>
                     )}
@@ -310,7 +313,7 @@ function CandChip({
           e.dataTransfer.effectAllowed = "move";
         }}
         onClick={onToggle}
-        className="group flex cursor-pointer items-baseline justify-between gap-2 rounded px-1.5 py-1 hover:bg-zinc-100 active:cursor-grabbing dark:hover:bg-zinc-800"
+        className="group flex cursor-pointer items-baseline justify-between gap-2 rounded px-1 py-0.5 leading-tight hover:bg-zinc-100 active:cursor-grabbing dark:hover:bg-zinc-800"
       >
         <span className="truncate text-zinc-800 dark:text-zinc-200">
           {cand.first_name}
@@ -393,7 +396,7 @@ function AddInput({ onAdd }: { onAdd: (name: string) => void }) {
         ref={ref}
         placeholder="+ naam"
         aria-label="Voornaam toevoegen"
-        className="mt-0.5 w-full rounded border border-transparent bg-transparent px-1.5 py-1 text-[11px] outline-none placeholder:text-zinc-300 hover:border-zinc-200 focus:border-dashed focus:border-zinc-400 dark:placeholder:text-zinc-600 dark:hover:border-zinc-700"
+        className="w-full rounded border border-transparent bg-transparent px-1 py-0.5 text-[11px] leading-tight outline-none placeholder:text-zinc-300 hover:border-zinc-200 focus:border-dashed focus:border-zinc-400 dark:placeholder:text-zinc-600 dark:hover:border-zinc-700"
       />
     </form>
   );

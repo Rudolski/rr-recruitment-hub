@@ -19,6 +19,11 @@ const roc = localFont({
 export const metadata: Metadata = {
   title: "RR Recruitment Hub",
   description: "Interne webapplicatie voor RR Recruitment",
+  appleWebApp: {
+    capable: true,
+    title: "RR Hub",
+    statusBarStyle: "default",
+  },
 };
 
 export const viewport: Viewport = {

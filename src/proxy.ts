@@ -15,9 +15,9 @@ export const config = {
      * Alle paden behalve:
      * - _next/static (build assets)
      * - _next/image (image optimizer)
-     * - favicon.ico
+     * - favicon.ico, apple-icon, icon, manifest (metadata-routes)
      * - bestanden met een afbeeldingsextensie
      */
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|apple-icon|icon|manifest.webmanifest|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
