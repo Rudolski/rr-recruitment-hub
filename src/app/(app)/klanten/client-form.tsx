@@ -74,6 +74,25 @@ export function ClientForm({
       </div>
 
       <div className="space-y-1.5">
+        <label htmlFor="onedrive_url" className={labelClass}>
+          OneDrive-map
+        </label>
+        <input
+          id="onedrive_url"
+          name="onedrive_url"
+          type="url"
+          inputMode="url"
+          placeholder="https://…"
+          defaultValue={initial?.onedrive_url ?? ""}
+          className={inputClass}
+        />
+        <p className="text-xs text-zinc-400">
+          Plak de gedeelde link naar de klantmap; bestanden blijven op
+          OneDrive.
+        </p>
+      </div>
+
+      <div className="space-y-1.5">
         <label htmlFor="notes" className={labelClass}>
           Notities
         </label>

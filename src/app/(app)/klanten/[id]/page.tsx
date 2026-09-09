@@ -142,6 +142,16 @@ export default async function KlantDetailPage({
             Zet status
           </button>
         </form>
+        {client.onedrive_url?.startsWith("http") && (
+          <a
+            href={client.onedrive_url}
+            target="_blank"
+            rel="noreferrer"
+            className="rounded-md border border-zinc-300 px-2 py-1 text-xs text-terra hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
+          >
+            OneDrive-map ↗
+          </a>
+        )}
       </div>
 
       {/* Notities & opvolging */}

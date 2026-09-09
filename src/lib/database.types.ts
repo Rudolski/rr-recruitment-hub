@@ -55,6 +55,7 @@ export type Database = {
           status: string;
           account_owner_id: string | null;
           notes: string | null;
+          onedrive_url: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -68,6 +69,7 @@ export type Database = {
           status?: string;
           account_owner_id?: string | null;
           notes?: string | null;
+          onedrive_url?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -79,6 +81,7 @@ export type Database = {
           status?: string;
           account_owner_id?: string | null;
           notes?: string | null;
+          onedrive_url?: string | null;
           updated_at?: string;
         };
         Relationships: [];
