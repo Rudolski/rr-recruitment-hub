@@ -2,11 +2,11 @@
 
 import Link from "next/link";
 import { useState, useTransition } from "react";
-import { VacancyStatusBadge } from "@/components/status-badge";
 import { td, tr } from "@/components/ui";
 import { monthOptions } from "@/lib/format";
 import { CONSULTANTS, CONSULTANT_LABELS, type Vacancy } from "@/lib/types";
 import { updateVacatureForecast } from "./actions";
+import { VacancyStatusSelect } from "./vacancy-status-select";
 
 const cell =
   "w-28 rounded-md border border-zinc-300 bg-white px-2 py-1 text-sm dark:border-zinc-700 dark:bg-zinc-900";
@@ -65,7 +65,11 @@ export function ForecastRow({
       </td>
       <td className={`${td} text-zinc-600 dark:text-zinc-400`}>{clientName}</td>
       <td className={td}>
-        <VacancyStatusBadge status={vacancy.status} />
+        <VacancyStatusSelect
+          vacancyId={vacancy.id}
+          status={vacancy.status}
+          className="w-32"
+        />
       </td>
       <td className={td}>
         <select

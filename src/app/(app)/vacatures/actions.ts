@@ -104,7 +104,27 @@ export async function updateVacature(
   redirect(`/vacatures/${id}`);
 }
 
-/** Snel-bewerken van de drie forecastvelden vanuit de lijst. */
+/** Status wijzigen vanuit het vacatureoverzicht. */
+export async function updateVacatureStatus(fd: FormData) {
+  const { supabase, organizationId } = await getSessionContext();
+  if (!organizationId) return;
+  const id = str(fd, "id");
+  const statusRaw = str(fd, "status");
+  if (!id || !isOneOf(VACANCY_STATUSES, statusRaw)) return;
+
+  await supabase
+    .from("vacancies")
+    .update({ status: statusRaw })
+    .eq("id", id)
+    .eq("organization_id", organizationId);
+
+  revalidatePath("/vacatures");
+  revalidatePath(`/vacatures/${id}`);
+  revalidatePath("/dashboard");
+  revalidatePath("/klanten", "layout");
+}
+
+/** Snel-bewerken van de forecastvelden vanuit de lijst. */
 export async function updateVacatureForecast(fd: FormData) {
   const { supabase, organizationId } = await getSessionContext();
   if (!organizationId) return;

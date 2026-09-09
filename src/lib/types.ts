@@ -95,6 +95,7 @@ export const CONSULTANT_LABELS: Record<Consultant, string> = {
 };
 
 export const VACANCY_STATUSES = [
+  "concept",
   "open",
   "on_hold",
   "vervuld",
@@ -102,6 +103,7 @@ export const VACANCY_STATUSES = [
 ] as const;
 export type VacancyStatus = (typeof VACANCY_STATUSES)[number];
 export const VACANCY_STATUS_LABELS: Record<VacancyStatus, string> = {
+  concept: "Concept",
   open: "Open",
   on_hold: "On hold",
   vervuld: "Vervuld",

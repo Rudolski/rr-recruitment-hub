@@ -58,7 +58,9 @@ export function VacancyStatusBadge({ status }: { status: string }) {
         ? "amber"
         : status === "geannuleerd"
           ? "red"
-          : "zinc";
+          : status === "concept"
+            ? "blue"
+            : "zinc";
   return <Badge label={pick(VACANCY_STATUS_LABELS, status)} tone={tone} />;
 }
 
