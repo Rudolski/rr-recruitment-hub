@@ -10,7 +10,7 @@ import {
   th,
   thead,
 } from "@/components/ui";
-import { VacancyStatusBadge } from "@/components/status-badge";
+import { SortHeader, cmpText, readSort } from "@/components/sort-header";
 import { eur, formatMonth, monthKey } from "@/lib/format";
 import { getSessionContext } from "@/utils/supabase/auth";
 import {
@@ -22,6 +22,22 @@ import {
   type Vacancy,
 } from "@/lib/types";
 import { ForecastRow } from "./forecast-row";
+import { VacancyStatusSelect } from "./vacancy-status-select";
+
+const VAC_SORT_KEYS = [
+  "title",
+  "client",
+  "status",
+  "consultant",
+  "partner_pct",
+  "expected_fee",
+  "expected_close_month",
+  "success_probability",
+] as const;
+const statusRank = (s: string) => {
+  const i = (VACANCY_STATUSES as readonly string[]).indexOf(s);
+  return i === -1 ? 99 : i;
+};
 
 export const metadata = { title: "Vacatures · RR Recruitment Hub" };
 
@@ -53,6 +69,8 @@ export default async function VacaturesPage({
       : isOneOf(VACANCY_STATUSES, statusParam)
         ? statusParam
         : "open";
+
+  const { sort, dir } = readSort(sp, VAC_SORT_KEYS, "title");
 
   let vq = supabase
     .from("vacancies")
@@ -86,6 +104,43 @@ export default async function VacaturesPage({
     ]);
 
   const clientName = new Map((clients ?? []).map((c) => [c.id, c.name]));
+
+  const num = (v: number | null) => (v == null ? -Infinity : Number(v));
+  const sorted = [...(vacancies ?? [])].sort((a, b) => {
+    let cmp = 0;
+    switch (sort) {
+      case "client":
+        cmp = cmpText(clientName.get(a.client_id), clientName.get(b.client_id));
+        break;
+      case "status":
+        cmp = statusRank(a.status) - statusRank(b.status);
+        break;
+      case "consultant":
+        cmp = cmpText(a.consultant, b.consultant);
+        break;
+      case "partner_pct":
+        cmp = num(a.partner_pct) - num(b.partner_pct);
+        break;
+      case "expected_fee":
+        cmp = num(a.expected_fee) - num(b.expected_fee);
+        break;
+      case "expected_close_month":
+        cmp = cmpText(a.expected_close_month, b.expected_close_month);
+        break;
+      case "success_probability":
+        cmp = num(a.success_probability) - num(b.success_probability);
+        break;
+      default:
+        cmp = cmpText(a.title, b.title);
+    }
+    if (cmp === 0) cmp = cmpText(a.title, b.title);
+    return dir === "desc" ? -cmp : cmp;
+  });
+  const headerProps = {
+    activeKey: sort,
+    dir,
+    basePath: `/vacatures?status=${status}`,
+  };
 
   const targetByMonth = new Map<string, number>(
     (targets ?? []).map((t) => [
@@ -203,10 +258,10 @@ export default async function VacaturesPage({
         </div>
       )}
 
-      {/* Mobiel: kaart per vacature (aanpassen via de detailpagina) */}
+      {/* Mobiel: kaart per vacature (forecast bewerk je via de detailpagina) */}
       {!error && vacancies && vacancies.length > 0 && (
         <ul className="mt-4 space-y-2 md:hidden">
-          {vacancies.map((v) => (
+          {sorted.map((v) => (
             <li
               key={v.id}
               className="rounded-lg border border-zinc-200 bg-white p-3 text-sm dark:border-zinc-800 dark:bg-zinc-950"
@@ -218,7 +273,10 @@ export default async function VacaturesPage({
                 >
                   {v.title}
                 </Link>
-                <VacancyStatusBadge status={v.status} />
+                <VacancyStatusSelect
+                  vacancyId={v.id}
+                  status={v.status}
+                />
               </div>
               <p className="mt-0.5 text-xs text-zinc-500">
                 {clientName.get(v.client_id) ?? "—"}
@@ -247,19 +305,43 @@ export default async function VacaturesPage({
           <table className={table}>
             <thead className={thead}>
               <tr>
-                <th className={th}>Titel</th>
-                <th className={th}>Klant</th>
-                <th className={th}>Status</th>
-                <th className={th}>Consultant</th>
-                <th className={th}>Partner %</th>
-                <th className={th}>Verw. fee</th>
-                <th className={th}>Verw. maand</th>
-                <th className={th}>Kans %</th>
+                <SortHeader label="Titel" columnKey="title" {...headerProps} />
+                <SortHeader label="Klant" columnKey="client" {...headerProps} />
+                <SortHeader
+                  label="Status"
+                  columnKey="status"
+                  {...headerProps}
+                />
+                <SortHeader
+                  label="Consultant"
+                  columnKey="consultant"
+                  {...headerProps}
+                />
+                <SortHeader
+                  label="Partner %"
+                  columnKey="partner_pct"
+                  {...headerProps}
+                />
+                <SortHeader
+                  label="Verw. fee"
+                  columnKey="expected_fee"
+                  {...headerProps}
+                />
+                <SortHeader
+                  label="Verw. maand"
+                  columnKey="expected_close_month"
+                  {...headerProps}
+                />
+                <SortHeader
+                  label="Kans %"
+                  columnKey="success_probability"
+                  {...headerProps}
+                />
                 <th className={th}></th>
               </tr>
             </thead>
             <tbody className={tbody}>
-              {vacancies.map((v) => (
+              {sorted.map((v) => (
                 <ForecastRow
                   key={v.id}
                   vacancy={v}

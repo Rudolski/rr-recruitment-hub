@@ -26,11 +26,13 @@ export function SortHeader({
   const isActive = activeKey === columnKey;
   const nextDir: SortDir = isActive && dir === "asc" ? "desc" : "asc";
   const arrow = isActive ? (dir === "asc" ? "▲" : "▼") : "↕";
+  // basePath mag al een querystring bevatten (bijv. een actief filter).
+  const sep = basePath.includes("?") ? "&" : "?";
 
   return (
     <th className={th}>
       <Link
-        href={`${basePath}?sort=${columnKey}&dir=${nextDir}`}
+        href={`${basePath}${sep}sort=${columnKey}&dir=${nextDir}`}
         className={`inline-flex items-center gap-1 hover:underline ${
           align === "right" ? "flex-row-reverse" : ""
         }`}
