@@ -78,6 +78,7 @@ export function ProceduresGrid({ rows: initial }: { rows: ProcedureRow[] }) {
   const [rows, applyOpt] = useOptimistic(initial, reducer);
   const [, start] = useTransition();
   const [dragOver, setDragOver] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const tmpSeq = useRef(0);
 
   function run(opt: OptAction, action: (fd: FormData) => Promise<void>, fd: FormData) {
@@ -214,16 +215,26 @@ export function ProceduresGrid({ rows: initial }: { rows: ProcedureRow[] }) {
                         : ""
                     }`}
                   >
-                    <div className="space-y-1.5">
+                    <div className="space-y-0.5">
                       {inStage.map((c) => (
                         <CandChip
                           key={c.id}
                           cand={c}
                           vacancyId={r.vacancyId}
+                          editing={editingId === c.id}
+                          onToggle={() =>
+                            setEditingId((id) => (id === c.id ? null : c.id))
+                          }
                           onRename={(name) => rename(r.vacancyId, c.id, name)}
                           onDate={(date) => setDate(r.vacancyId, c.id, date)}
-                          onStage={(st) => move(r.vacancyId, c.id, st)}
-                          onDelete={() => remove(r.vacancyId, c.id)}
+                          onStage={(st) => {
+                            setEditingId(null);
+                            move(r.vacancyId, c.id, st);
+                          }}
+                          onDelete={() => {
+                            setEditingId(null);
+                            remove(r.vacancyId, c.id);
+                          }}
                         />
                       ))}
                       <AddInput
@@ -244,6 +255,8 @@ export function ProceduresGrid({ rows: initial }: { rows: ProcedureRow[] }) {
 function CandChip({
   cand,
   vacancyId,
+  editing,
+  onToggle,
   onRename,
   onDate,
   onStage,
@@ -251,55 +264,75 @@ function CandChip({
 }: {
   cand: Cand;
   vacancyId: string;
+  editing: boolean;
+  onToggle: () => void;
   onRename: (name: string) => void;
   onDate: (date: string) => void;
   onStage: (stage: string) => void;
   onDelete: () => void;
 }) {
+  // Strak: alleen naam + datum. Klik = uitklappen om te bewerken.
+  if (!editing) {
+    return (
+      <div
+        draggable
+        onDragStart={(e) => {
+          e.dataTransfer.setData(
+            "text/plain",
+            JSON.stringify({
+              candId: cand.id,
+              vacancyId,
+              fromStage: cand.stage,
+            }),
+          );
+          e.dataTransfer.effectAllowed = "move";
+        }}
+        onClick={onToggle}
+        className="group flex cursor-pointer items-baseline justify-between gap-2 rounded px-1.5 py-1 hover:bg-zinc-100 active:cursor-grabbing dark:hover:bg-zinc-800"
+      >
+        <span className="truncate text-zinc-800 dark:text-zinc-200">
+          {cand.first_name}
+        </span>
+        {cand.stage_date && (
+          <span className="shrink-0 text-[10px] tabular-nums text-zinc-400">
+            {formatDate(cand.stage_date)}
+          </span>
+        )}
+      </div>
+    );
+  }
+
   return (
-    <div
-      draggable
-      onDragStart={(e) => {
-        e.dataTransfer.setData(
-          "text/plain",
-          JSON.stringify({
-            candId: cand.id,
-            vacancyId,
-            fromStage: cand.stage,
-          }),
-        );
-        e.dataTransfer.effectAllowed = "move";
-      }}
-      className="cursor-grab rounded border border-zinc-200 bg-white p-1.5 active:cursor-grabbing dark:border-zinc-700 dark:bg-zinc-950"
-    >
-      <div className="flex items-center gap-1">
-        <input
-          defaultValue={cand.first_name}
-          aria-label="Voornaam"
-          onBlur={(e) => {
-            const v = e.target.value.trim();
-            if (v && v !== cand.first_name) onRename(v);
-          }}
-          className={smallInput}
-        />
+    <div className="rounded border border-terra/50 bg-terra/5 p-1.5">
+      <div className="mb-1 flex items-center justify-between">
+        <span className="text-[10px] uppercase tracking-wide text-zinc-400">
+          Bewerken
+        </span>
         <button
           type="button"
-          aria-label="Verwijderen"
-          onClick={onDelete}
-          className="shrink-0 px-1 text-sm leading-none text-zinc-300 hover:text-red-600"
+          onClick={onToggle}
+          className="text-[11px] text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200"
         >
-          ×
+          klaar
         </button>
       </div>
-      <div className="mt-1 flex items-center gap-1">
-        <input
-          type="date"
-          defaultValue={cand.stage_date ?? ""}
-          aria-label="Datum"
-          onChange={(e) => onDate(e.target.value)}
-          className={smallInput}
-        />
-      </div>
+      <input
+        defaultValue={cand.first_name}
+        aria-label="Voornaam"
+        autoFocus
+        onBlur={(e) => {
+          const v = e.target.value.trim();
+          if (v && v !== cand.first_name) onRename(v);
+        }}
+        className={smallInput}
+      />
+      <input
+        type="date"
+        defaultValue={cand.stage_date ?? ""}
+        aria-label="Datum"
+        onChange={(e) => onDate(e.target.value)}
+        className={`${smallInput} mt-1`}
+      />
       <select
         value={cand.stage}
         aria-label="Stap"
@@ -312,11 +345,13 @@ function CandChip({
           </option>
         ))}
       </select>
-      {cand.stage_date && (
-        <p className="mt-0.5 text-[10px] text-zinc-400">
-          {formatDate(cand.stage_date)}
-        </p>
-      )}
+      <button
+        type="button"
+        onClick={onDelete}
+        className="mt-1 text-[11px] text-zinc-400 hover:text-red-600"
+      >
+        verwijderen
+      </button>
     </div>
   );
 }
@@ -334,9 +369,9 @@ function AddInput({ onAdd }: { onAdd: (name: string) => void }) {
     >
       <input
         ref={ref}
-        placeholder="+ voornaam"
+        placeholder="+ naam"
         aria-label="Voornaam toevoegen"
-        className="w-full rounded border border-dashed border-zinc-300 bg-transparent px-1 py-0.5 text-[11px] outline-none placeholder:text-zinc-400 focus:border-solid focus:border-zinc-400 dark:border-zinc-700"
+        className="mt-0.5 w-full rounded border border-transparent bg-transparent px-1.5 py-1 text-[11px] outline-none placeholder:text-zinc-300 hover:border-zinc-200 focus:border-dashed focus:border-zinc-400 dark:placeholder:text-zinc-600 dark:hover:border-zinc-700"
       />
     </form>
   );
