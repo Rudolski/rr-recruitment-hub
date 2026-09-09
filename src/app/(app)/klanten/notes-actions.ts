@@ -30,6 +30,26 @@ export async function addClientNote(fd: FormData) {
   revalidateCrm(clientId);
 }
 
+export async function updateClientNote(fd: FormData) {
+  const { supabase, organizationId } = await getSessionContext();
+  if (!organizationId) return;
+  const id = str(fd, "id");
+  const body = str(fd, "body");
+  const clientId = str(fd, "client_id");
+  if (!id || !body) return;
+
+  await supabase
+    .from("client_notes")
+    .update({
+      body,
+      follow_up_on: nullableStr(fd, "follow_up_on"),
+    })
+    .eq("id", id)
+    .eq("organization_id", organizationId);
+
+  revalidateCrm(clientId || undefined);
+}
+
 export async function toggleFollowUp(fd: FormData) {
   const { supabase, organizationId } = await getSessionContext();
   if (!organizationId) return;
