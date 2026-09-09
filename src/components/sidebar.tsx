@@ -6,13 +6,19 @@ import { signOut } from "@/app/(app)/actions";
 import { navSections } from "@/lib/nav";
 import { GlobalSearch } from "@/components/global-search";
 
-export function Sidebar({ userEmail }: { userEmail: string }) {
+export function Sidebar({
+  userEmail,
+  onNavigate,
+}: {
+  userEmail: string;
+  onNavigate?: () => void;
+}) {
   const pathname = usePathname();
 
   return (
     <aside className="flex w-60 shrink-0 flex-col border-r border-zinc-200 bg-cream dark:border-zinc-800 dark:bg-navy">
       <div className="border-b border-zinc-200 px-5 py-5 dark:border-zinc-800">
-        <Link href="/dashboard" className="block">
+        <Link href="/dashboard" className="block" onClick={onNavigate}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/brand/logo-main.svg"
@@ -67,6 +73,7 @@ export function Sidebar({ userEmail }: { userEmail: string }) {
                   <li key={item.href}>
                     <Link
                       href={item.href}
+                      onClick={onNavigate}
                       aria-current={active ? "page" : undefined}
                       className={`block rounded-md px-2 py-1.5 text-sm transition-colors ${
                         active
