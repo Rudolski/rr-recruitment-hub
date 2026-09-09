@@ -84,7 +84,7 @@ export default async function VacatureDetailPage({
   return (
     <div className="mx-auto max-w-3xl">
       <BackLink href="/vacatures" label="Vacatures" />
-      <h1 className="mt-2 font-[family-name:var(--font-roc)] text-2xl font-medium tracking-tight text-navy dark:text-cream">
+      <h1 className="mt-2 font-[family-name:var(--font-roc)] text-xl font-medium tracking-tight sm:text-2xl text-navy dark:text-cream">
         {vacancy.title}
       </h1>
       {clientName && (
@@ -132,7 +132,7 @@ export default async function VacatureDetailPage({
             {placements.map((p) => (
               <li
                 key={p.id}
-                className="flex items-center justify-between rounded-md border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-800"
+                className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-md border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-800"
               >
                 <Link
                   href={`/placements/${p.id}`}

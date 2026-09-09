@@ -38,7 +38,7 @@ export default async function FeeAfspraakDetailPage({
         href={`/klanten/${agreement.client_id}`}
         label={clientName}
       />
-      <h1 className="mt-2 font-[family-name:var(--font-roc)] text-2xl font-medium tracking-tight text-navy dark:text-cream">
+      <h1 className="mt-2 font-[family-name:var(--font-roc)] text-xl font-medium tracking-tight sm:text-2xl text-navy dark:text-cream">
         Fee-afspraak
       </h1>
 
