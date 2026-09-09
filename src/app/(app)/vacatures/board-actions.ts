@@ -107,6 +107,23 @@ export async function moveVacancyCandidate(fd: FormData) {
   refresh(vacancyId);
 }
 
+/** Voornaam van een kandidaat in de funnel wijzigen. */
+export async function renameVacancyCandidate(fd: FormData) {
+  const { supabase, organizationId } = await getSessionContext();
+  if (!organizationId) return;
+  const id = str(fd, "id");
+  const vacancyId = str(fd, "vacancy_id");
+  const firstName = str(fd, "first_name").trim();
+  if (!id || !firstName) return;
+
+  await supabase
+    .from("vacancy_candidates")
+    .update({ first_name: firstName, updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .eq("organization_id", organizationId);
+  refresh(vacancyId);
+}
+
 /** Datum bij de huidige stap zetten of wissen. */
 export async function setCandidateStageDate(fd: FormData) {
   const { supabase, organizationId } = await getSessionContext();
