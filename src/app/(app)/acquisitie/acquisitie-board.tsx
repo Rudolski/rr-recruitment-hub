@@ -49,7 +49,7 @@ export function AcquisitieBoard({ clients }: { clients: FunnelClient[] }) {
 
   return (
     <div className="overflow-x-auto pb-2">
-      <div className="flex gap-3">
+      <div className="flex flex-col gap-3 md:flex-row">
         {PROSPECT_STATUSES.map((stage) => {
           const list = items.filter((c) => c.status === stage);
           const active = dragOver === stage;
@@ -68,7 +68,7 @@ export function AcquisitieBoard({ clients }: { clients: FunnelClient[] }) {
                 const id = e.dataTransfer.getData("text/plain");
                 if (id) move(id, stage);
               }}
-              className={`flex w-52 shrink-0 flex-col rounded-lg border bg-zinc-50/60 dark:bg-zinc-900/40 ${
+              className={`flex w-full flex-col rounded-lg border bg-zinc-50/60 md:w-52 md:shrink-0 dark:bg-zinc-900/40 ${
                 active
                   ? "border-terra ring-1 ring-terra"
                   : "border-zinc-200 dark:border-zinc-800"

@@ -10,6 +10,7 @@ import {
   th,
   thead,
 } from "@/components/ui";
+import { VacancyStatusBadge } from "@/components/status-badge";
 import { eur, formatMonth, monthKey } from "@/lib/format";
 import { getSessionContext } from "@/utils/supabase/auth";
 import {
@@ -202,8 +203,47 @@ export default async function VacaturesPage({
         </div>
       )}
 
+      {/* Mobiel: kaart per vacature (aanpassen via de detailpagina) */}
       {!error && vacancies && vacancies.length > 0 && (
-        <div className={tableWrap}>
+        <ul className="mt-4 space-y-2 md:hidden">
+          {vacancies.map((v) => (
+            <li
+              key={v.id}
+              className="rounded-lg border border-zinc-200 bg-white p-3 text-sm dark:border-zinc-800 dark:bg-zinc-950"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <Link
+                  href={`/vacatures/${v.id}`}
+                  className="font-medium text-zinc-900 hover:underline dark:text-zinc-100"
+                >
+                  {v.title}
+                </Link>
+                <VacancyStatusBadge status={v.status} />
+              </div>
+              <p className="mt-0.5 text-xs text-zinc-500">
+                {clientName.get(v.client_id) ?? "—"}
+              </p>
+              <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-0.5 text-zinc-500">
+                {v.expected_fee != null && (
+                  <span className="tabular-nums">
+                    {eur(v.expected_fee)}
+                  </span>
+                )}
+                {v.expected_close_month && (
+                  <span>{formatMonth(v.expected_close_month)}</span>
+                )}
+                {v.success_probability != null && (
+                  <span>{v.success_probability}% kans</span>
+                )}
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {/* Tablet en breder: tabel met direct-bewerkbare velden */}
+      {!error && vacancies && vacancies.length > 0 && (
+        <div className={`${tableWrap} hidden md:block`}>
           <table className={table}>
             <thead className={thead}>
               <tr>

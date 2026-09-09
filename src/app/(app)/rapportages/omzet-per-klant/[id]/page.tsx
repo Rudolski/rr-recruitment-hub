@@ -120,7 +120,35 @@ export default async function KlantOmzetPage({
         {!invoices || invoices.length === 0 ? (
           <p className="text-sm text-zinc-500">Geen facturen.</p>
         ) : (
-          <div className={tableWrap}>
+          <>
+          <ul className="space-y-1.5 md:hidden">
+            {invoices.map((inv) => (
+              <li
+                key={inv.id}
+                className="rounded-lg border border-zinc-200 bg-white p-3 text-sm dark:border-zinc-800 dark:bg-zinc-950"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <Link
+                    href={`/facturen/${inv.id}`}
+                    className="text-terra hover:underline"
+                  >
+                    {inv.invoice_number || "(zonder nummer)"}
+                  </Link>
+                  <InvoiceStatusBadge status={inv.status} />
+                </div>
+                <div className="mt-1 flex flex-wrap gap-x-4 gap-y-0.5 text-zinc-500">
+                  <span>{formatDate(inv.issue_date)}</span>
+                  <span className="tabular-nums">
+                    {eur2(inv.amount_excl_btw)}
+                  </span>
+                </div>
+                {inv.notes && (
+                  <p className="mt-0.5 text-xs text-zinc-400">{inv.notes}</p>
+                )}
+              </li>
+            ))}
+          </ul>
+          <div className={`${tableWrap} hidden md:block`}>
             <table className={table}>
               <thead className={thead}>
                 <tr>
@@ -159,6 +187,7 @@ export default async function KlantOmzetPage({
               </tbody>
             </table>
           </div>
+          </>
         )}
       </section>
 
@@ -169,7 +198,35 @@ export default async function KlantOmzetPage({
         {!placements || placements.length === 0 ? (
           <p className="text-sm text-zinc-500">Geen plaatsingen.</p>
         ) : (
-          <div className={tableWrap}>
+          <>
+          <ul className="space-y-1.5 md:hidden">
+            {placements.map((p) => (
+              <li
+                key={p.id}
+                className="rounded-lg border border-zinc-200 bg-white p-3 text-sm dark:border-zinc-800 dark:bg-zinc-950"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <Link
+                    href={`/placements/${p.id}`}
+                    className="text-terra hover:underline"
+                  >
+                    {p.candidate_name ?? "—"}
+                  </Link>
+                  <PlacementStatusBadge status={p.status} />
+                </div>
+                <p className="mt-0.5 text-xs text-zinc-500">
+                  {vacancyTitle.get(p.vacancy_id) ?? "—"}
+                </p>
+                <div className="mt-1 flex flex-wrap gap-x-4 gap-y-0.5 text-zinc-500">
+                  <span>start {formatDate(p.start_date)}</span>
+                  <span className="tabular-nums">
+                    {p.fee_amount == null ? "—" : eur2(p.fee_amount)}
+                  </span>
+                </div>
+              </li>
+            ))}
+          </ul>
+          <div className={`${tableWrap} hidden md:block`}>
             <table className={table}>
               <thead className={thead}>
                 <tr>
@@ -208,6 +265,7 @@ export default async function KlantOmzetPage({
               </tbody>
             </table>
           </div>
+          </>
         )}
       </section>
     </div>

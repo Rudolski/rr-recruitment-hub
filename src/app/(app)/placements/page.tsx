@@ -79,8 +79,41 @@ export default async function PlacementsPage() {
         </div>
       )}
 
+      {/* Mobiel: kaart per placement */}
       {!error && placements && placements.length > 0 && (
-        <div className={tableWrap}>
+        <ul className="mt-4 space-y-2 md:hidden">
+          {placements.map((p) => (
+            <li
+              key={p.id}
+              className="rounded-lg border border-zinc-200 bg-white p-3 text-sm dark:border-zinc-800 dark:bg-zinc-950"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <Link
+                  href={`/placements/${p.id}`}
+                  className="font-medium text-zinc-900 hover:underline dark:text-zinc-100"
+                >
+                  {p.candidate_name ?? "—"}
+                </Link>
+                <PlacementStatusBadge status={p.status} />
+              </div>
+              <p className="mt-0.5 text-xs text-zinc-500">
+                {clientName.get(p.client_id) ?? "—"}
+                {vacancyTitle.get(p.vacancy_id)
+                  ? ` · ${vacancyTitle.get(p.vacancy_id)}`
+                  : ""}
+              </p>
+              <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-0.5 text-zinc-500">
+                <span>start {formatDate(p.start_date)}</span>
+                <span className="tabular-nums">{eur(p.fee_amount)}</span>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {/* Tablet en breder: tabel */}
+      {!error && placements && placements.length > 0 && (
+        <div className={`${tableWrap} hidden md:block`}>
           <table className={table}>
             <thead className={thead}>
               <tr>
