@@ -139,8 +139,52 @@ export default async function FacturenPage({
         </div>
       )}
 
+      {/* Mobiel: kaart per factuur */}
       {!error && filtered.length > 0 && (
-        <div className={tableWrap}>
+        <ul className="mt-4 space-y-2 md:hidden">
+          {filtered.map((inv) => (
+            <li
+              key={inv.id}
+              className="rounded-lg border border-zinc-200 bg-white p-3 text-sm dark:border-zinc-800 dark:bg-zinc-950"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <Link
+                  href={`/facturen/${inv.id}`}
+                  className="font-medium text-zinc-900 hover:underline dark:text-zinc-100"
+                >
+                  {clientName.get(inv.client_id) ?? "—"}
+                </Link>
+                <InvoiceStatusBadge status={inv.status} />
+              </div>
+              {inv.vacancy_label && (
+                <p className="mt-0.5 text-xs text-zinc-400">
+                  {inv.vacancy_label}
+                </p>
+              )}
+              <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-0.5 text-zinc-500">
+                <span className="tabular-nums">
+                  {eur2(inv.amount_excl_btw)} excl.
+                </span>
+                <span className="tabular-nums">
+                  {eur2(inv.amount_incl_btw)} incl.
+                </span>
+                <span>{formatDate(inv.issue_date)}</span>
+                <span>{inv.invoice_number || "(zonder nummer)"}</span>
+              </div>
+              {inv.partner_name && inv.partner_share_amount ? (
+                <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
+                  waarvan {eur2(inv.partner_share_amount)} naar{" "}
+                  {inv.partner_name}
+                </p>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {/* Tablet en breder: tabel */}
+      {!error && filtered.length > 0 && (
+        <div className={`${tableWrap} hidden md:block`}>
           <table className={table}>
             <thead className={thead}>
               <tr>
