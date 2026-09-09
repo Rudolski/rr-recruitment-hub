@@ -149,8 +149,94 @@ export function ProceduresGrid({ rows: initial }: { rows: ProcedureRow[] }) {
     );
   }
 
+  const renderCell = (vacancyId: string, stage: string, inStage: Cand[]) => (
+    <div className="space-y-0.5">
+      {inStage.map((c) => (
+        <CandChip
+          key={c.id}
+          cand={c}
+          vacancyId={vacancyId}
+          editing={editingId === c.id}
+          onToggle={() =>
+            setEditingId((id) => (id === c.id ? null : c.id))
+          }
+          onRename={(name) => rename(vacancyId, c.id, name)}
+          onDate={(date) => setDate(vacancyId, c.id, date)}
+          onStage={(st) => {
+            setEditingId(null);
+            move(vacancyId, c.id, st);
+          }}
+          onDelete={() => {
+            setEditingId(null);
+            remove(vacancyId, c.id);
+          }}
+        />
+      ))}
+      <AddInput onAdd={(name) => add(vacancyId, stage, name)} />
+    </div>
+  );
+
+  const labels = (r: ProcedureRow) =>
+    (r.consultant || r.exclusivityUntil) && (
+      <div className="mt-0.5 flex flex-wrap gap-1">
+        {r.consultant && (
+          <span className="rounded bg-zinc-100 px-1 text-[10px] text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
+            {CONSULTANT_LABELS[
+              r.consultant as keyof typeof CONSULTANT_LABELS
+            ] ?? r.consultant}
+          </span>
+        )}
+        {r.exclusivityUntil && (
+          <span className="rounded bg-amber-50 px-1 text-[10px] text-amber-700 dark:bg-amber-950 dark:text-amber-300">
+            excl. t/m {formatDate(r.exclusivityUntil)}
+          </span>
+        )}
+      </div>
+    );
+
   return (
-    <div className="overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-800">
+    <>
+      {/* Mobiel: kaart per vacature, stappen onder elkaar */}
+      <div className="space-y-3 md:hidden">
+        {rows.map((r) => (
+          <div
+            key={r.vacancyId}
+            className="rounded-lg border border-zinc-200 dark:border-zinc-800"
+          >
+            <div className="border-b border-zinc-200 px-3 py-2 leading-tight dark:border-zinc-800">
+              <Link
+                href={`/vacatures/${r.vacancyId}`}
+                className="font-medium text-navy hover:underline dark:text-cream"
+              >
+                {r.title}
+              </Link>
+              <span className="text-xs text-zinc-500"> · {r.client}</span>
+              {labels(r)}
+            </div>
+            <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
+              {CANDIDATE_STAGES.map((stage) => {
+                const inStage = r.cands.filter((c) => c.stage === stage);
+                return (
+                  <div key={stage} className="px-3 py-2">
+                    <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-zinc-400">
+                      {CANDIDATE_STAGE_LABELS[stage]}
+                      {inStage.length > 0 && (
+                        <span className="ml-1 text-zinc-300 dark:text-zinc-600">
+                          {inStage.length}
+                        </span>
+                      )}
+                    </p>
+                    {renderCell(r.vacancyId, stage, inStage)}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Tablet en breder: matrix */}
+      <div className="hidden overflow-x-auto rounded-lg border border-zinc-200 md:block dark:border-zinc-800">
       <table className="w-full border-separate border-spacing-0 text-sm">
         <thead>
           <tr>
@@ -178,26 +264,8 @@ export function ProceduresGrid({ rows: initial }: { rows: ProcedureRow[] }) {
                 >
                   {r.title}
                 </Link>
-                <span className="text-xs text-zinc-500">
-                  {" "}
-                  · {r.client}
-                </span>
-                {(r.consultant || r.exclusivityUntil) && (
-                  <div className="mt-0.5 flex flex-wrap gap-1">
-                    {r.consultant && (
-                      <span className="rounded bg-zinc-100 px-1 text-[10px] text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
-                        {CONSULTANT_LABELS[
-                          r.consultant as keyof typeof CONSULTANT_LABELS
-                        ] ?? r.consultant}
-                      </span>
-                    )}
-                    {r.exclusivityUntil && (
-                      <span className="rounded bg-amber-50 px-1 text-[10px] text-amber-700 dark:bg-amber-950 dark:text-amber-300">
-                        excl. t/m {formatDate(r.exclusivityUntil)}
-                      </span>
-                    )}
-                  </div>
-                )}
+                <span className="text-xs text-zinc-500"> · {r.client}</span>
+                {labels(r)}
               </td>
 
               {CANDIDATE_STAGES.map((stage) => {
@@ -240,32 +308,7 @@ export function ProceduresGrid({ rows: initial }: { rows: ProcedureRow[] }) {
                         : ""
                     }`}
                   >
-                    <div className="space-y-0.5">
-                      {inStage.map((c) => (
-                        <CandChip
-                          key={c.id}
-                          cand={c}
-                          vacancyId={r.vacancyId}
-                          editing={editingId === c.id}
-                          onToggle={() =>
-                            setEditingId((id) => (id === c.id ? null : c.id))
-                          }
-                          onRename={(name) => rename(r.vacancyId, c.id, name)}
-                          onDate={(date) => setDate(r.vacancyId, c.id, date)}
-                          onStage={(st) => {
-                            setEditingId(null);
-                            move(r.vacancyId, c.id, st);
-                          }}
-                          onDelete={() => {
-                            setEditingId(null);
-                            remove(r.vacancyId, c.id);
-                          }}
-                        />
-                      ))}
-                      <AddInput
-                        onAdd={(name) => add(r.vacancyId, stage, name)}
-                      />
-                    </div>
+                    {renderCell(r.vacancyId, stage, inStage)}
                   </td>
                 );
               })}
@@ -273,7 +316,8 @@ export function ProceduresGrid({ rows: initial }: { rows: ProcedureRow[] }) {
           ))}
         </tbody>
       </table>
-    </div>
+      </div>
+    </>
   );
 }
 
