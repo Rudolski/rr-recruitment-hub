@@ -122,8 +122,64 @@ export default async function ContactpersonenPage({
         </div>
       )}
 
+      {/* Mobiel: kaart per contactpersoon */}
       {!error && contacts && contacts.length > 0 && (
-        <div className={tableWrap}>
+        <ul className="mt-4 space-y-2 md:hidden">
+          {sorted.map((c) => (
+            <li
+              key={c.id}
+              className="rounded-lg border border-zinc-200 bg-white p-3 text-sm dark:border-zinc-800 dark:bg-zinc-950"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <Link
+                  href={`/contactpersonen/${c.id}`}
+                  className="font-medium text-zinc-900 hover:underline dark:text-zinc-100"
+                >
+                  {c.name}
+                </Link>
+                {c.is_primary && (
+                  <span className="shrink-0 text-xs text-terra">primair</span>
+                )}
+              </div>
+              <p className="mt-0.5 text-xs text-zinc-500">
+                {c.role ? `${c.role} · ` : ""}
+                {c.client_id ? (
+                  <Link
+                    href={`/klanten/${c.client_id}`}
+                    className="hover:underline"
+                  >
+                    {clientName.get(c.client_id) ?? "—"}
+                  </Link>
+                ) : (
+                  "—"
+                )}
+              </p>
+              <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-0.5">
+                {c.email && (
+                  <a
+                    href={`mailto:${c.email}`}
+                    className="text-terra hover:underline"
+                  >
+                    {c.email}
+                  </a>
+                )}
+                {c.phone && (
+                  <a
+                    href={`tel:${c.phone.replace(/\s+/g, "")}`}
+                    className="text-terra hover:underline"
+                  >
+                    {c.phone}
+                  </a>
+                )}
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {/* Tablet en breder: sorteerbare tabel */}
+      {!error && contacts && contacts.length > 0 && (
+        <div className={`${tableWrap} hidden md:block`}>
           <table className={table}>
             <thead className={thead}>
               <tr>
