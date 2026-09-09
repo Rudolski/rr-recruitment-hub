@@ -2,11 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { getSessionContext } from "@/utils/supabase/auth";
-import { str } from "@/lib/form";
+import { nullableStr, str } from "@/lib/form";
 import { CANDIDATE_STAGES, isOneOf } from "@/lib/types";
 
 function refresh(vacancyId: string) {
   if (vacancyId) revalidatePath(`/vacatures/${vacancyId}`);
+  revalidatePath("/procedures");
 }
 
 /* -------------------- Actiepunten -------------------- */
@@ -80,6 +81,7 @@ export async function addVacancyCandidate(fd: FormData) {
     vacancy_id: vacancyId,
     first_name: firstName,
     stage: isOneOf(CANDIDATE_STAGES, stageRaw) ? stageRaw : "intake",
+    stage_date: nullableStr(fd, "stage_date"),
   });
   refresh(vacancyId);
 }
@@ -92,9 +94,33 @@ export async function moveVacancyCandidate(fd: FormData) {
   const stageRaw = str(fd, "stage");
   if (!id || !isOneOf(CANDIDATE_STAGES, stageRaw)) return;
 
+  // Nieuwe stap = de datum hoort bij de vorige stap; leegmaken.
   await supabase
     .from("vacancy_candidates")
-    .update({ stage: stageRaw, updated_at: new Date().toISOString() })
+    .update({
+      stage: stageRaw,
+      stage_date: null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id)
+    .eq("organization_id", organizationId);
+  refresh(vacancyId);
+}
+
+/** Datum bij de huidige stap zetten of wissen. */
+export async function setCandidateStageDate(fd: FormData) {
+  const { supabase, organizationId } = await getSessionContext();
+  if (!organizationId) return;
+  const id = str(fd, "id");
+  const vacancyId = str(fd, "vacancy_id");
+  if (!id) return;
+
+  await supabase
+    .from("vacancy_candidates")
+    .update({
+      stage_date: nullableStr(fd, "stage_date"),
+      updated_at: new Date().toISOString(),
+    })
     .eq("id", id)
     .eq("organization_id", organizationId);
   refresh(vacancyId);

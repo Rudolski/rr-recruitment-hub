@@ -507,6 +507,7 @@ export type Database = {
           vacancy_id: string;
           first_name: string;
           stage: string;
+          stage_date: string | null;
           note: string | null;
           position: number;
           created_at: string;
@@ -518,6 +519,7 @@ export type Database = {
           vacancy_id: string;
           first_name: string;
           stage?: string;
+          stage_date?: string | null;
           note?: string | null;
           position?: number;
           created_at?: string;
@@ -526,6 +528,7 @@ export type Database = {
         Update: {
           first_name?: string;
           stage?: string;
+          stage_date?: string | null;
           note?: string | null;
           position?: number;
           updated_at?: string;
