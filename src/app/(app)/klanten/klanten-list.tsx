@@ -197,33 +197,34 @@ export async function KlantenList({
               const overdue = (n.follow_up_on ?? "") < today;
               const isToday = n.follow_up_on === today;
               return (
-                <li
-                  key={n.id}
-                  className="flex flex-wrap items-start gap-x-4 gap-y-1 px-4 py-2.5 text-sm"
-                >
-                  <span
-                    className={`w-24 shrink-0 tabular-nums ${
-                      overdue
-                        ? "font-medium text-red-600"
-                        : isToday
-                          ? "font-medium text-amber-600"
-                          : "text-zinc-500"
-                    }`}
-                  >
-                    {formatDate(n.follow_up_on)}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <Link
-                      href={`/klanten/${n.client_id}`}
-                      className="font-medium text-navy hover:underline dark:text-cream"
+                <li key={n.id} className="px-4 py-3 text-sm">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <Link
+                        href={`/klanten/${n.client_id}`}
+                        className="font-medium text-navy hover:underline dark:text-cream"
+                      >
+                        {clientName.get(n.client_id) ?? "Klant"}
+                      </Link>
+                      {n.body && (
+                        <p className="mt-0.5 text-zinc-600 dark:text-zinc-400">
+                          {n.body}
+                        </p>
+                      )}
+                    </div>
+                    <span
+                      className={`shrink-0 whitespace-nowrap text-xs tabular-nums ${
+                        overdue
+                          ? "font-medium text-red-600"
+                          : isToday
+                            ? "font-medium text-amber-600"
+                            : "text-zinc-500"
+                      }`}
                     >
-                      {clientName.get(n.client_id) ?? "Klant"}
-                    </Link>
-                    <span className="ml-2 text-zinc-600 dark:text-zinc-400">
-                      {n.body}
+                      {formatDate(n.follow_up_on)}
                     </span>
-                  </span>
-                  <form action={toggleFollowUp}>
+                  </div>
+                  <form action={toggleFollowUp} className="mt-2">
                     <input type="hidden" name="id" value={n.id} />
                     <button
                       type="submit"
