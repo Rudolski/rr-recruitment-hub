@@ -33,7 +33,7 @@ export const metadata = { title: "Klant · RR Recruitment Hub" };
 const sectionTitle = "text-sm font-semibold text-zinc-900 dark:text-zinc-50";
 const addLink = "text-sm text-terra underline hover:text-terra-dark";
 const rowCard =
-  "flex items-center justify-between rounded-md border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-800";
+  "flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-md border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-800";
 
 export default async function KlantDetailPage({
   params,
@@ -119,7 +119,7 @@ export default async function KlantDetailPage({
     <div className="mx-auto max-w-3xl">
       <BackLink href="/klanten" label="Klanten" />
       <div className="mt-2 flex flex-wrap items-center gap-3">
-        <h1 className="font-[family-name:var(--font-roc)] text-2xl font-medium tracking-tight text-navy dark:text-cream">
+        <h1 className="font-[family-name:var(--font-roc)] text-xl font-medium tracking-tight sm:text-2xl text-navy dark:text-cream">
           {client.name}
         </h1>
         <form action={setClientStatus}>

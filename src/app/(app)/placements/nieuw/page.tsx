@@ -28,7 +28,7 @@ export default async function NieuwePlacementPage({
   return (
     <div className="mx-auto max-w-3xl">
       <BackLink href="/placements" label="Placements" />
-      <h1 className="mt-2 font-[family-name:var(--font-roc)] text-2xl font-medium tracking-tight text-navy dark:text-cream">
+      <h1 className="mt-2 font-[family-name:var(--font-roc)] text-xl font-medium tracking-tight sm:text-2xl text-navy dark:text-cream">
         Nieuwe placement
       </h1>
       <p className="mt-1 text-sm text-zinc-500">

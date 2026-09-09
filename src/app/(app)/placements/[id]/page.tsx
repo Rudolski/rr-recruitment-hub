@@ -50,7 +50,7 @@ export default async function PlacementDetailPage({
   return (
     <div className="mx-auto max-w-3xl">
       <BackLink href="/placements" label="Placements" />
-      <h1 className="mt-2 font-[family-name:var(--font-roc)] text-2xl font-medium tracking-tight text-navy dark:text-cream">
+      <h1 className="mt-2 font-[family-name:var(--font-roc)] text-xl font-medium tracking-tight sm:text-2xl text-navy dark:text-cream">
         {placement.candidate_name || "Placement"}
       </h1>
 
@@ -65,7 +65,7 @@ export default async function PlacementDetailPage({
       </div>
 
       <section className="mt-10 border-t border-zinc-200 pt-6 dark:border-zinc-800">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
             Facturen
           </h2>

@@ -85,7 +85,7 @@ export default async function KlantOmzetPage({
   return (
     <div className="mx-auto max-w-4xl">
       <BackLink href="/rapportages/omzet-per-klant" label="Omzet per klant" />
-      <h1 className="mt-2 font-[family-name:var(--font-roc)] text-2xl font-medium tracking-tight text-navy dark:text-cream">
+      <h1 className="mt-2 font-[family-name:var(--font-roc)] text-xl font-medium tracking-tight sm:text-2xl text-navy dark:text-cream">
         {client.name}
       </h1>
       <p className="mt-1 text-sm text-zinc-500">
