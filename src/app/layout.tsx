@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Manrope } from "next/font/google";
 import localFont from "next/font/local";
 import "./globals.css";
@@ -19,6 +19,12 @@ const roc = localFont({
 export const metadata: Metadata = {
   title: "RR Recruitment Hub",
   description: "Interne webapplicatie voor RR Recruitment",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  // Geen maximumScale/userScalable: toegankelijkheid — zoomen mag.
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
