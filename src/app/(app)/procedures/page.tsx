@@ -37,8 +37,18 @@ export default async function ProceduresPage() {
         >(),
       supabase
         .from("vacancies")
-        .select("id, title, client_id, status")
-        .returns<Pick<Vacancy, "id" | "title" | "client_id" | "status">[]>(),
+        .select("id, title, client_id, status, consultant, exclusivity_until")
+        .returns<
+          Pick<
+            Vacancy,
+            | "id"
+            | "title"
+            | "client_id"
+            | "status"
+            | "consultant"
+            | "exclusivity_until"
+          >[]
+        >(),
       supabase
         .from("clients")
         .select("id, name")
@@ -70,6 +80,8 @@ export default async function ProceduresPage() {
       vacancyId: v.id,
       title: v.title,
       client: clientName.get(v.client_id) ?? "—",
+      consultant: v.consultant,
+      exclusivityUntil: v.exclusivity_until,
       cands: byVacancy.get(v.id) ?? [],
     }))
     .sort(

@@ -4,7 +4,11 @@ import { useOptimistic, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { formatDate } from "@/lib/format";
-import { CANDIDATE_STAGES, CANDIDATE_STAGE_LABELS } from "@/lib/types";
+import {
+  CANDIDATE_STAGES,
+  CANDIDATE_STAGE_LABELS,
+  CONSULTANT_LABELS,
+} from "@/lib/types";
 import {
   addVacancyCandidate,
   deleteVacancyCandidate,
@@ -23,6 +27,8 @@ export type ProcedureRow = {
   vacancyId: string;
   title: string;
   client: string;
+  consultant: string | null;
+  exclusivityUntil: string | null;
   cands: Cand[];
 };
 
@@ -173,6 +179,22 @@ export function ProceduresGrid({ rows: initial }: { rows: ProcedureRow[] }) {
                 >
                   {r.title}
                 </Link>
+                {(r.consultant || r.exclusivityUntil) && (
+                  <div className="mt-1 flex flex-wrap gap-1">
+                    {r.consultant && (
+                      <span className="rounded-full bg-zinc-100 px-1.5 py-0.5 text-[10px] text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
+                        {CONSULTANT_LABELS[
+                          r.consultant as keyof typeof CONSULTANT_LABELS
+                        ] ?? r.consultant}
+                      </span>
+                    )}
+                    {r.exclusivityUntil && (
+                      <span className="rounded-full bg-amber-50 px-1.5 py-0.5 text-[10px] text-amber-700 dark:bg-amber-950 dark:text-amber-300">
+                        excl. t/m {formatDate(r.exclusivityUntil)}
+                      </span>
+                    )}
+                  </div>
+                )}
               </td>
 
               {CANDIDATE_STAGES.map((stage) => {
