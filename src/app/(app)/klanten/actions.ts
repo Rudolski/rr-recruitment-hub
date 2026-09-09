@@ -21,12 +21,18 @@ function parse(fd: FormData) {
   if (!isOneOf(CLIENT_STATUSES, statusRaw))
     fieldErrors.status = "Kies een geldige status.";
 
+  const onedrive = nullableStr(fd, "onedrive_url");
+
   return {
     fieldErrors,
     values: {
       name,
       status: isOneOf(CLIENT_STATUSES, statusRaw) ? statusRaw : "nieuw",
       notes: nullableStr(fd, "notes"),
+      onedrive_url:
+        onedrive && !/^https?:\/\//i.test(onedrive)
+          ? `https://${onedrive}`
+          : onedrive,
     },
   };
 }
