@@ -54,6 +54,12 @@ export const navSections: NavSection[] = [
           "Openstaande opdrachten met de forecastvelden (verwachte fee, maand, slagingskans).",
       },
       {
+        label: "Procedures",
+        href: "/procedures",
+        description:
+          "Alle kandidaten per vacature, uitgezet over de stappen van de procedure.",
+      },
+      {
         label: "Vacature-radar",
         href: "/radar",
         description:

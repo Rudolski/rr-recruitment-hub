@@ -5,6 +5,7 @@ import {
 } from "@/lib/types";
 import { addVacancyCandidate, deleteVacancyCandidate } from "./board-actions";
 import { StageSelect } from "./stage-select";
+import { StageDateInput } from "./stage-date-input";
 
 /**
  * Mini-funnel per vacature: alleen voornamen (AVG-proof), één stap per
@@ -68,11 +69,16 @@ export function VacancyBoard({
                         </button>
                       </form>
                     </div>
-                    <div className="mt-1.5">
+                    <div className="mt-1.5 space-y-1">
                       <StageSelect
                         id={c.id}
                         vacancyId={vacancyId}
                         stage={c.stage}
+                      />
+                      <StageDateInput
+                        id={c.id}
+                        vacancyId={vacancyId}
+                        stageDate={c.stage_date}
                       />
                     </div>
                   </div>
