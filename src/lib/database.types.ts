@@ -532,6 +532,106 @@ export type Database = {
         };
         Relationships: [];
       };
+      watch_sources: {
+        Row: {
+          id: string;
+          organization_id: string;
+          kind: string;
+          client_id: string | null;
+          name: string;
+          fetch_url: string;
+          mode: string;
+          link_pattern: string | null;
+          path_filter: string | null;
+          max_pages: number;
+          exclusive_only: boolean;
+          active: boolean;
+          last_scan_at: string | null;
+          last_scan_status: string | null;
+          last_scan_note: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          kind: string;
+          client_id?: string | null;
+          name: string;
+          fetch_url: string;
+          mode?: string;
+          link_pattern?: string | null;
+          path_filter?: string | null;
+          max_pages?: number;
+          exclusive_only?: boolean;
+          active?: boolean;
+          last_scan_at?: string | null;
+          last_scan_status?: string | null;
+          last_scan_note?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          kind?: string;
+          client_id?: string | null;
+          name?: string;
+          fetch_url?: string;
+          mode?: string;
+          link_pattern?: string | null;
+          path_filter?: string | null;
+          max_pages?: number;
+          exclusive_only?: boolean;
+          active?: boolean;
+          last_scan_at?: string | null;
+          last_scan_status?: string | null;
+          last_scan_note?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      watch_vacancies: {
+        Row: {
+          id: string;
+          organization_id: string;
+          source_id: string;
+          url: string;
+          external_key: string;
+          title: string;
+          company: string | null;
+          location: string | null;
+          posted_on: string | null;
+          first_seen_at: string;
+          last_seen_at: string;
+          closed_at: string | null;
+          raw: Record<string, unknown> | null;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          source_id: string;
+          url: string;
+          external_key: string;
+          title: string;
+          company?: string | null;
+          location?: string | null;
+          posted_on?: string | null;
+          first_seen_at?: string;
+          last_seen_at?: string;
+          closed_at?: string | null;
+          raw?: Record<string, unknown> | null;
+        };
+        Update: {
+          url?: string;
+          title?: string;
+          company?: string | null;
+          location?: string | null;
+          posted_on?: string | null;
+          last_seen_at?: string;
+          closed_at?: string | null;
+          raw?: Record<string, unknown> | null;
+        };
+        Relationships: [];
+      };
     };
     Views: { [_ in never]: never };
     Functions: {

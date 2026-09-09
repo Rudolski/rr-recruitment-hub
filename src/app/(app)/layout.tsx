@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { Sidebar } from "@/components/sidebar";
 import { createClient } from "@/utils/supabase/server";
+import { requireMfaOrRedirect } from "@/utils/supabase/auth";
 
 export default async function AppLayout({
   children,
@@ -16,6 +17,9 @@ export default async function AppLayout({
   if (!user) {
     redirect("/login");
   }
+
+  // Tweede factor verplicht voor het hele app-gedeelte.
+  await requireMfaOrRedirect(supabase);
 
   return (
     <div className="flex min-h-screen bg-zinc-50 dark:bg-zinc-900">

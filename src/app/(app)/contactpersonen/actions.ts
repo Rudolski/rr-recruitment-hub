@@ -39,12 +39,14 @@ function parse(fd: FormData) {
 /** Zet is_primary uit bij de andere contacten van dezelfde klant. */
 async function clearOtherPrimaries(
   supabase: Awaited<ReturnType<typeof getSessionContext>>["supabase"],
+  organizationId: string,
   clientId: string,
   keepId: string,
 ) {
   await supabase
     .from("contacts")
     .update({ is_primary: false })
+    .eq("organization_id", organizationId)
     .eq("client_id", clientId)
     .neq("id", keepId);
 }
@@ -69,7 +71,8 @@ export async function createContact(
 
   if (error || !data) return formError("Opslaan mislukt. Probeer het opnieuw.");
 
-  if (isPrimary) await clearOtherPrimaries(supabase, clientId, data.id);
+  if (isPrimary)
+    await clearOtherPrimaries(supabase, organizationId, clientId, data.id);
 
   revalidatePath("/contactpersonen");
   redirect(`/contactpersonen/${data.id}`);
@@ -79,17 +82,23 @@ export async function updateContact(
   _prev: FormState,
   fd: FormData,
 ): Promise<FormState> {
-  const { supabase } = await getSessionContext();
+  const { supabase, organizationId } = await getSessionContext();
+  if (!organizationId) return formError("Geen organisatie.");
   const id = str(fd, "id");
   if (!id) return formError("Onbekende contactpersoon.");
 
   const { fieldErrors, values, isPrimary, clientId } = parse(fd);
   if (Object.keys(fieldErrors).length > 0) return fieldError(fieldErrors);
 
-  const { error } = await supabase.from("contacts").update(values).eq("id", id);
+  const { error } = await supabase
+    .from("contacts")
+    .update(values)
+    .eq("id", id)
+    .eq("organization_id", organizationId);
   if (error) return formError("Opslaan mislukt. Probeer het opnieuw.");
 
-  if (isPrimary) await clearOtherPrimaries(supabase, clientId, id);
+  if (isPrimary)
+    await clearOtherPrimaries(supabase, organizationId, clientId, id);
 
   revalidatePath("/contactpersonen");
   revalidatePath(`/contactpersonen/${id}`);
@@ -97,11 +106,16 @@ export async function updateContact(
 }
 
 export async function deleteContact(fd: FormData) {
-  const { supabase } = await getSessionContext();
+  const { supabase, organizationId } = await getSessionContext();
+  if (!organizationId) return;
   const id = str(fd, "id");
   if (!id) return;
 
-  await supabase.from("contacts").delete().eq("id", id);
+  await supabase
+    .from("contacts")
+    .delete()
+    .eq("id", id)
+    .eq("organization_id", organizationId);
   revalidatePath("/contactpersonen");
   redirect("/contactpersonen");
 }

@@ -52,7 +52,8 @@ function parse(fd: FormData) {
 
 /** Snel doorzetten van de factuurstatus vanaf een placement/klant. */
 export async function advanceInvoiceStatus(fd: FormData) {
-  const { supabase } = await getSessionContext();
+  const { supabase, organizationId } = await getSessionContext();
+  if (!organizationId) return;
   const id = str(fd, "id");
   const to = str(fd, "to");
   if (!id || !isOneOf(INVOICE_STATUSES, to)) return;
@@ -61,6 +62,7 @@ export async function advanceInvoiceStatus(fd: FormData) {
     .from("invoices")
     .select("sent_at, paid_date")
     .eq("id", id)
+    .eq("organization_id", organizationId)
     .maybeSingle();
 
   const patch: {
@@ -73,7 +75,11 @@ export async function advanceInvoiceStatus(fd: FormData) {
   }
   if (to === "betaald" && !current?.paid_date) patch.paid_date = today();
 
-  await supabase.from("invoices").update(patch).eq("id", id);
+  await supabase
+    .from("invoices")
+    .update(patch)
+    .eq("id", id)
+    .eq("organization_id", organizationId);
 
   revalidatePath("/facturen");
   revalidatePath(`/facturen/${id}`);
@@ -118,7 +124,8 @@ export async function updateFactuur(
   _prev: FormState,
   fd: FormData,
 ): Promise<FormState> {
-  const { supabase } = await getSessionContext();
+  const { supabase, organizationId } = await getSessionContext();
+  if (!organizationId) return formError("Geen organisatie.");
   const id = str(fd, "id");
   if (!id) return formError("Onbekende factuur.");
 
@@ -129,6 +136,7 @@ export async function updateFactuur(
     .from("invoices")
     .select("sent_at, paid_date")
     .eq("id", id)
+    .eq("organization_id", organizationId)
     .maybeSingle();
 
   // sent_at wordt eenmalig vastgelegd op het moment dat de factuur
@@ -146,7 +154,8 @@ export async function updateFactuur(
   const { error } = await supabase
     .from("invoices")
     .update({ ...values, status, sent_at, paid_date })
-    .eq("id", id);
+    .eq("id", id)
+    .eq("organization_id", organizationId);
 
   if (error) return formError("Opslaan mislukt. Probeer het opnieuw.");
 
@@ -156,11 +165,16 @@ export async function updateFactuur(
 }
 
 export async function deleteFactuur(fd: FormData) {
-  const { supabase } = await getSessionContext();
+  const { supabase, organizationId } = await getSessionContext();
+  if (!organizationId) return;
   const id = str(fd, "id");
   if (!id) return;
 
-  await supabase.from("invoices").delete().eq("id", id);
+  await supabase
+    .from("invoices")
+    .delete()
+    .eq("id", id)
+    .eq("organization_id", organizationId);
   revalidatePath("/facturen");
   redirect("/facturen");
 }

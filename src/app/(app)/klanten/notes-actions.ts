@@ -31,7 +31,8 @@ export async function addClientNote(fd: FormData) {
 }
 
 export async function toggleFollowUp(fd: FormData) {
-  const { supabase } = await getSessionContext();
+  const { supabase, organizationId } = await getSessionContext();
+  if (!organizationId) return;
   const id = str(fd, "id");
   if (!id) return;
 
@@ -39,6 +40,7 @@ export async function toggleFollowUp(fd: FormData) {
     .from("client_notes")
     .select("follow_up_done, client_id")
     .eq("id", id)
+    .eq("organization_id", organizationId)
     .maybeSingle<Pick<ClientNote, "follow_up_done" | "client_id">>();
   if (!note) return;
 
@@ -49,17 +51,23 @@ export async function toggleFollowUp(fd: FormData) {
       follow_up_done: done,
       follow_up_done_at: done ? new Date().toISOString() : null,
     })
-    .eq("id", id);
+    .eq("id", id)
+    .eq("organization_id", organizationId);
 
   revalidateCrm(note.client_id);
 }
 
 export async function deleteClientNote(fd: FormData) {
-  const { supabase } = await getSessionContext();
+  const { supabase, organizationId } = await getSessionContext();
+  if (!organizationId) return;
   const id = str(fd, "id");
   const clientId = str(fd, "client_id");
   if (!id) return;
 
-  await supabase.from("client_notes").delete().eq("id", id);
+  await supabase
+    .from("client_notes")
+    .delete()
+    .eq("id", id)
+    .eq("organization_id", organizationId);
   revalidateCrm(clientId || undefined);
 }

@@ -4,16 +4,18 @@ import { errorBox } from "@/components/ui";
 import { formatDate } from "@/lib/format";
 import { getSessionContext } from "@/utils/supabase/auth";
 import {
-  ACQUISITION_FUNNEL,
-  CLIENT_STATUS_LABELS,
+  PROSPECT_STATUSES,
   type Client,
   type ClientNote,
+  type ClientStatus,
 } from "@/lib/types";
 import { toggleFollowUp } from "../klanten/notes-actions";
+import { AcquisitieBoard, type FunnelClient } from "./acquisitie-board";
 
 export const metadata = { title: "Acquisitie · RR Recruitment Hub" };
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
+const prospectSet = new Set<string>(PROSPECT_STATUSES);
 
 export default async function AcquisitiePage() {
   const { supabase, organizationId } = await getSessionContext();
@@ -45,10 +47,16 @@ export default async function AcquisitiePage() {
   ]);
 
   const tableMissing = !!error && /client_notes/.test(error.message);
-  const clientName = new Map((clients ?? []).map((c) => [c.id, c.name]));
+  const clientById = new Map((clients ?? []).map((c) => [c.id, c]));
   const today = todayIso();
 
-  // Volgende opvolgdatum per klant
+  // Opvolgacties, maar alleen voor relaties die nog géén klant zijn —
+  // klanten volg je op via het Klanten-tabblad.
+  const followUps = (notes ?? []).filter(
+    (n) => clientById.get(n.client_id)?.status !== "actief",
+  );
+
+  // Eerstvolgende opvolgdatum per relatie, voor op de kaartjes.
   const nextFollowUp = new Map<string, string>();
   for (const n of notes ?? []) {
     if (n.follow_up_on && !nextFollowUp.has(n.client_id)) {
@@ -56,19 +64,20 @@ export default async function AcquisitiePage() {
     }
   }
 
-  const byStage = new Map<string, Pick<Client, "id" | "name" | "status">[]>();
-  for (const c of clients ?? []) {
-    const list = byStage.get(c.status) ?? [];
-    list.push(c);
-    byStage.set(c.status, list);
-  }
-  const stages = [...ACQUISITION_FUNNEL, "inactief"];
+  const funnelClients: FunnelClient[] = (clients ?? [])
+    .filter((c) => prospectSet.has(c.status))
+    .map((c) => ({
+      id: c.id,
+      name: c.name,
+      status: c.status as ClientStatus,
+      nextFollowUp: nextFollowUp.get(c.id) ?? null,
+    }));
 
   return (
     <div className="mx-auto max-w-5xl">
       <PageHeader
         title="Acquisitie"
-        description="Je funnel en de openstaande opvolgacties."
+        description="Je funnel en de openstaande opvolgacties (klanten niet meegerekend)."
       />
 
       {tableMissing && (
@@ -81,15 +90,15 @@ export default async function AcquisitiePage() {
       {/* Opvolgen */}
       <section className="mt-6">
         <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
-          Opvolgen
+          Opvolgen ({followUps.length})
         </h2>
-        {!notes || notes.length === 0 ? (
+        {followUps.length === 0 ? (
           <p className="mt-2 text-sm text-zinc-500">
             Geen openstaande opvolgacties.
           </p>
         ) : (
           <ul className="mt-3 divide-y divide-zinc-100 rounded-lg border border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800">
-            {notes.map((n) => {
+            {followUps.map((n) => {
               const overdue = (n.follow_up_on ?? "") < today;
               const isToday = n.follow_up_on === today;
               return (
@@ -113,7 +122,7 @@ export default async function AcquisitiePage() {
                       href={`/klanten/${n.client_id}`}
                       className="font-medium text-navy hover:underline dark:text-cream"
                     >
-                      {clientName.get(n.client_id) ?? "Klant"}
+                      {clientById.get(n.client_id)?.name ?? "Relatie"}
                     </Link>
                     <span className="ml-2 text-zinc-600 dark:text-zinc-400">
                       {n.body}
@@ -141,44 +150,11 @@ export default async function AcquisitiePage() {
         <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
           Funnel
         </h2>
-        <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {stages.map((stage) => {
-            const list = byStage.get(stage) ?? [];
-            return (
-              <div
-                key={stage}
-                className="rounded-lg border border-zinc-200 dark:border-zinc-800"
-              >
-                <div className="border-b border-zinc-200 px-3 py-2 text-xs font-medium uppercase tracking-wider text-zinc-500 dark:border-zinc-800">
-                  {CLIENT_STATUS_LABELS[
-                    stage as keyof typeof CLIENT_STATUS_LABELS
-                  ] ?? stage}{" "}
-                  <span className="text-zinc-400">({list.length})</span>
-                </div>
-                {list.length === 0 ? (
-                  <p className="px-3 py-2 text-xs text-zinc-400">—</p>
-                ) : (
-                  <ul className="divide-y divide-zinc-100 dark:divide-zinc-800">
-                    {list.map((c) => (
-                      <li key={c.id} className="px-3 py-2 text-sm">
-                        <Link
-                          href={`/klanten/${c.id}`}
-                          className="text-navy hover:underline dark:text-cream"
-                        >
-                          {c.name}
-                        </Link>
-                        {nextFollowUp.get(c.id) && (
-                          <span className="ml-2 text-xs text-zinc-400">
-                            {formatDate(nextFollowUp.get(c.id))}
-                          </span>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            );
-          })}
+        <p className="mt-1 text-xs text-zinc-500">
+          Sleep een relatie naar een andere fase om de status te wijzigen.
+        </p>
+        <div className="mt-3">
+          <AcquisitieBoard clients={funnelClients} />
         </div>
       </section>
     </div>

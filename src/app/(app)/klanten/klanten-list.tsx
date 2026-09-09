@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
 import { ClientStatusBadge } from "@/components/status-badge";
+import { SortHeader, cmpText, readSort } from "@/components/sort-header";
 import {
   btnPrimary,
   emptyState,
@@ -9,20 +10,15 @@ import {
   tableWrap,
   tbody,
   td,
-  th,
   thead,
   tr,
 } from "@/components/ui";
 import { formatDate } from "@/lib/format";
 import { getSessionContext } from "@/utils/supabase/auth";
-import {
-  CLIENT_STATUS_LABELS,
-  PROSPECT_STATUSES,
-  type Client,
-  type ClientNote,
-} from "@/lib/types";
+import type { Client, ClientNote, Contact, Vacancy } from "@/lib/types";
+import { toggleFollowUp } from "./notes-actions";
 
-export type KlantenScope = "actief" | "prospects" | "archief";
+export type KlantenScope = "actief" | "archief";
 
 const META: Record<
   KlantenScope,
@@ -33,12 +29,6 @@ const META: Record<
     description: "Opdrachtgevers met de status Klant.",
     empty: "Nog geen klanten.",
   },
-  prospects: {
-    title: "Prospects",
-    description:
-      "Relaties in de funnel: nieuw, in outreach, warm, afspraak gepland of voorstel gestuurd.",
-    empty: "Geen prospects.",
-  },
   archief: {
     title: "Archief",
     description: "Inactieve relaties.",
@@ -48,11 +38,8 @@ const META: Record<
 
 const BASE_PATH: Record<KlantenScope, string> = {
   actief: "/klanten",
-  prospects: "/prospects",
   archief: "/archief",
 };
-
-type SortKey = "name" | "vacancies" | "placements";
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
 
@@ -78,77 +65,73 @@ export async function KlantenList({
   }
 
   const sp = await searchParams;
-  const stage =
-    scope === "prospects" &&
-    typeof sp.status === "string" &&
-    (PROSPECT_STATUSES as string[]).includes(sp.status)
-      ? sp.status
-      : null;
+  const isActief = scope === "actief";
+  const allowedSort = isActief
+    ? ["name", "contact", "vacancies", "followup"]
+    : ["name", "status"];
+  const { sort, dir } = readSort(sp, allowedSort, "name");
 
-  const showStatus = scope !== "actief";
-  const showCounts = scope === "actief";
-
-  const allowedSort: SortKey[] = showCounts
-    ? ["name", "vacancies", "placements"]
-    : ["name"];
-  const sortKey: SortKey = (allowedSort as string[]).includes(
-    typeof sp.sort === "string" ? sp.sort : "",
-  )
-    ? (sp.sort as SortKey)
-    : "name";
-  const dir: "asc" | "desc" = sp.dir === "desc" ? "desc" : "asc";
-
-  let query = supabase
+  const { data: clients, error } = await supabase
     .from("clients")
     .select("*")
-    .order("name", { ascending: true });
+    .eq("status", isActief ? "actief" : "inactief")
+    .order("name", { ascending: true })
+    .returns<Client[]>();
 
-  if (scope === "actief") query = query.eq("status", "actief");
-  else if (scope === "archief") query = query.eq("status", "inactief");
-  else query = query.in("status", stage ? [stage] : PROSPECT_STATUSES);
+  const ids = (clients ?? []).map((c) => c.id);
 
-  const { data: clients, error } = await query.returns<Client[]>();
-
-  // Aantallen (alleen op de klantenpagina)
-  const openVac = new Map<string, number>();
-  const placementCount = new Map<string, number>();
-  if (showCounts && clients && clients.length > 0) {
-    const ids = clients.map((c) => c.id);
-    const [{ data: vac }, { data: pls }] = await Promise.all([
-      supabase
-        .from("vacancies")
-        .select("client_id")
-        .eq("status", "open")
-        .in("client_id", ids),
-      supabase.from("placements").select("client_id").in("client_id", ids),
-    ]);
-    for (const v of vac ?? [])
-      openVac.set(v.client_id, (openVac.get(v.client_id) ?? 0) + 1);
-    for (const p of pls ?? [])
-      placementCount.set(
-        p.client_id,
-        (placementCount.get(p.client_id) ?? 0) + 1,
-      );
-  }
-
-  const withNotes = scope !== "archief" && !!clients && clients.length > 0;
+  // Openstaande vacatures (titels), primaire contactpersoon en notities —
+  // alleen op de klantenpagina.
+  const openVacancies = new Map<string, string[]>();
+  const primaryContact = new Map<
+    string,
+    Pick<Contact, "id" | "name" | "email">
+  >();
   const latestNote = new Map<string, ClientNote>();
   const nextFollowUp = new Map<string, string>();
-  if (withNotes) {
-    const ids = clients!.map((c) => c.id);
-    const { data: notes } = await supabase
-      .from("client_notes")
-      .select("*")
-      .in("client_id", ids)
-      .order("created_at", { ascending: false })
-      .returns<ClientNote[]>();
+  let followUpNotes: ClientNote[] = [];
+
+  if (isActief && ids.length > 0) {
+    const [{ data: vac }, { data: contacts }, { data: notes }] =
+      await Promise.all([
+        supabase
+          .from("vacancies")
+          .select("client_id, title")
+          .eq("status", "open")
+          .in("client_id", ids)
+          .order("created_at", { ascending: false })
+          .returns<Pick<Vacancy, "client_id" | "title">[]>(),
+        supabase
+          .from("contacts")
+          .select("id, client_id, name, email")
+          .eq("is_primary", true)
+          .in("client_id", ids)
+          .returns<Pick<Contact, "id" | "client_id" | "name" | "email">[]>(),
+        supabase
+          .from("client_notes")
+          .select("*")
+          .in("client_id", ids)
+          .order("created_at", { ascending: false })
+          .returns<ClientNote[]>(),
+      ]);
+
+    for (const v of vac ?? []) {
+      const list = openVacancies.get(v.client_id) ?? [];
+      list.push(v.title);
+      openVacancies.set(v.client_id, list);
+    }
+    for (const c of contacts ?? []) {
+      if (!primaryContact.has(c.client_id)) primaryContact.set(c.client_id, c);
+    }
     for (const n of notes ?? []) {
       if (!latestNote.has(n.client_id)) latestNote.set(n.client_id, n);
     }
-    // eerstvolgende openstaande opvolging per klant
     const open = [...(notes ?? [])]
       .filter((n) => n.follow_up_on && !n.follow_up_done)
-      .sort((a, b) => (a.follow_up_on ?? "").localeCompare(b.follow_up_on ?? ""));
+      .sort((a, b) =>
+        (a.follow_up_on ?? "").localeCompare(b.follow_up_on ?? ""),
+      );
+    followUpNotes = open;
     for (const n of open) {
       if (n.follow_up_on && !nextFollowUp.has(n.client_id))
         nextFollowUp.set(n.client_id, n.follow_up_on);
@@ -157,45 +140,38 @@ export async function KlantenList({
 
   const sorted = [...(clients ?? [])].sort((a, b) => {
     let cmp = 0;
-    if (sortKey === "vacancies") {
-      cmp = (openVac.get(a.id) ?? 0) - (openVac.get(b.id) ?? 0);
-    } else if (sortKey === "placements") {
-      cmp = (placementCount.get(a.id) ?? 0) - (placementCount.get(b.id) ?? 0);
-    } else {
-      cmp = a.name.localeCompare(b.name, "nl");
+    switch (sort) {
+      case "contact":
+        cmp = cmpText(
+          primaryContact.get(a.id)?.name,
+          primaryContact.get(b.id)?.name,
+        );
+        break;
+      case "vacancies":
+        cmp =
+          (openVacancies.get(a.id)?.length ?? 0) -
+          (openVacancies.get(b.id)?.length ?? 0);
+        break;
+      case "followup":
+        cmp = cmpText(nextFollowUp.get(a.id), nextFollowUp.get(b.id));
+        break;
+      case "status":
+        cmp = cmpText(a.status, b.status);
+        break;
+      default:
+        cmp = cmpText(a.name, b.name);
     }
-    if (cmp === 0) cmp = a.name.localeCompare(b.name, "nl");
+    if (cmp === 0) cmp = cmpText(a.name, b.name);
     return dir === "desc" ? -cmp : cmp;
   });
 
   const today = todayIso();
-
-  function sortHref(key: SortKey) {
-    const params = new URLSearchParams();
-    if (scope === "prospects" && stage) params.set("status", stage);
-    const nextDir =
-      sortKey === key && dir === "asc"
-        ? "desc"
-        : sortKey === key && dir === "desc"
-          ? "asc"
-          : key === "name"
-            ? "asc"
-            : "desc";
-    params.set("sort", key);
-    params.set("dir", nextDir);
-    return `${BASE_PATH[scope]}?${params.toString()}`;
-  }
-
-  const SortHead = ({ label, sortBy }: { label: string; sortBy: SortKey }) => (
-    <th className={th}>
-      <Link href={sortHref(sortBy)} className="inline-flex items-center gap-1 hover:underline">
-        {label}
-        <span className="text-zinc-400">
-          {sortKey === sortBy ? (dir === "asc" ? "▲" : "▼") : "↕"}
-        </span>
-      </Link>
-    </th>
-  );
+  const clientName = new Map((clients ?? []).map((c) => [c.id, c.name]));
+  const headerProps = {
+    activeKey: sort,
+    dir,
+    basePath: BASE_PATH[scope],
+  };
 
   return (
     <div className="mx-auto max-w-5xl">
@@ -209,33 +185,60 @@ export async function KlantenList({
         }
       />
 
-      {scope === "prospects" && (
-        <form className="mt-6 flex items-end gap-3" method="get">
-          <label className="text-sm">
-            <span className="block text-xs text-zinc-500">Fase</span>
-            <select
-              name="status"
-              defaultValue={stage ?? ""}
-              className="mt-1 rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900"
-            >
-              <option value="">Alle prospects</option>
-              {PROSPECT_STATUSES.map((s) => (
-                <option key={s} value={s}>
-                  {CLIENT_STATUS_LABELS[s as keyof typeof CLIENT_STATUS_LABELS]}
-                </option>
-              ))}
-            </select>
-          </label>
-          <button
-            type="submit"
-            className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-900"
-          >
-            Toepassen
-          </button>
-        </form>
-      )}
-
       {error && <p className={errorBox}>Laden mislukt: {error.message}</p>}
+
+      {isActief && followUpNotes.length > 0 && (
+        <section className="mt-6">
+          <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+            Opvolgen ({followUpNotes.length})
+          </h2>
+          <ul className="mt-3 divide-y divide-zinc-100 rounded-lg border border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800">
+            {followUpNotes.map((n) => {
+              const overdue = (n.follow_up_on ?? "") < today;
+              const isToday = n.follow_up_on === today;
+              return (
+                <li
+                  key={n.id}
+                  className="flex flex-wrap items-start gap-x-4 gap-y-1 px-4 py-2.5 text-sm"
+                >
+                  <span
+                    className={`w-24 shrink-0 tabular-nums ${
+                      overdue
+                        ? "font-medium text-red-600"
+                        : isToday
+                          ? "font-medium text-amber-600"
+                          : "text-zinc-500"
+                    }`}
+                  >
+                    {formatDate(n.follow_up_on)}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <Link
+                      href={`/klanten/${n.client_id}`}
+                      className="font-medium text-navy hover:underline dark:text-cream"
+                    >
+                      {clientName.get(n.client_id) ?? "Klant"}
+                    </Link>
+                    <span className="ml-2 text-zinc-600 dark:text-zinc-400">
+                      {n.body}
+                    </span>
+                  </span>
+                  <form action={toggleFollowUp}>
+                    <input type="hidden" name="id" value={n.id} />
+                    <button
+                      type="submit"
+                      className="rounded-md border border-zinc-300 px-2 py-1 text-xs hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
+                      title="Haalt deze opvolgactie uit de lijst"
+                    >
+                      Markeer als afgehandeld
+                    </button>
+                  </form>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
 
       {!error && (!clients || clients.length === 0) && (
         <div className={emptyState}>{meta.empty}</div>
@@ -246,15 +249,32 @@ export async function KlantenList({
           <table className={table}>
             <thead className={thead}>
               <tr>
-                <SortHead label="Naam" sortBy="name" />
-                {showStatus && <th className={th}>Status</th>}
-                {showCounts && (
+                <SortHeader label="Naam" columnKey="name" {...headerProps} />
+                {isActief ? (
                   <>
-                    <SortHead label="Vac. open" sortBy="vacancies" />
-                    <SortHead label="Plaatsingen" sortBy="placements" />
+                    <SortHeader
+                      label="Primaire contactpersoon"
+                      columnKey="contact"
+                      {...headerProps}
+                    />
+                    <SortHeader
+                      label="Vac. open"
+                      columnKey="vacancies"
+                      {...headerProps}
+                    />
+                    <SortHeader
+                      label="Laatste notitie / opvolgen"
+                      columnKey="followup"
+                      {...headerProps}
+                    />
                   </>
+                ) : (
+                  <SortHeader
+                    label="Status"
+                    columnKey="status"
+                    {...headerProps}
+                  />
                 )}
-                {withNotes && <th className={th}>Laatste notitie / opvolgen</th>}
               </tr>
             </thead>
             <tbody className={tbody}>
@@ -262,6 +282,8 @@ export async function KlantenList({
                 const note = latestNote.get(client.id);
                 const fu = nextFollowUp.get(client.id);
                 const overdue = fu != null && fu <= today;
+                const contact = primaryContact.get(client.id);
+                const vacs = openVacancies.get(client.id) ?? [];
                 return (
                   <tr key={client.id} className={tr}>
                     <td className={td}>
@@ -272,46 +294,69 @@ export async function KlantenList({
                         {client.name}
                       </Link>
                     </td>
-                    {showStatus && (
-                      <td className={td}>
-                        <ClientStatusBadge status={client.status} />
-                      </td>
-                    )}
-                    {showCounts && (
+
+                    {isActief ? (
                       <>
-                        <td className={`${td} text-right tabular-nums`}>
-                          {openVac.get(client.id) ?? 0}
-                        </td>
-                        <td className={`${td} text-right tabular-nums`}>
-                          {placementCount.get(client.id) ?? 0}
-                        </td>
-                      </>
-                    )}
-                    {withNotes && (
-                      <td className={`${td} max-w-xs`}>
-                        {fu && (
-                          <span
-                            className={`mr-2 rounded-full px-1.5 py-0.5 text-[11px] ${
-                              overdue
-                                ? "bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300"
-                                : "bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300"
-                            }`}
-                          >
-                            {formatDate(fu)}
-                          </span>
-                        )}
-                        <span className="text-zinc-600 dark:text-zinc-400">
-                          {note ? (
-                            <span
-                              className="line-clamp-1"
-                              title={note.body}
-                            >
-                              {note.body}
+                        <td className={td}>
+                          {contact ? (
+                            <span>
+                              <span className="text-zinc-800 dark:text-zinc-200">
+                                {contact.name}
+                              </span>
+                              {contact.email && (
+                                <span className="block text-xs text-zinc-400">
+                                  {contact.email}
+                                </span>
+                              )}
                             </span>
                           ) : (
-                            "—"
+                            <span className="text-zinc-400">—</span>
                           )}
-                        </span>
+                        </td>
+
+                        <td className={`${td} max-w-xs`}>
+                          {vacs.length === 0 ? (
+                            <span className="text-zinc-400">—</span>
+                          ) : (
+                            <ul className="space-y-0.5">
+                              {vacs.map((titel, i) => (
+                                <li
+                                  key={i}
+                                  className="text-zinc-700 dark:text-zinc-300"
+                                >
+                                  {titel}
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </td>
+
+                        <td className={`${td} max-w-xs`}>
+                          {fu && (
+                            <span
+                              className={`mr-2 rounded-full px-1.5 py-0.5 text-[11px] ${
+                                overdue
+                                  ? "bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300"
+                                  : "bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300"
+                              }`}
+                            >
+                              {formatDate(fu)}
+                            </span>
+                          )}
+                          <span className="text-zinc-600 dark:text-zinc-400">
+                            {note ? (
+                              <span className="line-clamp-1" title={note.body}>
+                                {note.body}
+                              </span>
+                            ) : (
+                              "—"
+                            )}
+                          </span>
+                        </td>
+                      </>
+                    ) : (
+                      <td className={td}>
+                        <ClientStatusBadge status={client.status} />
                       </td>
                     )}
                   </tr>

@@ -111,7 +111,8 @@ export async function updatePlacement(
   _prev: FormState,
   fd: FormData,
 ): Promise<FormState> {
-  const { supabase } = await getSessionContext();
+  const { supabase, organizationId } = await getSessionContext();
+  if (!organizationId) return formError("Geen organisatie.");
   const id = str(fd, "id");
   if (!id) return formError("Onbekende placement.");
 
@@ -121,7 +122,8 @@ export async function updatePlacement(
   const { error } = await supabase
     .from("placements")
     .update(values)
-    .eq("id", id);
+    .eq("id", id)
+    .eq("organization_id", organizationId);
   if (error) return formError("Opslaan mislukt. Probeer het opnieuw.");
 
   revalidatePath("/placements");
@@ -130,7 +132,8 @@ export async function updatePlacement(
 }
 
 export async function deletePlacement(fd: FormData) {
-  const { supabase } = await getSessionContext();
+  const { supabase, organizationId } = await getSessionContext();
+  if (!organizationId) return;
   const id = str(fd, "id");
   if (!id) return;
 
@@ -138,8 +141,13 @@ export async function deletePlacement(fd: FormData) {
   await supabase
     .from("invoices")
     .update({ placement_id: null })
-    .eq("placement_id", id);
-  await supabase.from("placements").delete().eq("id", id);
+    .eq("placement_id", id)
+    .eq("organization_id", organizationId);
+  await supabase
+    .from("placements")
+    .delete()
+    .eq("id", id)
+    .eq("organization_id", organizationId);
 
   revalidatePath("/placements");
   revalidatePath("/facturen");

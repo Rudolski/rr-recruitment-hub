@@ -27,7 +27,8 @@ export async function addVacancyTask(fd: FormData) {
 }
 
 export async function toggleVacancyTask(fd: FormData) {
-  const { supabase } = await getSessionContext();
+  const { supabase, organizationId } = await getSessionContext();
+  if (!organizationId) return;
   const id = str(fd, "id");
   const vacancyId = str(fd, "vacancy_id");
   if (!id) return;
@@ -36,6 +37,7 @@ export async function toggleVacancyTask(fd: FormData) {
     .from("vacancy_tasks")
     .select("done")
     .eq("id", id)
+    .eq("organization_id", organizationId)
     .maybeSingle<{ done: boolean }>();
   if (!task) return;
 
@@ -43,17 +45,23 @@ export async function toggleVacancyTask(fd: FormData) {
   await supabase
     .from("vacancy_tasks")
     .update({ done, done_at: done ? new Date().toISOString() : null })
-    .eq("id", id);
+    .eq("id", id)
+    .eq("organization_id", organizationId);
   refresh(vacancyId);
 }
 
 export async function deleteVacancyTask(fd: FormData) {
-  const { supabase } = await getSessionContext();
+  const { supabase, organizationId } = await getSessionContext();
+  if (!organizationId) return;
   const id = str(fd, "id");
   const vacancyId = str(fd, "vacancy_id");
   if (!id) return;
 
-  await supabase.from("vacancy_tasks").delete().eq("id", id);
+  await supabase
+    .from("vacancy_tasks")
+    .delete()
+    .eq("id", id)
+    .eq("organization_id", organizationId);
   refresh(vacancyId);
 }
 
@@ -77,7 +85,8 @@ export async function addVacancyCandidate(fd: FormData) {
 }
 
 export async function moveVacancyCandidate(fd: FormData) {
-  const { supabase } = await getSessionContext();
+  const { supabase, organizationId } = await getSessionContext();
+  if (!organizationId) return;
   const id = str(fd, "id");
   const vacancyId = str(fd, "vacancy_id");
   const stageRaw = str(fd, "stage");
@@ -86,16 +95,22 @@ export async function moveVacancyCandidate(fd: FormData) {
   await supabase
     .from("vacancy_candidates")
     .update({ stage: stageRaw, updated_at: new Date().toISOString() })
-    .eq("id", id);
+    .eq("id", id)
+    .eq("organization_id", organizationId);
   refresh(vacancyId);
 }
 
 export async function deleteVacancyCandidate(fd: FormData) {
-  const { supabase } = await getSessionContext();
+  const { supabase, organizationId } = await getSessionContext();
+  if (!organizationId) return;
   const id = str(fd, "id");
   const vacancyId = str(fd, "vacancy_id");
   if (!id) return;
 
-  await supabase.from("vacancy_candidates").delete().eq("id", id);
+  await supabase
+    .from("vacancy_candidates")
+    .delete()
+    .eq("id", id)
+    .eq("organization_id", organizationId);
   refresh(vacancyId);
 }

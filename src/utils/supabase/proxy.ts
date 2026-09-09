@@ -2,7 +2,9 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 /** Paden die zonder ingelogde gebruiker bereikbaar zijn. */
-const PUBLIC_PATHS = ["/login", "/auth"];
+// /api-routes regelen hun eigen autorisatie (bijv. de cron-scan met een
+// secret / x-vercel-cron header).
+const PUBLIC_PATHS = ["/login", "/auth", "/api"];
 
 function isPublicPath(pathname: string) {
   return PUBLIC_PATHS.some(
