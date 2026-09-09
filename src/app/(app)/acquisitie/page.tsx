@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
-import { errorBox } from "@/components/ui";
+import { errorBox, inputClass } from "@/components/ui";
 import { formatDate } from "@/lib/format";
 import { getSessionContext } from "@/utils/supabase/auth";
 import {
@@ -9,7 +9,7 @@ import {
   type ClientNote,
   type ClientStatus,
 } from "@/lib/types";
-import { toggleFollowUp } from "../klanten/notes-actions";
+import { toggleFollowUp, updateClientNote } from "../klanten/notes-actions";
 import { AcquisitieBoard, type FunnelClient } from "./acquisitie-board";
 
 export const metadata = { title: "Acquisitie · RR Recruitment Hub" };
@@ -129,16 +129,58 @@ export default async function AcquisitiePage() {
                       {formatDate(n.follow_up_on)}
                     </span>
                   </div>
-                  <form action={toggleFollowUp} className="mt-2">
-                    <input type="hidden" name="id" value={n.id} />
-                    <button
-                      type="submit"
-                      className="rounded-md border border-zinc-300 px-2 py-1 text-xs hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
-                      title="Haalt deze opvolgactie uit de lijst"
-                    >
-                      Markeer als afgehandeld
-                    </button>
-                  </form>
+                  <div className="mt-2 flex flex-wrap items-center gap-3">
+                    <form action={toggleFollowUp}>
+                      <input type="hidden" name="id" value={n.id} />
+                      <button
+                        type="submit"
+                        className="rounded-md border border-zinc-300 px-2 py-1 text-xs hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
+                        title="Haalt deze opvolgactie uit de lijst"
+                      >
+                        Markeer als afgehandeld
+                      </button>
+                    </form>
+                    <details>
+                      <summary className="cursor-pointer text-xs text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200">
+                        Bewerken
+                      </summary>
+                      <form
+                        action={updateClientNote}
+                        className="mt-2 space-y-2"
+                      >
+                        <input type="hidden" name="id" value={n.id} />
+                        <input
+                          type="hidden"
+                          name="client_id"
+                          value={n.client_id}
+                        />
+                        <textarea
+                          name="body"
+                          required
+                          rows={2}
+                          defaultValue={n.body}
+                          className={`${inputClass} text-sm`}
+                        />
+                        <div className="flex flex-wrap items-end gap-3">
+                          <label className="text-xs text-zinc-500">
+                            <span className="block">Opvolgen op</span>
+                            <input
+                              name="follow_up_on"
+                              type="date"
+                              defaultValue={n.follow_up_on ?? ""}
+                              className={`${inputClass} mt-1 w-44`}
+                            />
+                          </label>
+                          <button
+                            type="submit"
+                            className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
+                          >
+                            Opslaan
+                          </button>
+                        </div>
+                      </form>
+                    </details>
+                  </div>
                 </li>
               );
             })}

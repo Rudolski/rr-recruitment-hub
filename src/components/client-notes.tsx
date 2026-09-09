@@ -5,6 +5,7 @@ import {
   addClientNote,
   deleteClientNote,
   toggleFollowUp,
+  updateClientNote,
 } from "@/app/(app)/klanten/notes-actions";
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
@@ -111,6 +112,43 @@ export function ClientNotes({
                     </button>
                   </form>
                 </div>
+
+                <details className="mt-1.5">
+                  <summary className="cursor-pointer text-xs text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200">
+                    Bewerken
+                  </summary>
+                  <form
+                    action={updateClientNote}
+                    className="mt-2 space-y-2 border-t border-zinc-100 pt-2 dark:border-zinc-800"
+                  >
+                    <input type="hidden" name="id" value={n.id} />
+                    <input type="hidden" name="client_id" value={clientId} />
+                    <textarea
+                      name="body"
+                      required
+                      rows={2}
+                      defaultValue={n.body}
+                      className={`${inputClass} text-sm`}
+                    />
+                    <div className="flex flex-wrap items-end gap-3">
+                      <label className="text-xs text-zinc-500">
+                        <span className="block">Opvolgen op</span>
+                        <input
+                          name="follow_up_on"
+                          type="date"
+                          defaultValue={n.follow_up_on ?? ""}
+                          className={`${inputClass} mt-1 w-44`}
+                        />
+                      </label>
+                      <button
+                        type="submit"
+                        className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
+                      >
+                        Opslaan
+                      </button>
+                    </div>
+                  </form>
+                </details>
               </li>
             );
           })}
