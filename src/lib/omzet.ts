@@ -128,23 +128,41 @@ const norm = (s: string | null | undefined) =>
  * @param periodInvoices  gerealiseerde facturen met factuurdatum in de periode
  * @param commitmentPool  álle gerealiseerde commitment-facturen (elke datum)
  */
+export type WsPlacementRow = {
+  invoiceId: string;
+  clientId: string;
+  vacancyLabel: string | null;
+  invoiceNumber: string | null;
+  issueDate: string | null;
+  wervingsfee: number;
+  commitment: number;
+  total: number;
+};
+
 export function averageWsFee(
   periodInvoices: Invoice[],
   commitmentPool: Invoice[],
-): { placements: number; total: number; avg: number | null } {
-  const placementInvoices = periodInvoices.filter(
-    (i) =>
-      realisedSet.has(i.status) &&
-      (i.kind ?? "wervingsfee") === "wervingsfee",
-  );
+): {
+  placements: number;
+  total: number;
+  avg: number | null;
+  rows: WsPlacementRow[];
+} {
+  const placementInvoices = periodInvoices
+    .filter(
+      (i) =>
+        realisedSet.has(i.status) &&
+        (i.kind ?? "wervingsfee") === "wervingsfee",
+    )
+    .sort((a, b) => (b.issue_date ?? "").localeCompare(a.issue_date ?? ""));
 
   const commitments = commitmentPool
     .filter((i) => realisedSet.has(i.status) && i.kind === "commitment")
     .map((inv) => ({ inv, used: false }));
 
-  let total = 0;
-  for (const pi of placementInvoices) {
-    let fee = nettoAmount(pi);
+  const rows: WsPlacementRow[] = placementInvoices.map((pi) => {
+    const wervingsfee = nettoAmount(pi);
+    let commitment = 0;
     const piLabel = norm(pi.vacancy_label);
     for (const c of commitments) {
       if (c.used) continue;
@@ -155,20 +173,28 @@ export function averageWsFee(
         c.inv.client_id === pi.client_id &&
         norm(c.inv.vacancy_label) === piLabel;
       if (byPlacement || byLabel) {
-        fee += nettoAmount(c.inv);
+        commitment += nettoAmount(c.inv);
         c.used = true;
         break;
       }
     }
-    total += fee;
-  }
+    return {
+      invoiceId: pi.id,
+      clientId: pi.client_id,
+      vacancyLabel: pi.vacancy_label,
+      invoiceNumber: pi.invoice_number,
+      issueDate: pi.issue_date,
+      wervingsfee,
+      commitment,
+      total: wervingsfee + commitment,
+    };
+  });
 
+  const total = rows.reduce((s, r) => s + r.total, 0);
   return {
-    placements: placementInvoices.length,
+    placements: rows.length,
     total,
-    avg:
-      placementInvoices.length > 0
-        ? total / placementInvoices.length
-        : null,
+    avg: rows.length > 0 ? total / rows.length : null,
+    rows,
   };
 }
