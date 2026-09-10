@@ -313,6 +313,66 @@ export async function scrapeHtmlList(opts: {
 
 /* -------------------- verrijken (exclusief-check) -------------------- */
 
+function decodeEntities(s: string): string {
+  return s
+    .replace(/&amp;/g, "&")
+    .replace(/&#(\d+);/g, (_, d) => String.fromCharCode(Number(d)))
+    .replace(/&[a-z]+;/gi, " ");
+}
+const normName = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "");
+
+// Openingswoorden die duiden op een anonieme omschrijving i.p.v. een naam.
+const GENERIC_OPENER =
+  /^(onze|ons|de|dit|deze|het|een|onder|voor|binnen|bij|als|met|in|op|wij|je|jij|jouw|hun|hierbij|momenteel|vanuit|our|the|this|a|an)\b/i;
+
+/**
+ * Trekt de opdrachtgevernaam uit de eerste zin van de omschrijving:
+ * "Brouwers B.V. is een groeiende..." → "Brouwers B.V.". Weigert
+ * generieke openingen ("Onze opdrachtgever is...", "Our client is...",
+ * "Dit familiebedrijf is...") en zinsfragmenten.
+ */
+function companyFromIntro(html: string): string | null {
+  // Alleen specifieke omschrijvingsblokken; NIET een kale "intro"-klasse
+  // (dat matcht ook de sectie-wrapper vol layout-markup).
+  const block =
+    html.match(
+      /<div[^>]*class=["'][^"']*\b(?:introduction|vacancy-description|job-description|vacancy-content|company-intro)\b[^"']*["'][^>]*>([\s\S]{0,2000})/i,
+    )?.[1] ?? null;
+  if (!block) return null;
+
+  // Eerste betekenisvolle alinea binnen dat blok.
+  const paras = [...block.matchAll(/<p\b[^>]*>([\s\S]*?)<\/p>/gi)]
+    .map((m) =>
+      decodeEntities(m[1].replace(/<[^>]+>/g, " "))
+        .replace(/\s+/g, " ")
+        .trim(),
+    )
+    .filter((t) => t.length > 20);
+  const text =
+    paras[0] ??
+    decodeEntities(block.replace(/<[^>]+>/g, " "))
+      .replace(/\s+/g, " ")
+      .trim();
+
+  const m = text.match(
+    /^([A-Z0-9À-Ý][\wÀ-ÿ&.\- ]{1,55}?)\s+(?:is|was|zoekt|biedt|heeft|staat|maakt|levert|behoort|opereert|richt|kenmerkt|bestaat|groeit|werkt|produceert|ontwikkelt|verzorgt|ondersteunt)\b/,
+  );
+  if (!m) return null;
+  const cand = m[1].replace(/[,;:]\s*$/, "").trim();
+  if (GENERIC_OPENER.test(cand)) return null;
+  // Een naam is 1-5 woorden; een zinsfragment bevat kleine, lange woorden.
+  const words = cand.split(/\s+/);
+  if (words.length > 5) return null;
+  if (
+    words
+      .slice(1)
+      .some((w) => /^[a-zà-ÿ]{4,}$/.test(w) && !/^(van|der|den|und|and)$/i.test(w))
+  ) {
+    return null;
+  }
+  return cand;
+}
+
 /**
  * Haalt de detailpagina op en probeert de opdrachtgevernaam te vinden.
  * Alleen als die concreet genoemd wordt is een vacature "exclusief".
@@ -338,8 +398,7 @@ export async function enrichVacancy(
     /<li[^>]*class=["'][^"']*meta-organization[^"']*["'][^>]*>([\s\S]*?)<\/li>/i,
   );
   if (li) {
-    const txt = li[1]
-      .replace(/<[^>]+>/g, " ")
+    const txt = decodeEntities(li[1].replace(/<[^>]+>/g, " "))
       .replace(/\s+/g, " ")
       .trim();
     if (txt) company = txt;
@@ -353,9 +412,21 @@ export async function enrichVacancy(
     }
   }
 
-  // Geen betrouwbare naam gevonden -> als anoniem behandelen. Bewust
-  // geen JSON-LD hiringOrganization-fallback: bureaus zetten daar vaak
-  // hun eigen naam neer, wat een vals-positieve "exclusief" oplevert.
+  // 3) Naam in de intro-alinea ("Brouwers B.V. is een ...").
+  if (!company) company = companyFromIntro(html);
+
+  // Bureaus zetten in JSON-LD hun eigen naam bij hiringOrganization;
+  // als de gevonden "opdrachtgever" daarmee overlapt is het niet
+  // exclusief.
+  const agency = html
+    .match(/"hiringOrganization"\s*:\s*\{[^}]*?"name"\s*:\s*"([^"]+)"/i)?.[1]
+    ?.trim();
+  if (company && agency) {
+    const nc = normName(company);
+    const na = normName(agency);
+    if (nc && na && (na.includes(nc) || nc.includes(na))) company = null;
+  }
+
   if (
     company &&
     (company.length > 120 || /^onze opdrachtgever/i.test(company))
