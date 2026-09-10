@@ -55,6 +55,7 @@ export default async function PlaatsingenPage({
   if (fromMonth > toMonth) [fromMonth, toMonth] = [toMonth, fromMonth];
   const clientFilter =
     typeof params.klant === "string" && params.klant ? params.klant : null;
+  const inclPartner = params.partner === "1";
 
   const periodStart = `${year}-${String(fromMonth).padStart(2, "0")}-01`;
   const periodEnd = `${year}-${String(toMonth).padStart(2, "0")}-${String(
@@ -91,6 +92,7 @@ export default async function PlaatsingenPage({
   const { rows, total, avg, placements } = averageWsFee(
     periodInvoices ?? [],
     commitmentPool ?? [],
+    { inclPartner },
   );
 
   const periodLabel = `${MONTH_NAMES[fromMonth]}${
@@ -109,7 +111,8 @@ export default async function PlaatsingenPage({
           {placements}
         </span>{" "}
         plaatsingen · totaal W&amp;S-fee {eur2(total)} · gemiddeld{" "}
-        {avg == null ? "—" : eur2(avg)}
+        {avg == null ? "—" : eur2(avg)} ·{" "}
+        {inclPartner ? "incl. partnerdeel" : "RR-deel (excl. partner)"}
       </p>
 
       {error && <p className={errorBox}>Laden mislukt: {error.message}</p>}

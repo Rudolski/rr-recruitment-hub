@@ -142,12 +142,17 @@ export type WsPlacementRow = {
 export function averageWsFee(
   periodInvoices: Invoice[],
   commitmentPool: Invoice[],
+  opts: { inclPartner?: boolean } = {},
 ): {
   placements: number;
   total: number;
   avg: number | null;
   rows: WsPlacementRow[];
 } {
+  // inclPartner: het volledige factuurbedrag; anders alleen het RR-deel.
+  const amount = (inv: Invoice) =>
+    opts.inclPartner ? Number(inv.amount_excl_btw) : nettoAmount(inv);
+
   const placementInvoices = periodInvoices
     .filter(
       (i) =>
@@ -161,7 +166,7 @@ export function averageWsFee(
     .map((inv) => ({ inv, used: false }));
 
   const rows: WsPlacementRow[] = placementInvoices.map((pi) => {
-    const wervingsfee = nettoAmount(pi);
+    const wervingsfee = amount(pi);
     let commitment = 0;
     const piLabel = norm(pi.vacancy_label);
     for (const c of commitments) {
@@ -173,7 +178,7 @@ export function averageWsFee(
         c.inv.client_id === pi.client_id &&
         norm(c.inv.vacancy_label) === piLabel;
       if (byPlacement || byLabel) {
-        commitment += nettoAmount(c.inv);
+        commitment += amount(c.inv);
         c.used = true;
         break;
       }
