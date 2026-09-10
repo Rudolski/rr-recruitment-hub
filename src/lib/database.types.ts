@@ -302,6 +302,7 @@ export type Database = {
           btw_percentage: number;
           amount_incl_btw: number;
           status: string;
+          kind: string;
           partner_name: string | null;
           partner_share_amount: number | null;
           vacancy_label: string | null;
@@ -322,6 +323,7 @@ export type Database = {
           amount_excl_btw: number;
           btw_percentage?: number;
           status?: string;
+          kind?: string;
           partner_name?: string | null;
           partner_share_amount?: number | null;
           vacancy_label?: string | null;
@@ -340,6 +342,7 @@ export type Database = {
           amount_excl_btw?: number;
           btw_percentage?: number;
           status?: string;
+          kind?: string;
           partner_name?: string | null;
           partner_share_amount?: number | null;
           vacancy_label?: string | null;

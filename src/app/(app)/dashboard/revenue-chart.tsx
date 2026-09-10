@@ -29,11 +29,13 @@ export function RevenueChart({
   thisYear,
   lastYear,
   target,
+  label = "Omzet",
 }: {
   year: number;
   thisYear: number[];
   lastYear: number[];
   target: number[] | null;
+  label?: string;
 }) {
   const W = 720;
   const H = 240;
@@ -69,11 +71,11 @@ export function RevenueChart({
       <div className="mb-2 flex flex-wrap items-center gap-4 text-xs">
         <span className="flex items-center gap-1.5">
           <span className="inline-block h-2 w-4 rounded-sm bg-zinc-900 dark:bg-zinc-100" />
-          Omzet {year}
+          {label} {year}
         </span>
         <span className="flex items-center gap-1.5">
           <span className="inline-block h-2 w-4 rounded-sm bg-zinc-400" />
-          Omzet {year - 1}
+          {label} {year - 1}
         </span>
         {seriesTarget && (
           <span className="flex items-center gap-1.5">

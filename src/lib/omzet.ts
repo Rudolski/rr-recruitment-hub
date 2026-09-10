@@ -1,6 +1,12 @@
-import { REALISED_INVOICE_STATUSES, type Invoice } from "@/lib/types";
+import {
+  REALISED_INVOICE_STATUSES,
+  WS_INVOICE_KINDS,
+  type Invoice,
+  type InvoiceKind,
+} from "@/lib/types";
 
 const realisedSet = new Set<string>(REALISED_INVOICE_STATUSES);
+const wsSet = new Set<string>(WS_INVOICE_KINDS);
 
 type PartnerAware = Pick<
   Invoice,
@@ -22,10 +28,16 @@ export function nettoAmount(inv: PartnerAware): number {
 }
 
 export type OmzetSplit = {
-  /** Som van de volledige klantfacturen (excl. btw). */
+  /** Som van de volledige klantfacturen (excl. btw), alle soorten. */
   bruto: number;
-  /** Bruto minus alle partneraandelen — de eigen omzet van RR. */
+  /** Bruto minus alle partneraandelen — de eigen omzet van RR (alle soorten). */
   netto: number;
+  /** Netto omzet die als W&S telt (wervingsfee + commitment). */
+  wsNetto: number;
+  /** Netto omzet per factuursoort. */
+  byKind: Record<InvoiceKind, number>;
+  /** Aantal plaatsingen = aantal gerealiseerde 'wervingsfee'-facturen. */
+  placements: number;
   /** Per partner het uitbetaalde bedrag (positief weergegeven). */
   partners: { name: string; amount: number }[];
   /** Aantal meegetelde klantfacturen. */
@@ -33,16 +45,23 @@ export type OmzetSplit = {
 };
 
 /**
- * Splitst een set facturen in bruto omzet, netto omzet (na
- * partneraandeel) en het aandeel per partner. Een factuurregel bevat
- * het volledige bedrag in amount_excl_btw en, als een deel naar een
- * partner gaat, dat deel in partner_share_amount. Alleen facturen met
- * een gerealiseerde status tellen mee.
+ * Splitst een set facturen in bruto/netto omzet, W&S-omzet, een
+ * verdeling per soort, het aantal plaatsingen (wervingsfee-facturen) en
+ * het aandeel per partner. Alleen facturen met een gerealiseerde status
+ * tellen mee.
  */
 export function splitOmzet(invoices: Invoice[]): OmzetSplit {
   let bruto = 0;
   let partnerTotal = 0;
   let count = 0;
+  let wsNetto = 0;
+  let placements = 0;
+  const byKind: Record<InvoiceKind, number> = {
+    wervingsfee: 0,
+    commitment: 0,
+    interim: 0,
+    zzp_marge: 0,
+  };
   const byPartner = new Map<string, number>();
 
   for (const inv of invoices) {
@@ -70,11 +89,20 @@ export function splitOmzet(invoices: Invoice[]): OmzetSplit {
         (byPartner.get(inv.partner_name) ?? 0) + share,
       );
     }
+
+    const kind = (inv.kind ?? "wervingsfee") as InvoiceKind;
+    const netto = amount - (inv.partner_name && share ? share : 0);
+    if (kind in byKind) byKind[kind] += netto;
+    if (wsSet.has(kind)) wsNetto += netto;
+    if (kind === "wervingsfee") placements += 1;
   }
 
   return {
     bruto,
     netto: bruto - partnerTotal,
+    wsNetto,
+    byKind,
+    placements,
     partners: [...byPartner.entries()]
       .map(([name, amount]) => ({ name, amount }))
       .sort((a, b) => b.amount - a.amount),

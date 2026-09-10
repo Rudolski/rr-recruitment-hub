@@ -16,7 +16,21 @@ import {
 import { eur2, formatDate } from "@/lib/format";
 import { getSessionContext } from "@/utils/supabase/auth";
 import { splitOmzet } from "@/lib/omzet";
-import type { Client, Invoice } from "@/lib/types";
+import {
+  INVOICE_KIND_LABELS,
+  type Client,
+  type Invoice,
+  type InvoiceKind,
+} from "@/lib/types";
+
+function KindChip({ kind }: { kind: string | null }) {
+  if (!kind || kind === "wervingsfee") return null;
+  return (
+    <span className="ml-2 rounded bg-zinc-100 px-1.5 py-0.5 text-[11px] text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
+      {INVOICE_KIND_LABELS[kind as InvoiceKind] ?? kind}
+    </span>
+  );
+}
 
 export const metadata = { title: "Facturen · RR Recruitment Hub" };
 
@@ -148,12 +162,15 @@ export default async function FacturenPage({
               className="rounded-lg border border-zinc-200 bg-white p-3 text-sm dark:border-zinc-800 dark:bg-zinc-950"
             >
               <div className="flex items-start justify-between gap-2">
-                <Link
-                  href={`/facturen/${inv.id}`}
-                  className="font-medium text-zinc-900 hover:underline dark:text-zinc-100"
-                >
-                  {clientName.get(inv.client_id) ?? "—"}
-                </Link>
+                <span>
+                  <Link
+                    href={`/facturen/${inv.id}`}
+                    className="font-medium text-zinc-900 hover:underline dark:text-zinc-100"
+                  >
+                    {clientName.get(inv.client_id) ?? "—"}
+                  </Link>
+                  <KindChip kind={inv.kind} />
+                </span>
                 <InvoiceStatusBadge status={inv.status} />
               </div>
               {inv.vacancy_label && (
@@ -206,6 +223,7 @@ export default async function FacturenPage({
                     >
                       {clientName.get(inv.client_id) ?? "—"}
                     </Link>
+                    <KindChip kind={inv.kind} />
                     {inv.vacancy_label && (
                       <span className="block text-xs text-zinc-400">
                         {inv.vacancy_label}

@@ -4,7 +4,9 @@ import { errorBox } from "@/components/ui";
 import { eur, formatMonth, MONTH_NAMES, pctLabel } from "@/lib/format";
 import { getSessionContext } from "@/utils/supabase/auth";
 import {
+  INVOICE_KIND_LABELS,
   REALISED_INVOICE_STATUSES,
+  WS_INVOICE_KINDS,
   type Client,
   type Invoice,
   type MonthlyTarget,
@@ -23,10 +25,13 @@ function lastDay(year: number, month: number) {
   return new Date(year, month, 0).getDate();
 }
 
-function monthlyBuckets(invoices: Invoice[]): number[] {
+const wsKindSet = new Set<string>(WS_INVOICE_KINDS);
+
+function monthlyBuckets(invoices: Invoice[], wsOnly = false): number[] {
   const b = Array(13).fill(0) as number[];
   for (const inv of invoices) {
     if (!inv.issue_date) continue;
+    if (wsOnly && !wsKindSet.has(inv.kind ?? "wervingsfee")) continue;
     const m = Number(inv.issue_date.slice(5, 7));
     b[m] += nettoAmount(inv);
   }
@@ -98,6 +103,19 @@ export default async function DashboardPage({
   ]);
 
   const omzet = splitOmzet(periodInvoices);
+  const avgWsFee =
+    omzet.placements > 0 ? omzet.wsNetto / omzet.placements : null;
+  const omzetBreakdown = (
+    [
+      ["wervingsfee", omzet.byKind.wervingsfee],
+      ["commitment", omzet.byKind.commitment],
+      ["interim", omzet.byKind.interim],
+      ["zzp_marge", omzet.byKind.zzp_marge],
+    ] as const
+  ).filter(([, v]) => Math.abs(v) > 0.5);
+  const periodLabel = `${MONTH_NAMES[fromMonth]}${
+    fromMonth !== toMonth ? `–${MONTH_NAMES[toMonth]}` : ""
+  } ${year}`;
 
   /* -------- Grafiek: heel jaar t.o.v. vorig jaar en target -------- */
 
@@ -118,7 +136,7 @@ export default async function DashboardPage({
   /* -------- Omzet t.o.v. target tot op heden (incl. lopende maand) -------- */
   const monthsElapsed =
     year < currentYear ? 12 : year > currentYear ? 0 : now.getMonth() + 1;
-  const ytdBuckets = monthlyBuckets(thisYearInvoices);
+  const ytdBuckets = monthlyBuckets(thisYearInvoices, true);
   const ytdRevenue = ytdBuckets
     .slice(1, monthsElapsed + 1)
     .reduce((a, b) => a + b, 0);
@@ -155,12 +173,25 @@ export default async function DashboardPage({
       Number(v.expected_fee ?? 0) * (Number(v.success_probability ?? 0) / 100),
   }));
 
-  const forecastThis = contributions
+  const weightedThis = contributions
     .filter((c) => c.month === thisMonth)
     .reduce((s, c) => s + c.value, 0);
   const forecastNext = contributions
     .filter((c) => c.month === nextMonth)
     .reduce((s, c) => s + c.value, 0);
+
+  // Prognose lopende maand telt óók de al gerealiseerde facturen van
+  // deze maand mee — die omzet staat 100% vast.
+  const monthEnd = lastDay(now.getFullYear(), now.getMonth() + 1);
+  const thisMonthInvoices = await realisedInvoices(
+    `${thisMonth}-01`,
+    `${thisMonth}-${String(monthEnd).padStart(2, "0")}`,
+  );
+  const realisedThisMonth = thisMonthInvoices.reduce(
+    (s, inv) => s + nettoAmount(inv),
+    0,
+  );
+  const forecastThis = weightedThis + realisedThisMonth;
 
   /* -------- Targets voor de prognosemaanden -------- */
   const forecastTargets = new Map<string, number>();
@@ -286,10 +317,17 @@ export default async function DashboardPage({
             {eur(omzet.netto)}
           </p>
           <p className="mt-1 text-xs text-zinc-400">
-            {MONTH_NAMES[fromMonth]}
-            {fromMonth !== toMonth ? `–${MONTH_NAMES[toMonth]}` : ""} {year} ·{" "}
-            {omzet.count} facturen · bruto {eur(omzet.bruto)}
+            {periodLabel} · {omzet.count} facturen · bruto {eur(omzet.bruto)}
           </p>
+          {omzetBreakdown.length > 1 && (
+            <p className="mt-1 text-xs text-zinc-400">
+              {omzetBreakdown
+                .map(
+                  ([k, v]) => `${INVOICE_KIND_LABELS[k]} ${eur(v)}`,
+                )
+                .join(" · ")}
+            </p>
+          )}
           {omzet.partners.length > 0 && (
             <p className="mt-1 text-xs text-zinc-400">
               waarvan naar partners:{" "}
@@ -301,7 +339,7 @@ export default async function DashboardPage({
           {ytdLabel && (
             <div className="mt-3 border-t border-zinc-100 pt-2 dark:border-zinc-800">
               <p className="text-xs uppercase tracking-wider text-zinc-500">
-                T.o.v. target ({ytdLabel})
+                W&amp;S t.o.v. target ({ytdLabel})
               </p>
               <p className="mt-0.5 text-sm text-zinc-700 dark:text-zinc-300">
                 Behaald{" "}
@@ -337,9 +375,9 @@ export default async function DashboardPage({
           )}
         </div>
         {[
-          { month: thisMonth, value: forecastThis },
-          { month: nextMonth, value: forecastNext },
-        ].map(({ month, value }) => {
+          { month: thisMonth, value: forecastThis, realised: realisedThisMonth },
+          { month: nextMonth, value: forecastNext, realised: 0 },
+        ].map(({ month, value, realised }) => {
           const target = forecastTargets.get(month) ?? null;
           const delta = target != null ? value - target : null;
           return (
@@ -356,7 +394,9 @@ export default async function DashboardPage({
                 {eur(value)}
               </p>
               <p className="mt-1 text-xs text-zinc-400">
-                fee × slagingskans
+                {realised > 0.5
+                  ? `${eur(realised)} gefactureerd + fee × slagingskans`
+                  : "fee × slagingskans"}
                 {target != null && delta != null && (
                   <>
                     {" · target "}
@@ -370,13 +410,38 @@ export default async function DashboardPage({
             </div>
           );
         })}
+
+        <div className="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
+          <p className="text-xs uppercase tracking-wider text-zinc-500">
+            Plaatsingen ({periodLabel})
+          </p>
+          <p className="mt-1 text-2xl font-semibold text-zinc-900 dark:text-zinc-50">
+            {omzet.placements}
+          </p>
+          <p className="mt-1 text-xs text-zinc-400">
+            = wervingsfee-facturen in de periode
+          </p>
+        </div>
+
+        <div className="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
+          <p className="text-xs uppercase tracking-wider text-zinc-500">
+            Gem. W&amp;S-fee per plaatsing
+          </p>
+          <p className="mt-1 text-2xl font-semibold text-zinc-900 dark:text-zinc-50">
+            {avgWsFee == null ? "—" : eur(avgWsFee)}
+          </p>
+          <p className="mt-1 text-xs text-zinc-400">
+            W&amp;S-omzet {eur(omzet.wsNetto)} ÷ {omzet.placements}
+          </p>
+        </div>
       </div>
 
       <RevenueChart
         year={year}
-        thisYear={monthlyBuckets(thisYearInvoices)}
-        lastYear={monthlyBuckets(lastYearInvoices)}
+        thisYear={monthlyBuckets(thisYearInvoices, true)}
+        lastYear={monthlyBuckets(lastYearInvoices, true)}
         target={targetMonthly}
+        label="W&S-omzet"
       />
 
       {topClients.length > 0 && (
