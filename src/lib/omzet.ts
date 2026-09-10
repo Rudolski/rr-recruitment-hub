@@ -109,3 +109,66 @@ export function splitOmzet(invoices: Invoice[]): OmzetSplit {
     count,
   };
 }
+
+const norm = (s: string | null | undefined) =>
+  (s ?? "").toLowerCase().replace(/\s+/g, " ").trim();
+
+/**
+ * Gemiddelde W&S-fee per plaatsing over een periode.
+ *
+ * Een plaatsing = één gerealiseerde 'wervingsfee'-factuur met
+ * factuurdatum in de periode. De fee van die plaatsing is het bedrag
+ * van die factuur plus een eventuele bijbehorende commitment-fee —
+ * ook als die eerder (buiten de periode) is gefactureerd. Koppeling
+ * gebeurt op `placement_id` of anders op klant + vacature-label.
+ *
+ * Commitment-facturen zonder bijbehorende plaatsing (vacature niet
+ * ingevuld) tellen NIET mee — niet in het totaal en niet in het aantal.
+ *
+ * @param periodInvoices  gerealiseerde facturen met factuurdatum in de periode
+ * @param commitmentPool  álle gerealiseerde commitment-facturen (elke datum)
+ */
+export function averageWsFee(
+  periodInvoices: Invoice[],
+  commitmentPool: Invoice[],
+): { placements: number; total: number; avg: number | null } {
+  const placementInvoices = periodInvoices.filter(
+    (i) =>
+      realisedSet.has(i.status) &&
+      (i.kind ?? "wervingsfee") === "wervingsfee",
+  );
+
+  const commitments = commitmentPool
+    .filter((i) => realisedSet.has(i.status) && i.kind === "commitment")
+    .map((inv) => ({ inv, used: false }));
+
+  let total = 0;
+  for (const pi of placementInvoices) {
+    let fee = nettoAmount(pi);
+    const piLabel = norm(pi.vacancy_label);
+    for (const c of commitments) {
+      if (c.used) continue;
+      const byPlacement =
+        !!pi.placement_id && c.inv.placement_id === pi.placement_id;
+      const byLabel =
+        piLabel !== "" &&
+        c.inv.client_id === pi.client_id &&
+        norm(c.inv.vacancy_label) === piLabel;
+      if (byPlacement || byLabel) {
+        fee += nettoAmount(c.inv);
+        c.used = true;
+        break;
+      }
+    }
+    total += fee;
+  }
+
+  return {
+    placements: placementInvoices.length,
+    total,
+    avg:
+      placementInvoices.length > 0
+        ? total / placementInvoices.length
+        : null,
+  };
+}

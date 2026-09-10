@@ -12,7 +12,7 @@ import {
   type MonthlyTarget,
   type Vacancy,
 } from "@/lib/types";
-import { nettoAmount, splitOmzet } from "@/lib/omzet";
+import { averageWsFee, nettoAmount, splitOmzet } from "@/lib/omzet";
 import { RevenueChart } from "./revenue-chart";
 
 export const metadata = { title: "Dashboard · RR Recruitment Hub" };
@@ -96,15 +96,27 @@ export default async function DashboardPage({
     lastDay(year, toMonth),
   ).padStart(2, "0")}`;
 
-  const [periodInvoices, thisYearInvoices, lastYearInvoices] = await Promise.all([
-    realisedInvoices(periodStart, periodEnd),
-    realisedInvoices(`${year}-01-01`, `${year}-12-31`),
-    realisedInvoices(`${year - 1}-01-01`, `${year - 1}-12-31`),
-  ]);
+  async function commitmentInvoices() {
+    let q = supabase
+      .from("invoices")
+      .select("*")
+      .in("status", REALISED_INVOICE_STATUSES)
+      .eq("kind", "commitment");
+    if (clientFilter) q = q.eq("client_id", clientFilter);
+    const { data } = await q.returns<Invoice[]>();
+    return data ?? [];
+  }
+
+  const [periodInvoices, thisYearInvoices, lastYearInvoices, commitmentPool] =
+    await Promise.all([
+      realisedInvoices(periodStart, periodEnd),
+      realisedInvoices(`${year}-01-01`, `${year}-12-31`),
+      realisedInvoices(`${year - 1}-01-01`, `${year - 1}-12-31`),
+      commitmentInvoices(),
+    ]);
 
   const omzet = splitOmzet(periodInvoices);
-  const avgWsFee =
-    omzet.placements > 0 ? omzet.wsNetto / omzet.placements : null;
+  const wsFee = averageWsFee(periodInvoices, commitmentPool);
   const omzetBreakdown = (
     [
       ["wervingsfee", omzet.byKind.wervingsfee],
@@ -416,7 +428,7 @@ export default async function DashboardPage({
             Plaatsingen ({periodLabel})
           </p>
           <p className="mt-1 text-2xl font-semibold text-zinc-900 dark:text-zinc-50">
-            {omzet.placements}
+            {wsFee.placements}
           </p>
           <p className="mt-1 text-xs text-zinc-400">
             = wervingsfee-facturen in de periode
@@ -428,10 +440,11 @@ export default async function DashboardPage({
             Gem. W&amp;S-fee per plaatsing
           </p>
           <p className="mt-1 text-2xl font-semibold text-zinc-900 dark:text-zinc-50">
-            {avgWsFee == null ? "—" : eur(avgWsFee)}
+            {wsFee.avg == null ? "—" : eur(wsFee.avg)}
           </p>
           <p className="mt-1 text-xs text-zinc-400">
-            W&amp;S-omzet {eur(omzet.wsNetto)} ÷ {omzet.placements}
+            {eur(wsFee.total)} ÷ {wsFee.placements} · incl. bijbehorende
+            commitment fee
           </p>
         </div>
       </div>
