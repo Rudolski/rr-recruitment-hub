@@ -84,6 +84,8 @@ export function InvoiceStatusBadge({ status }: { status: string }) {
           ? "red"
           : status === "gecrediteerd"
             ? "zinc"
-            : "amber";
+            : status === "concept"
+              ? "zinc"
+              : "amber"; // nog_verzenden
   return <Badge label={pick(INVOICE_STATUS_LABELS, status)} tone={tone} />;
 }
