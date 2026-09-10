@@ -153,6 +153,7 @@ export const PLACEMENT_STATUS_LABELS: Record<PlacementStatus, string> = {
 
 export const INVOICE_STATUSES = [
   "concept",
+  "nog_verzenden",
   "verzonden",
   "betaald",
   "te_laat",
@@ -161,6 +162,7 @@ export const INVOICE_STATUSES = [
 export type InvoiceStatus = (typeof INVOICE_STATUSES)[number];
 export const INVOICE_STATUS_LABELS: Record<InvoiceStatus, string> = {
   concept: "Concept",
+  nog_verzenden: "Nog verzenden",
   verzonden: "Verzonden",
   betaald: "Betaald",
   te_laat: "Te laat",
@@ -169,6 +171,7 @@ export const INVOICE_STATUS_LABELS: Record<InvoiceStatus, string> = {
 
 /** Facturen vanaf deze statussen tellen mee als behaalde omzet. */
 export const REALISED_INVOICE_STATUSES: InvoiceStatus[] = [
+  "nog_verzenden",
   "verzonden",
   "betaald",
   "te_laat",

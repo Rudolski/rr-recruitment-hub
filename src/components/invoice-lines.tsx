@@ -78,6 +78,16 @@ export function InvoiceLines({ invoices }: { invoices: Invoice[] }) {
 
           <span className="flex items-center gap-2">
             {inv.status === "concept" && (
+              <>
+                <NextButton
+                  id={inv.id}
+                  to="nog_verzenden"
+                  label="→ Nog verzenden"
+                />
+                <NextButton id={inv.id} to="verzonden" label="→ Verstuurd" />
+              </>
+            )}
+            {inv.status === "nog_verzenden" && (
               <NextButton id={inv.id} to="verzonden" label="→ Verstuurd" />
             )}
             {inv.status === "verzonden" && (
