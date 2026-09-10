@@ -1,7 +1,11 @@
 import Link from "next/link";
 import { InvoiceStatusBadge } from "@/components/status-badge";
 import { eur2, formatDate } from "@/lib/format";
-import type { Invoice } from "@/lib/types";
+import {
+  INVOICE_KIND_LABELS,
+  type Invoice,
+  type InvoiceKind,
+} from "@/lib/types";
 import { advanceInvoiceStatus } from "@/app/(app)/facturen/actions";
 
 function NextButton({
@@ -48,6 +52,11 @@ export function InvoiceLines({ invoices }: { invoices: Invoice[] }) {
             <span className="font-medium text-navy dark:text-cream">
               {inv.invoice_number || inv.vacancy_label || inv.notes || "(zonder nummer)"}
             </span>
+            {inv.kind && inv.kind !== "wervingsfee" && (
+              <span className="ml-2 rounded bg-zinc-100 px-1.5 py-0.5 text-[11px] text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
+                {INVOICE_KIND_LABELS[inv.kind as InvoiceKind] ?? inv.kind}
+              </span>
+            )}
             <span className="ml-2 tabular-nums text-zinc-500">
               {eur2(inv.amount_excl_btw)} excl. btw
             </span>

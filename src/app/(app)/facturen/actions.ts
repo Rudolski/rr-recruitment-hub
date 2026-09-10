@@ -11,7 +11,7 @@ import {
   str,
   type FormState,
 } from "@/lib/form";
-import { INVOICE_STATUSES, isOneOf } from "@/lib/types";
+import { INVOICE_KINDS, INVOICE_STATUSES, isOneOf } from "@/lib/types";
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -19,6 +19,7 @@ function parse(fd: FormData) {
   const clientId = str(fd, "client_id");
   const amountExcl = numOrNull(fd, "amount_excl_btw");
   const statusRaw = str(fd, "status");
+  const kindRaw = str(fd, "kind");
   const partnerName = nullableStr(fd, "partner_name");
 
   const fieldErrors: Record<string, string> = {};
@@ -34,6 +35,7 @@ function parse(fd: FormData) {
     status: isOneOf(INVOICE_STATUSES, statusRaw) ? statusRaw : "concept",
     values: {
       client_id: clientId,
+      kind: isOneOf(INVOICE_KINDS, kindRaw) ? kindRaw : "wervingsfee",
       placement_id: nullableStr(fd, "placement_id"),
       vacancy_label: nullableStr(fd, "vacancy_label"),
       invoice_number: nullableStr(fd, "invoice_number"),

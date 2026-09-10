@@ -174,6 +174,22 @@ export const REALISED_INVOICE_STATUSES: InvoiceStatus[] = [
   "te_laat",
 ];
 
+export const INVOICE_KINDS = [
+  "wervingsfee",
+  "commitment",
+  "interim",
+  "zzp_marge",
+] as const;
+export type InvoiceKind = (typeof INVOICE_KINDS)[number];
+export const INVOICE_KIND_LABELS: Record<InvoiceKind, string> = {
+  wervingsfee: "Wervingsfee",
+  commitment: "Commitment fee",
+  interim: "Interim (eigen uren)",
+  zzp_marge: "ZZP Marge",
+};
+/** Soorten die meetellen als W&S-omzet (target, prognose, fee/plaatsing). */
+export const WS_INVOICE_KINDS: InvoiceKind[] = ["wervingsfee", "commitment"];
+
 /* -------------------------------------------------------------- */
 /* Fee-afspraken                                                  */
 /* -------------------------------------------------------------- */

@@ -6,6 +6,8 @@ import { emptyFormState, type FormState } from "@/lib/form";
 import { btnGhost, btnPrimary, inputClass, labelClass } from "@/components/ui";
 import { eur2 } from "@/lib/format";
 import {
+  INVOICE_KINDS,
+  INVOICE_KIND_LABELS,
   INVOICE_STATUSES,
   INVOICE_STATUS_LABELS,
   type Invoice,
@@ -139,6 +141,28 @@ export function InvoiceForm({
             defaultValue={initial?.entity_name ?? ""}
             className={inputClass}
           />
+        </div>
+
+        <div className="space-y-1.5">
+          <label htmlFor="kind" className={labelClass}>
+            Soort factuur
+          </label>
+          <select
+            id="kind"
+            name="kind"
+            defaultValue={initial?.kind ?? "wervingsfee"}
+            className={inputClass}
+          >
+            {INVOICE_KINDS.map((k) => (
+              <option key={k} value={k}>
+                {INVOICE_KIND_LABELS[k]}
+              </option>
+            ))}
+          </select>
+          <p className="text-xs text-zinc-400">
+            Wervingsfee en commitment fee tellen als W&amp;S-omzet; interim
+            en ZZP-marge niet.
+          </p>
         </div>
 
         <div className="space-y-1.5">
