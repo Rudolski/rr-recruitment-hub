@@ -71,6 +71,7 @@ export default async function DashboardPage({
   if (fromMonth > toMonth) [fromMonth, toMonth] = [toMonth, fromMonth];
   const clientFilter =
     typeof params.klant === "string" && params.klant ? params.klant : null;
+  const inclPartner = params.partner === "1";
 
   const { data: clients } = await supabase
     .from("clients")
@@ -116,7 +117,7 @@ export default async function DashboardPage({
     ]);
 
   const omzet = splitOmzet(periodInvoices);
-  const wsFee = averageWsFee(periodInvoices, commitmentPool);
+  const wsFee = averageWsFee(periodInvoices, commitmentPool, { inclPartner });
   const omzetBreakdown = (
     [
       ["wervingsfee", omzet.byKind.wervingsfee],
@@ -312,6 +313,15 @@ export default async function DashboardPage({
             ))}
           </select>
         </label>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            name="partner"
+            value="1"
+            defaultChecked={inclPartner}
+          />
+          <span>Fee/plaatsing incl. partnerdeel</span>
+        </label>
         <button
           type="submit"
           className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-900"
@@ -426,7 +436,7 @@ export default async function DashboardPage({
         <Link
           href={`/rapportages/plaatsingen?jaar=${year}&van=${fromMonth}&tm=${toMonth}${
             clientFilter ? `&klant=${clientFilter}` : ""
-          }`}
+          }${inclPartner ? "&partner=1" : ""}`}
           className="rounded-lg border border-zinc-200 bg-white p-5 transition-colors hover:border-terra/50 dark:border-zinc-800 dark:bg-zinc-950"
         >
           <p className="text-xs uppercase tracking-wider text-zinc-500">
@@ -448,8 +458,8 @@ export default async function DashboardPage({
             {wsFee.avg == null ? "—" : eur(wsFee.avg)}
           </p>
           <p className="mt-1 text-xs text-zinc-400">
-            {eur(wsFee.total)} ÷ {wsFee.placements} · incl. bijbehorende
-            commitment fee
+            {eur(wsFee.total)} ÷ {wsFee.placements} · incl. commitment fee ·{" "}
+            {inclPartner ? "incl. partnerdeel" : "RR-deel (excl. partner)"}
           </p>
         </div>
       </div>
