@@ -423,7 +423,12 @@ export default async function DashboardPage({
           );
         })}
 
-        <div className="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
+        <Link
+          href={`/rapportages/plaatsingen?jaar=${year}&van=${fromMonth}&tm=${toMonth}${
+            clientFilter ? `&klant=${clientFilter}` : ""
+          }`}
+          className="rounded-lg border border-zinc-200 bg-white p-5 transition-colors hover:border-terra/50 dark:border-zinc-800 dark:bg-zinc-950"
+        >
           <p className="text-xs uppercase tracking-wider text-zinc-500">
             Plaatsingen ({periodLabel})
           </p>
@@ -431,9 +436,9 @@ export default async function DashboardPage({
             {wsFee.placements}
           </p>
           <p className="mt-1 text-xs text-zinc-400">
-            = wervingsfee-facturen in de periode
+            = wervingsfee-facturen · bekijk de lijst →
           </p>
-        </div>
+        </Link>
 
         <div className="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
           <p className="text-xs uppercase tracking-wider text-zinc-500">
