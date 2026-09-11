@@ -394,6 +394,61 @@ export default async function DashboardPage({
 
       <section className="mt-6">
         <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+          Prognose (lopende + volgende maand)
+        </h2>
+        <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {[
+            { month: thisMonth, value: forecastThis, realised: realisedThisMonth },
+            { month: nextMonth, value: forecastNext, realised: 0 },
+          ].map(({ month, value, realised }) => {
+            const target = forecastTargets.get(month) ?? null;
+            const delta = target != null ? value - target : null;
+            const kindBreakdown = forecastByKind[month] ?? [];
+            return (
+              <div
+                key={month}
+                className="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950"
+              >
+                <p className="text-xs uppercase tracking-wider text-zinc-500">
+                  Prognose {formatMonth(`${month}-01`)} (totaal)
+                </p>
+                <p
+                  className={`mt-1 text-2xl font-semibold ${toneVsTarget(value, target)}`}
+                >
+                  {eur(value)}
+                </p>
+                <p className="mt-1 text-xs text-zinc-400">
+                  {realised > 0.5
+                    ? `${eur(realised)} gefactureerd + bedrag × slagingskans`
+                    : "bedrag × slagingskans"}
+                  {target != null && delta != null && (
+                    <>
+                      {" · target "}
+                      {eur(target)}
+                      {" · "}
+                      {delta >= 0 ? "+" : "−"}
+                      {eur(Math.abs(delta))}
+                    </>
+                  )}
+                </p>
+                {kindBreakdown.length > 1 && (
+                  <p className="mt-1 text-xs text-zinc-400">
+                    {kindBreakdown
+                      .map(
+                        ([k, v]) =>
+                          `${VACANCY_KIND_LABELS[k as VacancyKind] ?? k} ${eur(v)}`,
+                      )
+                      .join(" · ")}
+                  </p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="mt-10">
+        <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
           Omzet t.o.v. target
           {clientFilter && (
             <span className="ml-2 text-xs font-normal text-zinc-400">
@@ -495,53 +550,6 @@ export default async function DashboardPage({
             </p>
           )}
         </div>
-        {[
-          { month: thisMonth, value: forecastThis, realised: realisedThisMonth },
-          { month: nextMonth, value: forecastNext, realised: 0 },
-        ].map(({ month, value, realised }) => {
-          const target = forecastTargets.get(month) ?? null;
-          const delta = target != null ? value - target : null;
-          const kindBreakdown = forecastByKind[month] ?? [];
-          return (
-            <div
-              key={month}
-              className="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950"
-            >
-              <p className="text-xs uppercase tracking-wider text-zinc-500">
-                Prognose {formatMonth(`${month}-01`)} (totaal)
-              </p>
-              <p
-                className={`mt-1 text-2xl font-semibold ${toneVsTarget(value, target)}`}
-              >
-                {eur(value)}
-              </p>
-              <p className="mt-1 text-xs text-zinc-400">
-                {realised > 0.5
-                  ? `${eur(realised)} gefactureerd + bedrag × slagingskans`
-                  : "bedrag × slagingskans"}
-                {target != null && delta != null && (
-                  <>
-                    {" · target "}
-                    {eur(target)}
-                    {" · "}
-                    {delta >= 0 ? "+" : "−"}
-                    {eur(Math.abs(delta))}
-                  </>
-                )}
-              </p>
-              {kindBreakdown.length > 1 && (
-                <p className="mt-1 text-xs text-zinc-400">
-                  {kindBreakdown
-                    .map(
-                      ([k, v]) =>
-                        `${VACANCY_KIND_LABELS[k as VacancyKind] ?? k} ${eur(v)}`,
-                    )
-                    .join(" · ")}
-                </p>
-              )}
-            </div>
-          );
-        })}
 
         <Link
           href={`/rapportages/plaatsingen?jaar=${year}&van=${fromMonth}&tm=${toMonth}${
