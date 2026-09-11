@@ -82,10 +82,6 @@ export function InvoiceStatusBadge({ status }: { status: string }) {
         ? "blue"
         : status === "te_laat"
           ? "red"
-          : status === "gecrediteerd"
-            ? "zinc"
-            : status === "concept"
-              ? "zinc"
-              : "amber"; // nog_verzenden
+          : "amber"; // concept — telt al mee als omzet, nog niet verstuurd
   return <Badge label={pick(INVOICE_STATUS_LABELS, status)} tone={tone} />;
 }
