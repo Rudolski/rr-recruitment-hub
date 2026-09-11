@@ -4,7 +4,14 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 import { td, tr } from "@/components/ui";
 import { monthOptions } from "@/lib/format";
-import { CONSULTANTS, CONSULTANT_LABELS, type Vacancy } from "@/lib/types";
+import {
+  CONSULTANTS,
+  CONSULTANT_LABELS,
+  VACANCY_KINDS,
+  VACANCY_KIND_LABELS,
+  type VacancyKind,
+  type Vacancy,
+} from "@/lib/types";
 import { updateVacatureForecast } from "./actions";
 import { VacancyStatusSelect } from "./vacancy-status-select";
 
@@ -20,6 +27,9 @@ export function ForecastRow({
   vacancy: Vacancy;
   clientName: string;
 }) {
+  const [kind, setKind] = useState<VacancyKind>(
+    (vacancy.kind as VacancyKind) ?? "wervingsfee",
+  );
   const [consultant, setConsultant] = useState(vacancy.consultant ?? "");
   const [partnerPct, setPartnerPct] = useState(numStr(vacancy.partner_pct));
   const [fee, setFee] = useState(numStr(vacancy.expected_fee));
@@ -34,6 +44,7 @@ export function ForecastRow({
   function save() {
     const fd = new FormData();
     fd.set("id", vacancy.id);
+    fd.set("kind", kind);
     fd.set("consultant", consultant);
     fd.set("partner_pct", partnerPct);
     fd.set("expected_fee", fee);
@@ -73,6 +84,24 @@ export function ForecastRow({
       </td>
       <td className={td}>
         <select
+          aria-label="Soort"
+          value={kind}
+          onChange={(e) => {
+            setKind(e.target.value as VacancyKind);
+            setDirty(true);
+            setSaved(false);
+          }}
+          className={`${cell} w-36`}
+        >
+          {VACANCY_KINDS.map((k) => (
+            <option key={k} value={k}>
+              {VACANCY_KIND_LABELS[k]}
+            </option>
+          ))}
+        </select>
+      </td>
+      <td className={td}>
+        <select
           aria-label="Consultant"
           value={consultant}
           onChange={(e) => onChange(setConsultant)(e.target.value)}
@@ -98,7 +127,7 @@ export function ForecastRow({
       <td className={td}>
         <input
           inputMode="numeric"
-          aria-label="Verwachte fee"
+          aria-label="Verwacht bedrag"
           value={fee}
           onChange={(e) => onChange(setFee)(e.target.value)}
           className={`${cell} text-right tabular-nums`}

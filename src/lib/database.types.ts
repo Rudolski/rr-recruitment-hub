@@ -173,6 +173,7 @@ export type Database = {
           salary_max: number | null;
           employment_type: string | null;
           status: string;
+          kind: string;
           fee_agreement_id: string | null;
           expected_fee: number | null;
           expected_close_month: string | null;
@@ -199,6 +200,7 @@ export type Database = {
           salary_max?: number | null;
           employment_type?: string | null;
           status?: string;
+          kind?: string;
           fee_agreement_id?: string | null;
           expected_fee?: number | null;
           expected_close_month?: string | null;
@@ -223,6 +225,7 @@ export type Database = {
           salary_max?: number | null;
           employment_type?: string | null;
           status?: string;
+          kind?: string;
           fee_agreement_id?: string | null;
           expected_fee?: number | null;
           expected_close_month?: string | null;

@@ -14,12 +14,14 @@ import { SortHeader, cmpText, readSort } from "@/components/sort-header";
 import { eur, formatMonth, monthKey } from "@/lib/format";
 import { getSessionContext } from "@/utils/supabase/auth";
 import {
+  VACANCY_KIND_LABELS,
   VACANCY_STATUSES,
   VACANCY_STATUS_LABELS,
   isOneOf,
   type Client,
   type MonthlyTarget,
   type Vacancy,
+  type VacancyKind,
 } from "@/lib/types";
 import { ForecastRow } from "./forecast-row";
 import { VacancyStatusSelect } from "./vacancy-status-select";
@@ -28,6 +30,7 @@ const VAC_SORT_KEYS = [
   "title",
   "client",
   "status",
+  "kind",
   "consultant",
   "partner_pct",
   "expected_fee",
@@ -115,6 +118,9 @@ export default async function VacaturesPage({
       case "status":
         cmp = statusRank(a.status) - statusRank(b.status);
         break;
+      case "kind":
+        cmp = cmpText(a.kind, b.kind);
+        break;
       case "consultant":
         cmp = cmpText(a.consultant, b.consultant);
         break;
@@ -149,13 +155,20 @@ export default async function VacaturesPage({
     ]),
   );
   const forecast = { [thisMonth]: 0, [nextMonth]: 0 } as Record<string, number>;
+  const forecastByKind: Record<string, Record<string, number>> = {
+    [thisMonth]: {},
+    [nextMonth]: {},
+  };
   for (const v of vacancies ?? []) {
     if (v.status !== "open") continue;
     const month = (v.expected_close_month ?? "").slice(0, 7);
     if (month !== thisMonth && month !== nextMonth) continue;
     if (v.expected_fee == null || v.success_probability == null) continue;
-    forecast[month] +=
+    const value =
       Number(v.expected_fee) * (Number(v.success_probability) / 100);
+    forecast[month] += value;
+    const kind = v.kind ?? "wervingsfee";
+    forecastByKind[month][kind] = (forecastByKind[month][kind] ?? 0) + value;
   }
 
   return (
@@ -182,6 +195,9 @@ export default async function VacaturesPage({
               : belowTarget
                 ? "text-red-600 dark:text-red-500"
                 : "text-zinc-900 dark:text-zinc-50";
+            const byKind = Object.entries(forecastByKind[label] ?? {}).filter(
+              ([, v]) => Math.abs(v) > 0.5,
+            );
             return (
               <div
                 key={label}
@@ -196,7 +212,7 @@ export default async function VacaturesPage({
                   {eur(value)}
                 </p>
                 <p className="mt-1 text-xs text-zinc-400">
-                  fee × slagingskans
+                  bedrag × slagingskans
                   {target != null && (
                     <>
                       {" · target "}
@@ -207,6 +223,16 @@ export default async function VacaturesPage({
                     </>
                   )}
                 </p>
+                {byKind.length > 1 && (
+                  <p className="mt-1 text-xs text-zinc-400">
+                    {byKind
+                      .map(
+                        ([k, v]) =>
+                          `${VACANCY_KIND_LABELS[k as VacancyKind] ?? k} ${eur(v)}`,
+                      )
+                      .join(" · ")}
+                  </p>
+                )}
               </div>
             );
           })}
@@ -280,6 +306,11 @@ export default async function VacaturesPage({
               </div>
               <p className="mt-0.5 text-xs text-zinc-500">
                 {clientName.get(v.client_id) ?? "—"}
+                {v.kind && v.kind !== "wervingsfee" && (
+                  <span className="ml-2 rounded bg-zinc-100 px-1.5 py-0.5 text-[11px] text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
+                    {VACANCY_KIND_LABELS[v.kind as VacancyKind] ?? v.kind}
+                  </span>
+                )}
               </p>
               <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-0.5 text-zinc-500">
                 {v.expected_fee != null && (
@@ -312,6 +343,7 @@ export default async function VacaturesPage({
                   columnKey="status"
                   {...headerProps}
                 />
+                <SortHeader label="Soort" columnKey="kind" {...headerProps} />
                 <SortHeader
                   label="Consultant"
                   columnKey="consultant"

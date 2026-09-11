@@ -95,6 +95,18 @@ export const CONSULTANT_LABELS: Record<Consultant, string> = {
   juul: "Juul Grubben",
 };
 
+/**
+ * Soort vacature: net als bij facturen, maar zonder 'commitment' (dat
+ * ontstaat pas ná een geslaagde W&S-plaatsing).
+ */
+export const VACANCY_KINDS = ["wervingsfee", "interim", "zzp_marge"] as const;
+export type VacancyKind = (typeof VACANCY_KINDS)[number];
+export const VACANCY_KIND_LABELS: Record<VacancyKind, string> = {
+  wervingsfee: "W&S",
+  interim: "Interim (eigen uren)",
+  zzp_marge: "ZZP Marge",
+};
+
 export const VACANCY_STATUSES = [
   "concept",
   "open",
