@@ -244,9 +244,10 @@ export default async function DashboardPage({
   const clientName = new Map((clients ?? []).map((c) => [c.id, c.name]));
   const revenueByClient = new Map<string, number>();
   for (const inv of periodInvoices) {
+    const amount = inclPartner ? Number(inv.amount_excl_btw) : nettoAmount(inv);
     revenueByClient.set(
       inv.client_id,
-      (revenueByClient.get(inv.client_id) ?? 0) + nettoAmount(inv),
+      (revenueByClient.get(inv.client_id) ?? 0) + amount,
     );
   }
   const topClients = [...revenueByClient.entries()]
@@ -320,7 +321,7 @@ export default async function DashboardPage({
             value="1"
             defaultChecked={inclPartner}
           />
-          <span>Fee/plaatsing incl. partnerdeel</span>
+          <span>Incl. partnerdeel (fee/plaatsing en top klanten)</span>
         </label>
         <button
           type="submit"
@@ -477,6 +478,9 @@ export default async function DashboardPage({
           <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
             Top klanten ({MONTH_NAMES[fromMonth]}
             {fromMonth !== toMonth ? `–${MONTH_NAMES[toMonth]}` : ""} {year})
+            <span className="ml-2 text-xs font-normal text-zinc-400">
+              {inclPartner ? "incl. partnerdeel" : "RR-deel (excl. partner)"}
+            </span>
           </h2>
           <ul className="mt-3 space-y-1.5">
             {topClients.map((c) => (
