@@ -3,7 +3,7 @@
 import { useOptimistic, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { eur, formatDate } from "@/lib/format";
+import { eur, formatDate, monthOptions } from "@/lib/format";
 import {
   CANDIDATE_STAGES,
   CANDIDATE_STAGE_LABELS,
@@ -16,6 +16,7 @@ import {
   renameVacancyCandidate,
   setCandidateStageDate,
 } from "@/app/(app)/vacatures/board-actions";
+import { updateVacancyForecastFields } from "@/app/(app)/vacatures/actions";
 
 type Cand = {
   id: string;
@@ -30,6 +31,7 @@ export type ProcedureRow = {
   consultant: string | null;
   exclusivityUntil: string | null;
   expectedFee: number | null;
+  expectedCloseMonth: string | null;
   successProbability: number | null;
   cands: Cand[];
 };
@@ -39,7 +41,14 @@ type OptAction =
   | { type: "rename"; vacancyId: string; candId: string; name: string }
   | { type: "date"; vacancyId: string; candId: string; date: string | null }
   | { type: "delete"; vacancyId: string; candId: string }
-  | { type: "add"; vacancyId: string; cand: Cand };
+  | { type: "add"; vacancyId: string; cand: Cand }
+  | {
+      type: "forecast";
+      vacancyId: string;
+      expectedFee: number | null;
+      expectedCloseMonth: string | null;
+      successProbability: number | null;
+    };
 
 function reducer(state: ProcedureRow[], a: OptAction): ProcedureRow[] {
   return state.map((r) => {
@@ -70,6 +79,13 @@ function reducer(state: ProcedureRow[], a: OptAction): ProcedureRow[] {
         return { ...r, cands: r.cands.filter((c) => c.id !== a.candId) };
       case "add":
         return { ...r, cands: [...r.cands, a.cand] };
+      case "forecast":
+        return {
+          ...r,
+          expectedFee: a.expectedFee,
+          expectedCloseMonth: a.expectedCloseMonth,
+          successProbability: a.successProbability,
+        };
     }
   });
 }
@@ -87,6 +103,9 @@ export function ProceduresGrid({ rows: initial }: { rows: ProcedureRow[] }) {
   const [, start] = useTransition();
   const [dragOver, setDragOver] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingForecastId, setEditingForecastId] = useState<string | null>(
+    null,
+  );
   const tmpSeq = useRef(0);
 
   function run(opt: OptAction, action: (fd: FormData) => Promise<void>, fd: FormData) {
@@ -128,6 +147,30 @@ export function ProceduresGrid({ rows: initial }: { rows: ProcedureRow[] }) {
     fd.set("vacancy_id", vacancyId);
     run({ type: "delete", vacancyId, candId }, deleteVacancyCandidate, fd);
   }
+  function setForecast(
+    vacancyId: string,
+    fee: number | null,
+    month: string | null,
+    probability: number | null,
+  ) {
+    const fd = new FormData();
+    fd.set("id", vacancyId);
+    fd.set("expected_fee", fee == null ? "" : String(fee));
+    fd.set("expected_close_month", month ?? "");
+    fd.set("success_probability", probability == null ? "" : String(probability));
+    run(
+      {
+        type: "forecast",
+        vacancyId,
+        expectedFee: fee,
+        expectedCloseMonth: month ? `${month}-01` : null,
+        successProbability: probability,
+      },
+      updateVacancyForecastFields,
+      fd,
+    );
+  }
+
   function add(vacancyId: string, stage: string, name: string) {
     const n = name.trim();
     if (!n) return;
@@ -178,32 +221,35 @@ export function ProceduresGrid({ rows: initial }: { rows: ProcedureRow[] }) {
     </div>
   );
 
-  const labels = (r: ProcedureRow) =>
-    (r.consultant ||
-      r.exclusivityUntil ||
-      r.expectedFee != null ||
-      r.successProbability != null) && (
-      <div className="mt-0.5 flex flex-wrap gap-1">
-        {r.consultant && (
-          <span className="rounded bg-zinc-100 px-1 text-[10px] text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
-            {CONSULTANT_LABELS[
-              r.consultant as keyof typeof CONSULTANT_LABELS
-            ] ?? r.consultant}
-          </span>
-        )}
-        {(r.expectedFee != null || r.successProbability != null) && (
-          <span className="rounded bg-green-50 px-1 text-[10px] text-green-700 dark:bg-green-950 dark:text-green-300">
-            {r.expectedFee != null ? eur(r.expectedFee) : "—"}
-            {r.successProbability != null && ` · ${r.successProbability}%`}
-          </span>
-        )}
-        {r.exclusivityUntil && (
-          <span className="rounded bg-amber-50 px-1 text-[10px] text-amber-700 dark:bg-amber-950 dark:text-amber-300">
-            excl. t/m {formatDate(r.exclusivityUntil)}
-          </span>
-        )}
-      </div>
-    );
+  const labels = (r: ProcedureRow) => (
+    <div className="mt-0.5 flex flex-wrap items-center gap-1">
+      {r.consultant && (
+        <span className="rounded bg-zinc-100 px-1 text-[10px] text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
+          {CONSULTANT_LABELS[
+            r.consultant as keyof typeof CONSULTANT_LABELS
+          ] ?? r.consultant}
+        </span>
+      )}
+      <ForecastChip
+        expectedFee={r.expectedFee}
+        expectedCloseMonth={r.expectedCloseMonth}
+        successProbability={r.successProbability}
+        editing={editingForecastId === r.vacancyId}
+        onToggle={() =>
+          setEditingForecastId((id) => (id === r.vacancyId ? null : r.vacancyId))
+        }
+        onSave={(fee, month, probability) => {
+          setEditingForecastId(null);
+          setForecast(r.vacancyId, fee, month, probability);
+        }}
+      />
+      {r.exclusivityUntil && (
+        <span className="rounded bg-amber-50 px-1 text-[10px] text-amber-700 dark:bg-amber-950 dark:text-amber-300">
+          excl. t/m {formatDate(r.exclusivityUntil)}
+        </span>
+      )}
+    </div>
+  );
 
   return (
     <>
@@ -432,6 +478,113 @@ function CandChip({
       >
         verwijderen
       </button>
+    </div>
+  );
+}
+
+function ForecastChip({
+  expectedFee,
+  expectedCloseMonth,
+  successProbability,
+  editing,
+  onToggle,
+  onSave,
+}: {
+  expectedFee: number | null;
+  expectedCloseMonth: string | null;
+  successProbability: number | null;
+  editing: boolean;
+  onToggle: () => void;
+  onSave: (
+    fee: number | null,
+    month: string | null,
+    probability: number | null,
+  ) => void;
+}) {
+  const [fee, setFee] = useState(
+    expectedFee == null ? "" : String(expectedFee),
+  );
+  const [month, setMonth] = useState(expectedCloseMonth?.slice(0, 7) ?? "");
+  const [prob, setProb] = useState(
+    successProbability == null ? "" : String(successProbability),
+  );
+
+  const hasValue = expectedFee != null || successProbability != null;
+
+  if (!editing) {
+    return (
+      <button
+        type="button"
+        onClick={onToggle}
+        className={
+          hasValue
+            ? "rounded bg-green-50 px-1 text-[10px] text-green-700 hover:bg-green-100 dark:bg-green-950 dark:text-green-300 dark:hover:bg-green-900"
+            : "rounded bg-zinc-50 px-1 text-[10px] text-zinc-400 hover:bg-zinc-100 dark:bg-zinc-900 dark:hover:bg-zinc-800"
+        }
+      >
+        {hasValue
+          ? `${expectedFee != null ? eur(expectedFee) : "—"}${
+              successProbability != null ? ` · ${successProbability}%` : ""
+            }`
+          : "+ fee"}
+      </button>
+    );
+  }
+
+  function save() {
+    const feeNum = fee.trim() === "" ? null : Number(fee.replace(",", "."));
+    const probNum = prob.trim() === "" ? null : Number(prob.replace(",", "."));
+    onSave(
+      feeNum != null && Number.isFinite(feeNum) ? feeNum : null,
+      month || null,
+      probNum != null && Number.isFinite(probNum) ? probNum : null,
+    );
+  }
+
+  return (
+    <div className="rounded border border-terra/50 bg-terra/5 p-1.5">
+      <div className="mb-1 flex items-center justify-between">
+        <span className="text-[10px] uppercase tracking-wide text-zinc-400">
+          Forecast
+        </span>
+        <button
+          type="button"
+          onClick={save}
+          className="text-[11px] text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200"
+        >
+          klaar
+        </button>
+      </div>
+      <input
+        inputMode="decimal"
+        value={fee}
+        onChange={(e) => setFee(e.target.value)}
+        aria-label="Verwacht bedrag (€)"
+        placeholder="bedrag €"
+        autoFocus
+        className={smallInput}
+      />
+      <select
+        value={month}
+        onChange={(e) => setMonth(e.target.value)}
+        aria-label="Verwachte maand"
+        className={`${smallInput} mt-1`}
+      >
+        <option value="">— maand —</option>
+        {monthOptions(month).map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+      <input
+        inputMode="decimal"
+        value={prob}
+        onChange={(e) => setProb(e.target.value)}
+        aria-label="Slagingskans (%)"
+        placeholder="kans %"
+        className={`${smallInput} mt-1`}
+      />
     </div>
   );
 }

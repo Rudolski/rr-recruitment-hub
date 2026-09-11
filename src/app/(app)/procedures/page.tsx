@@ -137,6 +137,7 @@ export default async function ProceduresPage() {
       consultant: v.consultant,
       exclusivityUntil: v.exclusivity_until,
       expectedFee: v.expected_fee,
+      expectedCloseMonth: v.expected_close_month,
       successProbability: v.success_probability,
       cands: byVacancy.get(v.id) ?? [],
     }))
