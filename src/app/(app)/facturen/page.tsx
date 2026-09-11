@@ -68,13 +68,17 @@ export default async function FacturenPage({
 
   const sp = await searchParams;
   const klantFilter = (typeof sp.klant === "string" ? sp.klant : "").trim();
+  const currentYear = new Date().getFullYear();
+  // Geen ?jaar in de url (eerste bezoek) -> standaard het huidige jaar.
+  // ?jaar= (leeg, expliciet "Alle jaren" gekozen) -> geen filter.
   const jaarFilter =
-    typeof sp.jaar === "string" && /^\d{4}$/.test(sp.jaar)
-      ? Number(sp.jaar)
-      : null;
+    typeof sp.jaar === "string"
+      ? /^\d{4}$/.test(sp.jaar)
+        ? Number(sp.jaar)
+        : null
+      : currentYear;
   const allInvoices = invoices ?? [];
 
-  const currentYear = new Date().getFullYear();
   const years = [
     ...new Set([
       currentYear,
