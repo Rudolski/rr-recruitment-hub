@@ -133,13 +133,14 @@ export default async function VacaturesPage({
   return (
     <div className="mx-auto max-w-6xl">
       <PageHeader
-        title={status === "open" ? "Vacatures openstaand" : "Vacatures"}
+        title="Vacatures"
         description={
           <>
-            Vacatures aanmaken en beheren. Voor de prognose en de
-            dagelijkse voortgang per vacature, zie{" "}
+            Volledig overzicht incl. geschiedenis — sorteerbaar en te
+            filteren op status. Voor de dagelijkse procedure en prognose,
+            zie{" "}
             <Link href="/procedures" className="underline">
-              Procedures
+              Procedures / Vacatures
             </Link>
             .
           </>
