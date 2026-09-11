@@ -8,6 +8,8 @@ import {
   CANDIDATE_STAGES,
   CANDIDATE_STAGE_LABELS,
   CONSULTANT_LABELS,
+  VACANCY_KIND_LABELS,
+  type VacancyKind,
 } from "@/lib/types";
 import {
   addVacancyCandidate,
@@ -29,6 +31,7 @@ export type ProcedureRow = {
   client: string;
   consultant: string | null;
   exclusivityUntil: string | null;
+  kind: string | null;
   cands: Cand[];
 };
 
@@ -177,13 +180,18 @@ export function ProceduresGrid({ rows: initial }: { rows: ProcedureRow[] }) {
   );
 
   const labels = (r: ProcedureRow) =>
-    (r.consultant || r.exclusivityUntil) && (
+    (r.consultant || r.exclusivityUntil || (r.kind && r.kind !== "wervingsfee")) && (
       <div className="mt-0.5 flex flex-wrap gap-1">
         {r.consultant && (
           <span className="rounded bg-zinc-100 px-1 text-[10px] text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
             {CONSULTANT_LABELS[
               r.consultant as keyof typeof CONSULTANT_LABELS
             ] ?? r.consultant}
+          </span>
+        )}
+        {r.kind && r.kind !== "wervingsfee" && (
+          <span className="rounded bg-blue-50 px-1 text-[10px] text-blue-700 dark:bg-blue-950 dark:text-blue-300">
+            {VACANCY_KIND_LABELS[r.kind as VacancyKind] ?? r.kind}
           </span>
         )}
         {r.exclusivityUntil && (

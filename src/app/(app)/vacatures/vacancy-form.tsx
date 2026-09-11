@@ -1,15 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { emptyFormState, type FormState } from "@/lib/form";
 import { monthOptions } from "@/lib/format";
 import { btnGhost, btnPrimary, inputClass, labelClass } from "@/components/ui";
 import {
   CONSULTANTS,
   CONSULTANT_LABELS,
+  VACANCY_KINDS,
+  VACANCY_KIND_LABELS,
   VACANCY_STATUSES,
   VACANCY_STATUS_LABELS,
+  type VacancyKind,
   type Vacancy,
 } from "@/lib/types";
 
@@ -32,6 +35,9 @@ export function VacancyForm({
 }) {
   const [state, formAction, pending] = useActionState(action, emptyFormState);
   const clientId = initial?.client_id ?? lockedClientId ?? "";
+  const [kind, setKind] = useState<VacancyKind>(
+    (initial?.kind as VacancyKind) ?? "wervingsfee",
+  );
 
   return (
     <form action={formAction} className="max-w-2xl space-y-5">
@@ -46,7 +52,7 @@ export function VacancyForm({
         </p>
       )}
 
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
         <div className="space-y-1.5">
           <label htmlFor="client_id" className={labelClass}>
             Klant <span className="text-red-500">*</span>
@@ -101,6 +107,25 @@ export function VacancyForm({
             ))}
           </select>
         </div>
+
+        <div className="space-y-1.5">
+          <label htmlFor="kind" className={labelClass}>
+            Soort
+          </label>
+          <select
+            id="kind"
+            name="kind"
+            value={kind}
+            onChange={(e) => setKind(e.target.value as VacancyKind)}
+            className={inputClass}
+          >
+            {VACANCY_KINDS.map((k) => (
+              <option key={k} value={k}>
+                {VACANCY_KIND_LABELS[k]}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       <div className="space-y-1.5">
@@ -119,7 +144,11 @@ export function VacancyForm({
         )}
       </div>
 
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+      <div
+        className={`grid grid-cols-1 gap-5 ${
+          kind === "wervingsfee" ? "sm:grid-cols-3" : "sm:grid-cols-2"
+        }`}
+      >
         <div className="space-y-1.5">
           <label htmlFor="consultant" className={labelClass}>
             Consultant
@@ -138,18 +167,20 @@ export function VacancyForm({
             ))}
           </select>
         </div>
-        <div className="space-y-1.5">
-          <label htmlFor="fee_pct" className={labelClass}>
-            Fee-percentage (%)
-          </label>
-          <input
-            id="fee_pct"
-            name="fee_pct"
-            inputMode="decimal"
-            defaultValue={num(initial?.fee_pct)}
-            className={inputClass}
-          />
-        </div>
+        {kind === "wervingsfee" && (
+          <div className="space-y-1.5">
+            <label htmlFor="fee_pct" className={labelClass}>
+              Fee-percentage (%)
+            </label>
+            <input
+              id="fee_pct"
+              name="fee_pct"
+              inputMode="decimal"
+              defaultValue={num(initial?.fee_pct)}
+              className={inputClass}
+            />
+          </div>
+        )}
         <div className="space-y-1.5">
           <label htmlFor="partner_pct" className={labelClass}>
             Aandeel partner (%)
@@ -175,7 +206,7 @@ export function VacancyForm({
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
           <div className="space-y-1.5">
             <label htmlFor="expected_fee" className={labelClass}>
-              Verwachte fee (€)
+              Verwacht bedrag (€)
             </label>
             <input
               id="expected_fee"
@@ -219,8 +250,8 @@ export function VacancyForm({
           </div>
         </div>
         <p className="mt-3 text-xs text-zinc-400">
-          Prognosebijdrage = verwachte fee × slagingskans, opgeteld per maand
-          op het dashboard.
+          Prognosebijdrage = verwacht bedrag × slagingskans, opgeteld per
+          maand op het dashboard (per soort uitgesplitst).
         </p>
       </fieldset>
 

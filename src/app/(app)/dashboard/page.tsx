@@ -6,11 +6,13 @@ import { getSessionContext } from "@/utils/supabase/auth";
 import {
   INVOICE_KIND_LABELS,
   REALISED_INVOICE_STATUSES,
+  VACANCY_KIND_LABELS,
   WS_INVOICE_KINDS,
   type Client,
   type Invoice,
   type MonthlyTarget,
   type Vacancy,
+  type VacancyKind,
 } from "@/lib/types";
 import { averageWsFee, nettoAmount, splitOmzet } from "@/lib/omzet";
 import { RevenueChart } from "./revenue-chart";
@@ -192,6 +194,21 @@ export default async function DashboardPage({
   const forecastNext = contributions
     .filter((c) => c.month === nextMonth)
     .reduce((s, c) => s + c.value, 0);
+
+  // Uitsplitsing per vacaturesoort, voor onder de prognosecijfers.
+  function byKind(month: string) {
+    const out: Record<string, number> = {};
+    for (const c of contributions) {
+      if (c.month !== month) continue;
+      const kind = c.vacancy.kind ?? "wervingsfee";
+      out[kind] = (out[kind] ?? 0) + c.value;
+    }
+    return Object.entries(out).filter(([, v]) => Math.abs(v) > 0.5);
+  }
+  const forecastByKind = {
+    [thisMonth]: byKind(thisMonth),
+    [nextMonth]: byKind(nextMonth),
+  } as Record<string, [string, number][]>;
 
   // Prognose lopende maand telt óók de al gerealiseerde facturen van
   // deze maand mee — die omzet staat 100% vast.
@@ -403,13 +420,14 @@ export default async function DashboardPage({
         ].map(({ month, value, realised }) => {
           const target = forecastTargets.get(month) ?? null;
           const delta = target != null ? value - target : null;
+          const kindBreakdown = forecastByKind[month] ?? [];
           return (
             <div
               key={month}
               className="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950"
             >
               <p className="text-xs uppercase tracking-wider text-zinc-500">
-                Prognose {formatMonth(`${month}-01`)}
+                Prognose {formatMonth(`${month}-01`)} (totaal)
               </p>
               <p
                 className={`mt-1 text-2xl font-semibold ${toneVsTarget(value, target)}`}
@@ -418,8 +436,8 @@ export default async function DashboardPage({
               </p>
               <p className="mt-1 text-xs text-zinc-400">
                 {realised > 0.5
-                  ? `${eur(realised)} gefactureerd + fee × slagingskans`
-                  : "fee × slagingskans"}
+                  ? `${eur(realised)} gefactureerd + bedrag × slagingskans`
+                  : "bedrag × slagingskans"}
                 {target != null && delta != null && (
                   <>
                     {" · target "}
@@ -430,6 +448,16 @@ export default async function DashboardPage({
                   </>
                 )}
               </p>
+              {kindBreakdown.length > 1 && (
+                <p className="mt-1 text-xs text-zinc-400">
+                  {kindBreakdown
+                    .map(
+                      ([k, v]) =>
+                        `${VACANCY_KIND_LABELS[k as VacancyKind] ?? k} ${eur(v)}`,
+                    )
+                    .join(" · ")}
+                </p>
+              )}
             </div>
           );
         })}
@@ -540,12 +568,20 @@ export default async function DashboardPage({
                 key={vacancy.id}
                 className="flex items-center justify-between px-4 py-2.5 text-sm"
               >
-                <Link
-                  href={`/vacatures/${vacancy.id}`}
-                  className="font-medium text-zinc-900 hover:underline dark:text-zinc-100"
-                >
-                  {vacancy.title}
-                </Link>
+                <span className="min-w-0">
+                  <Link
+                    href={`/vacatures/${vacancy.id}`}
+                    className="font-medium text-zinc-900 hover:underline dark:text-zinc-100"
+                  >
+                    {vacancy.title}
+                  </Link>
+                  {vacancy.kind && vacancy.kind !== "wervingsfee" && (
+                    <span className="ml-2 rounded bg-zinc-100 px-1.5 py-0.5 text-[11px] text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
+                      {VACANCY_KIND_LABELS[vacancy.kind as VacancyKind] ??
+                        vacancy.kind}
+                    </span>
+                  )}
+                </span>
                 <span className="flex items-center gap-4 text-zinc-500">
                   <span>{formatMonth(`${month}-01`)}</span>
                   <span>
