@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ForecastCards } from "@/components/forecast-cards";
 import { PageHeader } from "@/components/page-header";
 import { VacancyStatusBadge } from "@/components/status-badge";
-import { emptyState, errorBox } from "@/components/ui";
+import { btnPrimary, emptyState, errorBox } from "@/components/ui";
 import { eur, formatMonth, monthKey } from "@/lib/format";
 import { getSessionContext } from "@/utils/supabase/auth";
 import {
@@ -20,7 +20,7 @@ import {
 } from "@/lib/vacancy-forecast";
 import { ProceduresGrid, type ProcedureRow } from "./procedures-grid";
 
-export const metadata = { title: "Procedures · RR Recruitment Hub" };
+export const metadata = { title: "Procedures / Vacatures · RR Recruitment Hub" };
 
 const ACTIVE = new Set(["open", "concept", "on_hold"]);
 
@@ -162,8 +162,13 @@ export default async function ProceduresPage() {
   return (
     <div className="mx-auto max-w-full">
       <PageHeader
-        title="Procedures"
+        title="Procedures / Vacatures"
         description="Alle kandidaten per vacature, uitgezet over de stappen. Typ een voornaam om toe te voegen, pas naam of datum aan, of sleep een kaartje naar een andere stap."
+        action={
+          <Link href="/vacatures/nieuw" className={btnPrimary}>
+            Nieuwe vacature
+          </Link>
+        }
       />
 
       <div className="mt-6">
@@ -245,6 +250,12 @@ export default async function ProceduresPage() {
           </ul>
         </section>
       )}
+
+      <p className="mt-10 text-xs text-zinc-400">
+        <Link href="/vacatures" className="underline hover:text-zinc-600 dark:hover:text-zinc-300">
+          Alle vacatures (incl. geschiedenis, sorteren en filteren op status) →
+        </Link>
+      </p>
     </div>
   );
 }
