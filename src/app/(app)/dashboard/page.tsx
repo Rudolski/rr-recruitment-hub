@@ -1,9 +1,16 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
-import { errorBox } from "@/components/ui";
-import { eur, formatMonth, MONTH_NAMES, pctLabel } from "@/lib/format";
+import { btnGhost, errorBox } from "@/components/ui";
+import {
+  eur,
+  formatMonth,
+  MONTH_NAMES,
+  pctLabel,
+  QUARTER_OF_MONTH,
+} from "@/lib/format";
 import { getSessionContext } from "@/utils/supabase/auth";
 import {
+  INVOICE_KINDS,
   INVOICE_KIND_LABELS,
   REALISED_INVOICE_STATUSES,
   VACANCY_KIND_LABELS,
@@ -148,24 +155,56 @@ export default async function DashboardPage({
     }
   }
 
-  /* -------- Omzet t.o.v. target tot op heden (incl. lopende maand) -------- */
-  const monthsElapsed =
-    year < currentYear ? 12 : year > currentYear ? 0 : now.getMonth() + 1;
-  const ytdBuckets = monthlyBuckets(thisYearInvoices, true);
-  const ytdRevenue = ytdBuckets
-    .slice(1, monthsElapsed + 1)
+  /* -------- Omzet t.o.v. target: maand/kwartaal/jaar (nu, alle soorten,
+     bedrijfsbreed — los van de klant/periode-filters hierboven) -------- */
+  const currentMonth = now.getMonth() + 1;
+  const currentQuarter = QUARTER_OF_MONTH[currentMonth];
+  const quarterMonths = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].filter(
+    (m) => QUARTER_OF_MONTH[m] === currentQuarter,
+  );
+
+  const [{ data: currentYearInvoicesAll }, { data: currentYearTargetRows }] =
+    await Promise.all([
+      supabase
+        .from("invoices")
+        .select("*")
+        .in("status", REALISED_INVOICE_STATUSES)
+        .gte("issue_date", `${currentYear}-01-01`)
+        .lte("issue_date", `${currentYear}-12-31`)
+        .returns<Invoice[]>(),
+      supabase
+        .from("monthly_targets")
+        .select("month, target_revenue")
+        .eq("year", currentYear)
+        .returns<Pick<MonthlyTarget, "month" | "target_revenue">[]>(),
+    ]);
+
+  // Alle soorten tellen mee (geen wsOnly) — dit is totale omzet t.o.v. target.
+  const currentYearBuckets = monthlyBuckets(currentYearInvoicesAll ?? []);
+  const targetByMonthNow = new Map<number, number>(
+    (currentYearTargetRows ?? []).map((t) => [
+      t.month,
+      Number(t.target_revenue ?? 0),
+    ]),
+  );
+
+  const maandBehaald = currentYearBuckets[currentMonth];
+  const maandTarget = targetByMonthNow.get(currentMonth) ?? 0;
+  const kwartaalBehaald = quarterMonths.reduce(
+    (s, m) => s + currentYearBuckets[m],
+    0,
+  );
+  const kwartaalTarget = quarterMonths.reduce(
+    (s, m) => s + (targetByMonthNow.get(m) ?? 0),
+    0,
+  );
+  const jaarBehaaldNu = currentYearBuckets
+    .slice(1, 13)
     .reduce((a, b) => a + b, 0);
-  const ytdTarget = targetMonthly
-    ? targetMonthly.slice(1, monthsElapsed + 1).reduce((a, b) => a + b, 0)
-    : null;
-  const ytdPct = ytdTarget != null ? pctLabel(ytdRevenue, ytdTarget) : null;
-  const ytdDelta = ytdTarget != null ? ytdRevenue - ytdTarget : null;
-  const ytdLabel =
-    monthsElapsed === 0
-      ? null
-      : monthsElapsed >= 12
-        ? `heel ${year}`
-        : `t/m ${MONTH_NAMES[monthsElapsed]} ${year}`;
+  const jaarTargetNu = [...targetByMonthNow.values()].reduce(
+    (a, b) => a + b,
+    0,
+  );
 
   /* -------- Prognose lopende + volgende maand -------- */
   const thisMonth = monthKey(now);
@@ -283,6 +322,11 @@ export default async function DashboardPage({
       <PageHeader
         title="Dashboard"
         description="Behaalde omzet (facturen vanaf verzonden, excl. btw) en de prognose voor de lopende en volgende maand."
+        action={
+          <Link href="/targets" className={btnGhost}>
+            Targets aanpassen
+          </Link>
+        }
       />
 
       <form className="mt-6 flex flex-wrap items-end gap-3" method="get">
@@ -348,7 +392,83 @@ export default async function DashboardPage({
         </button>
       </form>
 
-      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <section className="mt-6">
+        <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+          Omzet t.o.v. target
+          {clientFilter && (
+            <span className="ml-2 text-xs font-normal text-zinc-400">
+              (bedrijfsbreed, los van de klantfilter)
+            </span>
+          )}
+        </h2>
+        <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          {[
+            {
+              label: "Deze maand",
+              sub: MONTH_NAMES[currentMonth],
+              behaald: maandBehaald,
+              target: maandTarget,
+            },
+            {
+              label: "Dit kwartaal",
+              sub: `Q${currentQuarter}`,
+              behaald: kwartaalBehaald,
+              target: kwartaalTarget,
+            },
+            {
+              label: "Dit jaar",
+              sub: String(currentYear),
+              behaald: jaarBehaaldNu,
+              target: jaarTargetNu,
+            },
+          ].map(({ label, sub, behaald, target }) => {
+            const pct = pctLabel(behaald, target);
+            const barPct =
+              target > 0 ? Math.min(100, Math.round((behaald / target) * 100)) : 0;
+            const barColor = !target
+              ? "bg-zinc-300 dark:bg-zinc-700"
+              : behaald >= target
+                ? "bg-green-500"
+                : behaald / target >= 0.75
+                  ? "bg-amber-500"
+                  : "bg-zinc-400";
+            return (
+              <div
+                key={label}
+                className="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950"
+              >
+                <p className="text-xs uppercase tracking-wider text-zinc-500">
+                  {label} · {sub}
+                </p>
+                <p className="mt-1 text-2xl font-semibold text-zinc-900 dark:text-zinc-50">
+                  {eur(behaald)}
+                </p>
+                <p className="mt-1 text-xs text-zinc-400">
+                  target {eur(target)} ·{" "}
+                  <span className={`font-medium ${pct.tone}`}>{pct.text}</span>
+                </p>
+                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
+                  <div
+                    className={`h-full rounded-full ${barColor}`}
+                    style={{ width: `${barPct}%` }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        {jaarTargetNu === 0 && (
+          <p className="mt-2 text-xs text-zinc-400">
+            Nog geen targets ingevuld voor {currentYear}.{" "}
+            <Link href="/targets" className="underline">
+              Targets invullen
+            </Link>
+            .
+          </p>
+        )}
+      </section>
+
+      <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
           <p className="text-xs uppercase tracking-wider text-zinc-500">
             Behaalde omzet (netto)
@@ -359,15 +479,6 @@ export default async function DashboardPage({
           <p className="mt-1 text-xs text-zinc-400">
             {periodLabel} · {omzet.count} facturen · bruto {eur(omzet.bruto)}
           </p>
-          {omzetBreakdown.length > 1 && (
-            <p className="mt-1 text-xs text-zinc-400">
-              {omzetBreakdown
-                .map(
-                  ([k, v]) => `${INVOICE_KIND_LABELS[k]} ${eur(v)}`,
-                )
-                .join(" · ")}
-            </p>
-          )}
           {omzet.partners.length > 0 && (
             <p className="mt-1 text-xs text-zinc-400">
               waarvan naar partners:{" "}
@@ -376,42 +487,12 @@ export default async function DashboardPage({
                 .join(" · ")}
             </p>
           )}
-          {ytdLabel && (
-            <div className="mt-3 border-t border-zinc-100 pt-2 dark:border-zinc-800">
-              <p className="text-xs uppercase tracking-wider text-zinc-500">
-                W&amp;S t.o.v. target ({ytdLabel})
-              </p>
-              <p className="mt-0.5 text-sm text-zinc-700 dark:text-zinc-300">
-                Behaald{" "}
-                <span className="font-medium text-zinc-900 dark:text-zinc-50">
-                  {eur(ytdRevenue)}
-                </span>
-                {ytdTarget != null && ytdPct && ytdDelta != null && (
-                  <>
-                    {" "}
-                    · target {eur(ytdTarget)} ·{" "}
-                    <span
-                      className={
-                        ytdDelta >= 0
-                          ? "font-medium text-green-600 dark:text-green-500"
-                          : "font-medium text-red-600 dark:text-red-500"
-                      }
-                    >
-                      {ytdDelta >= 0 ? "+" : "−"}
-                      {eur(Math.abs(ytdDelta))} ({ytdPct.text})
-                    </span>
-                  </>
-                )}
-              </p>
-              {ytdTarget == null && !clientFilter && (
-                <p className="mt-0.5 text-xs text-zinc-400">
-                  Geen maandtargets voor {year}.{" "}
-                  <Link href="/targets" className="underline">
-                    Targets invullen
-                  </Link>
-                </p>
-              )}
-            </div>
+          {omzetBreakdown.length > 1 && (
+            <p className="mt-1 text-xs text-zinc-400">
+              <a href="#omzetverdeling" className="underline">
+                Verdeling per soort ↓
+              </a>
+            </p>
           )}
         </div>
         {[
@@ -500,6 +581,57 @@ export default async function DashboardPage({
         target={targetMonthly}
         label="W&S-omzet"
       />
+
+      <section id="omzetverdeling" className="mt-10">
+        <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+          Omzetverdeling ({periodLabel})
+        </h2>
+        <p className="mt-1 text-xs text-zinc-500">
+          W&amp;S tegenover Interim (eigen uren) en ZZP Marge.
+        </p>
+        <div className="mt-3 overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-800">
+          <table className="w-full text-sm">
+            <thead className="border-b border-zinc-200 bg-zinc-50 text-xs uppercase tracking-wider text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900">
+              <tr>
+                <th className="px-4 py-2.5 text-left font-medium">Soort</th>
+                <th className="px-4 py-2.5 text-right font-medium">
+                  Bedrag (netto)
+                </th>
+                <th className="px-4 py-2.5 text-right font-medium">
+                  % van omzet
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+              {INVOICE_KINDS.map((k) => {
+                const v = omzet.byKind[k];
+                const pct =
+                  omzet.netto > 0 ? Math.round((v / omzet.netto) * 100) : null;
+                return (
+                  <tr key={k}>
+                    <td className="px-4 py-2">{INVOICE_KIND_LABELS[k]}</td>
+                    <td className="px-4 py-2 text-right tabular-nums">
+                      {eur(v)}
+                    </td>
+                    <td className="px-4 py-2 text-right tabular-nums text-zinc-500">
+                      {pct == null ? "—" : `${pct}%`}
+                    </td>
+                  </tr>
+                );
+              })}
+              <tr className="border-t border-zinc-200 font-medium dark:border-zinc-800">
+                <td className="px-4 py-2">Totaal</td>
+                <td className="px-4 py-2 text-right tabular-nums">
+                  {eur(omzet.netto)}
+                </td>
+                <td className="px-4 py-2 text-right tabular-nums">
+                  {omzet.netto > 0 ? "100%" : "—"}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
 
       {topClients.length > 0 && (
         <section className="mt-10">
