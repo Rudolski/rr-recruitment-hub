@@ -255,6 +255,10 @@ export default async function ProceduresPage() {
         <Link href="/vacatures" className="underline hover:text-zinc-600 dark:hover:text-zinc-300">
           Alle vacatures (incl. geschiedenis, sorteren en filteren op status) →
         </Link>
+        {" · "}
+        <Link href="/placements" className="underline hover:text-zinc-600 dark:hover:text-zinc-300">
+          Placements (losse tabel met fee/garantie per plaatsing) →
+        </Link>
       </p>
     </div>
   );
