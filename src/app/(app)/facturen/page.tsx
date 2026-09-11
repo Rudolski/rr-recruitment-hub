@@ -68,14 +68,36 @@ export default async function FacturenPage({
 
   const sp = await searchParams;
   const klantFilter = (typeof sp.klant === "string" ? sp.klant : "").trim();
+  const jaarFilter =
+    typeof sp.jaar === "string" && /^\d{4}$/.test(sp.jaar)
+      ? Number(sp.jaar)
+      : null;
   const allInvoices = invoices ?? [];
-  const filtered = klantFilter
-    ? allInvoices.filter((inv) =>
-        (clientName.get(inv.client_id) ?? "")
-          .toLowerCase()
-          .includes(klantFilter.toLowerCase()),
-      )
-    : allInvoices;
+
+  const currentYear = new Date().getFullYear();
+  const years = [
+    ...new Set([
+      currentYear,
+      ...allInvoices
+        .map((inv) => (inv.issue_date ? Number(inv.issue_date.slice(0, 4)) : null))
+        .filter((y): y is number => y != null),
+    ]),
+  ].sort((a, b) => b - a);
+
+  const filtered = allInvoices.filter((inv) => {
+    if (jaarFilter && inv.issue_date?.slice(0, 4) !== String(jaarFilter)) {
+      return false;
+    }
+    if (
+      klantFilter &&
+      !(clientName.get(inv.client_id) ?? "")
+        .toLowerCase()
+        .includes(klantFilter.toLowerCase())
+    ) {
+      return false;
+    }
+    return true;
+  });
   const omzet = splitOmzet(filtered);
 
   return (
@@ -90,7 +112,22 @@ export default async function FacturenPage({
         }
       />
 
-      <form className="mt-6 flex items-end gap-3" method="get">
+      <form className="mt-6 flex flex-wrap items-end gap-3" method="get">
+        <label className="text-sm">
+          <span className="block text-xs text-zinc-500">Jaar</span>
+          <select
+            name="jaar"
+            defaultValue={jaarFilter ? String(jaarFilter) : ""}
+            className="mt-1 rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+          >
+            <option value="">Alle jaren</option>
+            {years.map((y) => (
+              <option key={y} value={y}>
+                {y}
+              </option>
+            ))}
+          </select>
+        </label>
         <label className="text-sm">
           <span className="block text-xs text-zinc-500">Klant</span>
           <input
@@ -107,7 +144,7 @@ export default async function FacturenPage({
         >
           Toepassen
         </button>
-        {klantFilter && (
+        {(klantFilter || jaarFilter) && (
           <Link
             href="/facturen"
             className="px-3 py-1.5 text-sm text-zinc-500 hover:underline"
@@ -121,7 +158,8 @@ export default async function FacturenPage({
 
       {!error && filtered.length > 0 && (
         <p className="mt-4 text-sm text-zinc-500">
-          {klantFilter && `${filtered.length} factu${filtered.length === 1 ? "ur" : "ren"} · `}
+          {(klantFilter || jaarFilter) &&
+            `${filtered.length} factu${filtered.length === 1 ? "ur" : "ren"} · `}
           Behaalde omzet (verzonden en verder, excl. btw): netto{" "}
           <span className="font-medium text-zinc-900 dark:text-zinc-100">
             {eur2(omzet.netto)}
@@ -134,13 +172,15 @@ export default async function FacturenPage({
         </p>
       )}
 
-      {!error && filtered.length === 0 && klantFilter && (
+      {!error && filtered.length === 0 && (klantFilter || jaarFilter) && (
         <div className={emptyState}>
-          Geen facturen voor een klant met &ldquo;{klantFilter}&rdquo; in de naam.
+          Geen facturen
+          {jaarFilter && ` in ${jaarFilter}`}
+          {klantFilter && ` voor een klant met “${klantFilter}” in de naam`}.
         </div>
       )}
 
-      {!error && filtered.length === 0 && !klantFilter && (
+      {!error && filtered.length === 0 && !klantFilter && !jaarFilter && (
         <div className={emptyState}>
           Nog geen facturen.{" "}
           <Link
