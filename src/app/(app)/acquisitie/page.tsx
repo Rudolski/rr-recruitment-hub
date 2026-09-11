@@ -15,6 +15,7 @@ import { AcquisitieBoard, type FunnelClient } from "./acquisitie-board";
 import {
   addLead,
   convertLeadToClient,
+  deleteLead,
   dismissLead,
   updateLead,
 } from "./leads-actions";
@@ -249,6 +250,16 @@ export default async function AcquisitiePage() {
                         title="Niet (meer) interessant, verdwijnt uit de lijst"
                       >
                         Niet interessant
+                      </button>
+                    </form>
+                    <form action={deleteLead}>
+                      <input type="hidden" name="id" value={l.id} />
+                      <button
+                        type="submit"
+                        className="rounded-md border border-red-200 px-2 py-1 text-xs text-red-700 hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950"
+                        title="Permanent verwijderen, bijv. bij een dubbele"
+                      >
+                        Verwijderen
                       </button>
                     </form>
                     <details>

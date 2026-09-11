@@ -67,6 +67,22 @@ export async function dismissLead(fd: FormData) {
   revalidatePath("/acquisitie");
 }
 
+/** Permanent verwijderen, bijv. bij een dubbel toegevoegde post. */
+export async function deleteLead(fd: FormData) {
+  const { supabase, organizationId } = await getSessionContext();
+  if (!organizationId) return;
+  const id = str(fd, "id");
+  if (!id) return;
+
+  await supabase
+    .from("acquisitie_leads")
+    .delete()
+    .eq("id", id)
+    .eq("organization_id", organizationId);
+
+  revalidatePath("/acquisitie");
+}
+
 /** Zet de lead om in een klant onderaan de acquisitie-funnel (status 'nieuw'). */
 export async function convertLeadToClient(fd: FormData) {
   const { supabase, user, organizationId } = await getSessionContext();
