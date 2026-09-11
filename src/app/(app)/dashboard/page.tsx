@@ -525,19 +525,19 @@ export default async function DashboardPage({
           <p className="mt-1 text-xs text-zinc-400">
             {periodLabel} · {omzet.count} facturen · bruto {eur(omzet.bruto)}
           </p>
-          {omzet.partners.length > 0 && (
+          {(omzetBreakdown.length > 1 || omzet.partners.length > 0) && (
             <p className="mt-1 text-xs text-zinc-400">
-              waarvan naar partners:{" "}
-              {omzet.partners
-                .map((p) => `${p.name} ${eur(p.amount)}`)
-                .join(" · ")}
-            </p>
-          )}
-          {omzetBreakdown.length > 1 && (
-            <p className="mt-1 text-xs text-zinc-400">
-              <a href="#omzetverdeling" className="underline">
-                Verdeling per soort ↓
-              </a>
+              {omzetBreakdown.length > 1 && (
+                <a href="#omzetverdeling" className="underline">
+                  Verdeling per soort ↓
+                </a>
+              )}
+              {omzetBreakdown.length > 1 && omzet.partners.length > 0 && " · "}
+              {omzet.partners.length > 0 && (
+                <a href="#omzet-per-partner" className="underline">
+                  Verdeling per partner ↓
+                </a>
+              )}
             </p>
           )}
         </div>
@@ -726,6 +726,69 @@ export default async function DashboardPage({
           </ul>
         )}
       </section>
+
+      {omzet.partners.length > 0 && (
+        <section id="omzet-per-partner" className="mt-10">
+          <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+            Omzet per partner ({periodLabel})
+          </h2>
+          <p className="mt-1 text-xs text-zinc-500">
+            Het deel van de omzet dat naar externe partners gaat, per partner.
+          </p>
+          <div className="mt-3 overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-800">
+            <table className="w-full text-sm">
+              <thead className="border-b border-zinc-200 bg-zinc-50 text-xs uppercase tracking-wider text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900">
+                <tr>
+                  <th className="px-4 py-2.5 text-left font-medium">Partner</th>
+                  <th className="px-4 py-2.5 text-right font-medium">Bedrag</th>
+                  <th className="px-4 py-2.5 text-right font-medium">
+                    % van bruto omzet
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+                {omzet.partners.map((p) => {
+                  const pct =
+                    omzet.bruto > 0
+                      ? Math.round((p.amount / omzet.bruto) * 100)
+                      : null;
+                  return (
+                    <tr key={p.name}>
+                      <td className="px-4 py-2">{p.name}</td>
+                      <td className="px-4 py-2 text-right tabular-nums">
+                        {eur(p.amount)}
+                      </td>
+                      <td className="px-4 py-2 text-right tabular-nums text-zinc-500">
+                        {pct == null ? "—" : `${pct}%`}
+                      </td>
+                    </tr>
+                  );
+                })}
+                <tr className="border-t border-zinc-200 dark:border-zinc-800">
+                  <td className="px-4 py-2 text-zinc-500">RR (eigen deel)</td>
+                  <td className="px-4 py-2 text-right tabular-nums text-zinc-500">
+                    {eur(omzet.netto)}
+                  </td>
+                  <td className="px-4 py-2 text-right tabular-nums text-zinc-500">
+                    {omzet.bruto > 0
+                      ? `${Math.round((omzet.netto / omzet.bruto) * 100)}%`
+                      : "—"}
+                  </td>
+                </tr>
+                <tr className="border-t border-zinc-200 font-medium dark:border-zinc-800">
+                  <td className="px-4 py-2">Totaal (bruto)</td>
+                  <td className="px-4 py-2 text-right tabular-nums">
+                    {eur(omzet.bruto)}
+                  </td>
+                  <td className="px-4 py-2 text-right tabular-nums">
+                    {omzet.bruto > 0 ? "100%" : "—"}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
     </div>
   );
 }
