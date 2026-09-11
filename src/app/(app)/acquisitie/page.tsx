@@ -109,10 +109,124 @@ export default async function AcquisitiePage() {
         </p>
       )}
 
-      {/* Bewaarlijst: LinkedIn-vacatures die nog geen relatie zijn */}
+      {/* Opvolgen */}
       <section className="mt-6">
         <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
-          Bewaarlijst ({(leads ?? []).length})
+          Opvolgen ({followUps.length})
+        </h2>
+        {followUps.length === 0 ? (
+          <p className="mt-2 text-sm text-zinc-500">
+            Geen openstaande opvolgacties.
+          </p>
+        ) : (
+          <ul className="mt-3 divide-y divide-zinc-100 rounded-lg border border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800">
+            {followUps.map((n) => {
+              const overdue = (n.follow_up_on ?? "") < today;
+              const isToday = n.follow_up_on === today;
+              return (
+                <li key={n.id} className="px-4 py-3 text-sm">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <Link
+                        href={`/klanten/${n.client_id}`}
+                        className="font-medium text-navy hover:underline dark:text-cream"
+                      >
+                        {clientById.get(n.client_id)?.name ?? "Relatie"}
+                      </Link>
+                      {n.body && (
+                        <p className="mt-0.5 text-zinc-600 dark:text-zinc-400">
+                          {n.body}
+                        </p>
+                      )}
+                    </div>
+                    <span
+                      className={`shrink-0 whitespace-nowrap text-xs tabular-nums ${
+                        overdue
+                          ? "font-medium text-red-600"
+                          : isToday
+                            ? "font-medium text-amber-600"
+                            : "text-zinc-500"
+                      }`}
+                    >
+                      {formatDate(n.follow_up_on)}
+                    </span>
+                  </div>
+                  <div className="mt-2 flex flex-wrap items-center gap-3">
+                    <form action={toggleFollowUp}>
+                      <input type="hidden" name="id" value={n.id} />
+                      <button
+                        type="submit"
+                        className="rounded-md border border-zinc-300 px-2 py-1 text-xs hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
+                        title="Haalt deze opvolgactie uit de lijst"
+                      >
+                        Markeer als afgehandeld
+                      </button>
+                    </form>
+                    <details>
+                      <summary className="cursor-pointer text-xs text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200">
+                        Bewerken
+                      </summary>
+                      <form
+                        action={updateClientNote}
+                        className="mt-2 space-y-2"
+                      >
+                        <input type="hidden" name="id" value={n.id} />
+                        <input
+                          type="hidden"
+                          name="client_id"
+                          value={n.client_id}
+                        />
+                        <textarea
+                          name="body"
+                          required
+                          rows={2}
+                          defaultValue={n.body}
+                          className={`${inputClass} text-sm`}
+                        />
+                        <div className="flex flex-wrap items-end gap-3">
+                          <label className="text-xs text-zinc-500">
+                            <span className="block">Opvolgen op</span>
+                            <input
+                              name="follow_up_on"
+                              type="date"
+                              defaultValue={n.follow_up_on ?? ""}
+                              className={`${inputClass} mt-1 w-44`}
+                            />
+                          </label>
+                          <button
+                            type="submit"
+                            className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
+                          >
+                            Opslaan
+                          </button>
+                        </div>
+                      </form>
+                    </details>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
+
+      {/* Funnel */}
+      <section className="mt-10">
+        <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+          Funnel
+        </h2>
+        <p className="mt-1 text-xs text-zinc-500">
+          Sleep een relatie naar een andere fase om de status te wijzigen.
+        </p>
+        <div className="mt-3">
+          <AcquisitieBoard clients={funnelClients} />
+        </div>
+      </section>
+
+      {/* Bewaarlijst LinkedIn: vacatures die nog geen relatie zijn */}
+      <section className="mt-10">
+        <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+          Bewaarlijst LinkedIn ({(leads ?? []).length})
         </h2>
         <p className="mt-1 text-xs text-zinc-500">
           Interessante vacatures van je LinkedIn-tijdlijn — nog niet het
@@ -309,120 +423,6 @@ export default async function AcquisitiePage() {
             })}
           </ul>
         )}
-      </section>
-
-      {/* Opvolgen */}
-      <section className="mt-6">
-        <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
-          Opvolgen ({followUps.length})
-        </h2>
-        {followUps.length === 0 ? (
-          <p className="mt-2 text-sm text-zinc-500">
-            Geen openstaande opvolgacties.
-          </p>
-        ) : (
-          <ul className="mt-3 divide-y divide-zinc-100 rounded-lg border border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800">
-            {followUps.map((n) => {
-              const overdue = (n.follow_up_on ?? "") < today;
-              const isToday = n.follow_up_on === today;
-              return (
-                <li key={n.id} className="px-4 py-3 text-sm">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <Link
-                        href={`/klanten/${n.client_id}`}
-                        className="font-medium text-navy hover:underline dark:text-cream"
-                      >
-                        {clientById.get(n.client_id)?.name ?? "Relatie"}
-                      </Link>
-                      {n.body && (
-                        <p className="mt-0.5 text-zinc-600 dark:text-zinc-400">
-                          {n.body}
-                        </p>
-                      )}
-                    </div>
-                    <span
-                      className={`shrink-0 whitespace-nowrap text-xs tabular-nums ${
-                        overdue
-                          ? "font-medium text-red-600"
-                          : isToday
-                            ? "font-medium text-amber-600"
-                            : "text-zinc-500"
-                      }`}
-                    >
-                      {formatDate(n.follow_up_on)}
-                    </span>
-                  </div>
-                  <div className="mt-2 flex flex-wrap items-center gap-3">
-                    <form action={toggleFollowUp}>
-                      <input type="hidden" name="id" value={n.id} />
-                      <button
-                        type="submit"
-                        className="rounded-md border border-zinc-300 px-2 py-1 text-xs hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
-                        title="Haalt deze opvolgactie uit de lijst"
-                      >
-                        Markeer als afgehandeld
-                      </button>
-                    </form>
-                    <details>
-                      <summary className="cursor-pointer text-xs text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200">
-                        Bewerken
-                      </summary>
-                      <form
-                        action={updateClientNote}
-                        className="mt-2 space-y-2"
-                      >
-                        <input type="hidden" name="id" value={n.id} />
-                        <input
-                          type="hidden"
-                          name="client_id"
-                          value={n.client_id}
-                        />
-                        <textarea
-                          name="body"
-                          required
-                          rows={2}
-                          defaultValue={n.body}
-                          className={`${inputClass} text-sm`}
-                        />
-                        <div className="flex flex-wrap items-end gap-3">
-                          <label className="text-xs text-zinc-500">
-                            <span className="block">Opvolgen op</span>
-                            <input
-                              name="follow_up_on"
-                              type="date"
-                              defaultValue={n.follow_up_on ?? ""}
-                              className={`${inputClass} mt-1 w-44`}
-                            />
-                          </label>
-                          <button
-                            type="submit"
-                            className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
-                          >
-                            Opslaan
-                          </button>
-                        </div>
-                      </form>
-                    </details>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </section>
-
-      {/* Funnel */}
-      <section className="mt-10">
-        <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
-          Funnel
-        </h2>
-        <p className="mt-1 text-xs text-zinc-500">
-          Sleep een relatie naar een andere fase om de status te wijzigen.
-        </p>
-        <div className="mt-3">
-          <AcquisitieBoard clients={funnelClients} />
-        </div>
       </section>
     </div>
   );
