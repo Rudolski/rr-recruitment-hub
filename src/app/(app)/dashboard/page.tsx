@@ -306,9 +306,10 @@ export default async function DashboardPage({
   }
   const chartSeries = [...chartYears].sort((a, b) => a - b).map((y) => ({
     year: y,
+    // Totale omzet, alle soorten (geen wsOnly) — consistent met de
+    // target-kaarten hierboven.
     data: monthlyBuckets(
       allInvoicesEver.filter((inv) => inv.issue_date?.slice(0, 4) === String(y)),
-      true,
     ),
   }));
 
@@ -576,7 +577,7 @@ export default async function DashboardPage({
         selectedYear={year}
         series={chartSeries}
         target={targetMonthly}
-        label="W&S-omzet"
+        label="Omzet"
       />
 
       <section id="omzetverdeling" className="mt-10">
