@@ -54,12 +54,6 @@ export const navSections: NavSection[] = [
         description:
           "Dagelijkse scan van de carrièrepagina's van klanten en concurrenten; nieuw gevonden vacatures.",
       },
-      {
-        label: "Placements",
-        href: "/placements",
-        description:
-          "Geplaatste kandidaten met startdatum, fee, garantie en de factuurregels.",
-      },
     ],
   },
   {
