@@ -117,13 +117,23 @@ export default async function DashboardPage({
     return data ?? [];
   }
 
-  const [periodInvoices, thisYearInvoices, lastYearInvoices, commitmentPool] =
-    await Promise.all([
-      realisedInvoices(periodStart, periodEnd),
-      realisedInvoices(`${year}-01-01`, `${year}-12-31`),
-      realisedInvoices(`${year - 1}-01-01`, `${year - 1}-12-31`),
-      commitmentInvoices(),
-    ]);
+  async function allRealisedInvoicesEver() {
+    let q = supabase.from("invoices").select("*").in("status", REALISED_INVOICE_STATUSES);
+    if (clientFilter) q = q.eq("client_id", clientFilter);
+    const { data } = await q.returns<Invoice[]>();
+    return data ?? [];
+  }
+
+  const [periodInvoices, allInvoicesEver, commitmentPool] = await Promise.all([
+    realisedInvoices(periodStart, periodEnd),
+    allRealisedInvoicesEver(),
+    commitmentInvoices(),
+  ]);
+  // Alle facturen van het gekozen jaar (alle soorten) — voor de
+  // target-kaarten en de grafiek, volgt dus gewoon het jaarfilter.
+  const yearInvoices = allInvoicesEver.filter(
+    (inv) => inv.issue_date?.slice(0, 4) === String(year),
+  );
 
   const omzet = splitOmzet(periodInvoices);
   const wsFee = averageWsFee(periodInvoices, commitmentPool, { inclPartner });
@@ -155,56 +165,28 @@ export default async function DashboardPage({
     }
   }
 
-  /* -------- Omzet t.o.v. target: maand/kwartaal/jaar (nu, alle soorten,
-     bedrijfsbreed — los van de klant/periode-filters hierboven) -------- */
-  const currentMonth = now.getMonth() + 1;
-  const currentQuarter = QUARTER_OF_MONTH[currentMonth];
-  const quarterMonths = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].filter(
-    (m) => QUARTER_OF_MONTH[m] === currentQuarter,
-  );
-
-  const [{ data: currentYearInvoicesAll }, { data: currentYearTargetRows }] =
-    await Promise.all([
-      supabase
-        .from("invoices")
-        .select("*")
-        .in("status", REALISED_INVOICE_STATUSES)
-        .gte("issue_date", `${currentYear}-01-01`)
-        .lte("issue_date", `${currentYear}-12-31`)
-        .returns<Invoice[]>(),
-      supabase
-        .from("monthly_targets")
-        .select("month, target_revenue")
-        .eq("year", currentYear)
-        .returns<Pick<MonthlyTarget, "month" | "target_revenue">[]>(),
-    ]);
+  /* -------- Omzet t.o.v. target: per kwartaal + jaar van het gekozen
+     jaar (alle soorten). Volgt dus gewoon het jaarfilter hierboven. -------- */
+  const currentRealMonth = now.getMonth() + 1;
+  const currentRealQuarter = QUARTER_OF_MONTH[currentRealMonth];
+  const isCurrentYear = year === currentYear;
 
   // Alle soorten tellen mee (geen wsOnly) — dit is totale omzet t.o.v. target.
-  const currentYearBuckets = monthlyBuckets(currentYearInvoicesAll ?? []);
-  const targetByMonthNow = new Map<number, number>(
-    (currentYearTargetRows ?? []).map((t) => [
-      t.month,
-      Number(t.target_revenue ?? 0),
-    ]),
-  );
-
-  const maandBehaald = currentYearBuckets[currentMonth];
-  const maandTarget = targetByMonthNow.get(currentMonth) ?? 0;
-  const kwartaalBehaald = quarterMonths.reduce(
-    (s, m) => s + currentYearBuckets[m],
-    0,
-  );
-  const kwartaalTarget = quarterMonths.reduce(
-    (s, m) => s + (targetByMonthNow.get(m) ?? 0),
-    0,
-  );
-  const jaarBehaaldNu = currentYearBuckets
-    .slice(1, 13)
-    .reduce((a, b) => a + b, 0);
-  const jaarTargetNu = [...targetByMonthNow.values()].reduce(
-    (a, b) => a + b,
-    0,
-  );
+  const yearBuckets = monthlyBuckets(yearInvoices);
+  const quarterCards = [1, 2, 3, 4].map((q) => {
+    const months = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].filter(
+      (m) => QUARTER_OF_MONTH[m] === q,
+    );
+    const behaald = months.reduce((s, m) => s + yearBuckets[m], 0);
+    const target = targetMonthly
+      ? months.reduce((s, m) => s + (targetMonthly![m] ?? 0), 0)
+      : 0;
+    return { q, behaald, target };
+  });
+  const jaarBehaald = yearBuckets.slice(1, 13).reduce((a, b) => a + b, 0);
+  const jaarTarget = targetMonthly
+    ? targetMonthly.slice(1, 13).reduce((a, b) => a + b, 0)
+    : 0;
 
   /* -------- Prognose lopende + volgende maand -------- */
   const thisMonth = monthKey(now);
@@ -317,6 +299,19 @@ export default async function DashboardPage({
     .slice(0, 10);
   const topMax = topClients[0]?.amount ?? 1;
 
+  /* -------- Grafiek: alle jaren met data, W&S-omzet -------- */
+  const chartYears = new Set<number>([year]);
+  for (const inv of allInvoicesEver) {
+    if (inv.issue_date) chartYears.add(Number(inv.issue_date.slice(0, 4)));
+  }
+  const chartSeries = [...chartYears].sort((a, b) => a - b).map((y) => ({
+    year: y,
+    data: monthlyBuckets(
+      allInvoicesEver.filter((inv) => inv.issue_date?.slice(0, 4) === String(y)),
+      true,
+    ),
+  }));
+
   return (
     <div className="mx-auto max-w-5xl">
       <PageHeader
@@ -395,6 +390,9 @@ export default async function DashboardPage({
       <section className="mt-6">
         <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
           Prognose (lopende + volgende maand)
+          <span className="ml-2 text-xs font-normal text-zinc-400">
+            altijd de actuele maand, ongeacht het jaarfilter hieronder
+          </span>
         </h2>
         <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
           {[
@@ -449,34 +447,23 @@ export default async function DashboardPage({
 
       <section className="mt-10">
         <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
-          Omzet t.o.v. target
-          {clientFilter && (
-            <span className="ml-2 text-xs font-normal text-zinc-400">
-              (bedrijfsbreed, los van de klantfilter)
-            </span>
-          )}
+          Omzet t.o.v. target ({year})
         </h2>
-        <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="mt-3 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
           {[
+            ...quarterCards.map(({ q, behaald, target }) => ({
+              label: `Q${q}`,
+              current: isCurrentYear && q === currentRealQuarter,
+              behaald,
+              target,
+            })),
             {
-              label: "Deze maand",
-              sub: MONTH_NAMES[currentMonth],
-              behaald: maandBehaald,
-              target: maandTarget,
+              label: "Jaar",
+              current: false,
+              behaald: jaarBehaald,
+              target: jaarTarget,
             },
-            {
-              label: "Dit kwartaal",
-              sub: `Q${currentQuarter}`,
-              behaald: kwartaalBehaald,
-              target: kwartaalTarget,
-            },
-            {
-              label: "Dit jaar",
-              sub: String(currentYear),
-              behaald: jaarBehaaldNu,
-              target: jaarTargetNu,
-            },
-          ].map(({ label, sub, behaald, target }) => {
+          ].map(({ label, current, behaald, target }) => {
             const pct = pctLabel(behaald, target);
             const barPct =
               target > 0 ? Math.min(100, Math.round((behaald / target) * 100)) : 0;
@@ -493,7 +480,10 @@ export default async function DashboardPage({
                 className="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950"
               >
                 <p className="text-xs uppercase tracking-wider text-zinc-500">
-                  {label} · {sub}
+                  {label}
+                  {current && (
+                    <span className="ml-1 text-terra">· huidig</span>
+                  )}
                 </p>
                 <p className="mt-1 text-2xl font-semibold text-zinc-900 dark:text-zinc-50">
                   {eur(behaald)}
@@ -512,9 +502,9 @@ export default async function DashboardPage({
             );
           })}
         </div>
-        {jaarTargetNu === 0 && (
+        {jaarTarget === 0 && (
           <p className="mt-2 text-xs text-zinc-400">
-            Nog geen targets ingevuld voor {currentYear}.{" "}
+            Nog geen targets ingevuld voor {year}.{" "}
             <Link href="/targets" className="underline">
               Targets invullen
             </Link>
@@ -583,9 +573,8 @@ export default async function DashboardPage({
       </div>
 
       <RevenueChart
-        year={year}
-        thisYear={monthlyBuckets(thisYearInvoices, true)}
-        lastYear={monthlyBuckets(lastYearInvoices, true)}
+        selectedYear={year}
+        series={chartSeries}
         target={targetMonthly}
         label="W&S-omzet"
       />

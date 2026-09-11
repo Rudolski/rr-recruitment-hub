@@ -18,25 +18,35 @@ const MONTHS_SHORT = [
   "dec",
 ];
 
+// Kleuren voor de niet-geselecteerde jaren, cyclisch toegewezen. Het
+// geselecteerde jaar krijgt altijd de vette zwart/wit-lijn.
+const PALETTE = [
+  "#2563eb", // blue-600
+  "#16a34a", // green-600
+  "#9333ea", // purple-600
+  "#dc2626", // red-600
+  "#ca8a04", // amber-600
+  "#0891b2", // cyan-600
+];
+
 function cumulative(monthly: number[]): number[] {
   let sum = 0;
   return monthly.slice(1, 13).map((v) => (sum += v));
 }
 
 /**
- * Cumulatieve omzetgrafiek: dit jaar t.o.v. vorig jaar en de jaartarget.
- * Pure SVG, geen externe library. Hover een maand voor de bedragen.
+ * Cumulatieve omzetgrafiek: alle jaren met data t.o.v. elkaar en de
+ * target van het geselecteerde jaar. Pure SVG, geen externe library.
+ * Hover een maand voor de bedragen per jaar.
  */
 export function RevenueChart({
-  year,
-  thisYear,
-  lastYear,
+  selectedYear,
+  series,
   target,
   label = "Omzet",
 }: {
-  year: number;
-  thisYear: number[];
-  lastYear: number[];
+  selectedYear: number;
+  series: { year: number; data: number[] }[];
   target: number[] | null;
   label?: string;
 }) {
@@ -49,23 +59,28 @@ export function RevenueChart({
   const padT = 16;
   const padB = 28;
 
-  const seriesThis = cumulative(thisYear);
-  const seriesLast = cumulative(lastYear);
+  const lines = series.map((s) => ({
+    year: s.year,
+    selected: s.year === selectedYear,
+    values: cumulative(s.data),
+  }));
+  const otherYears = lines.filter((l) => !l.selected).map((l) => l.year);
+  const colorOf = (year: number) => {
+    const idx = otherYears.indexOf(year);
+    return PALETTE[idx % PALETTE.length];
+  };
+
   const seriesTarget = target ? cumulative(target) : null;
-  const hasLast = seriesLast.some((v) => v > 0.5);
 
   const maxY =
     Math.max(
       1,
-      ...seriesThis,
-      ...seriesLast,
+      ...lines.flatMap((l) => l.values),
       ...(seriesTarget ?? []),
     ) * 1.1;
 
-  const x = (i: number) =>
-    padL + (i / 11) * (W - padL - padR);
-  const y = (v: number) =>
-    padT + (1 - v / maxY) * (H - padT - padB);
+  const x = (i: number) => padL + (i / 11) * (W - padL - padR);
+  const y = (v: number) => padT + (1 - v / maxY) * (H - padT - padB);
 
   const path = (s: number[]) =>
     s.map((v, i) => `${i === 0 ? "M" : "L"} ${x(i)} ${y(v)}`).join(" ");
@@ -80,21 +95,26 @@ export function RevenueChart({
     end: i === 11 ? W - padR : (xi + xPositions[i + 1]) / 2,
   }));
 
-  const tooltipLines =
+  // Geselecteerd jaar eerst in de tooltip, daarna de rest aflopend.
+  const tooltipSeries = [...lines].sort((a, b) =>
+    a.selected === b.selected ? b.year - a.year : a.selected ? -1 : 1,
+  );
+
+  const tooltipLines: { text: string; bold?: boolean; color?: string }[] =
     hover != null
       ? [
-          { text: `${MONTHS_SHORT[hover]} ${year}`, bold: true },
-          { text: `${label}: ${eur(seriesThis[hover])}` },
-          ...(hasLast
-            ? [{ text: `${label} ${year - 1}: ${eur(seriesLast[hover])}` }]
-            : []),
+          { text: `${MONTHS_SHORT[hover]}`, bold: true },
+          ...tooltipSeries.map((l) => ({
+            text: `${label} ${l.year}${l.selected ? " (gekozen)" : ""}: ${eur(l.values[hover as number])}`,
+            color: l.selected ? undefined : colorOf(l.year),
+          })),
           ...(seriesTarget
-            ? [{ text: `Target: ${eur(seriesTarget[hover])}` }]
+            ? [{ text: `Target ${selectedYear}: ${eur(seriesTarget[hover])}` }]
             : []),
         ]
       : [];
 
-  const tooltipW = 152;
+  const tooltipW = 176;
   const tooltipH = tooltipLines.length * 15 + 10;
   const tipX =
     hover != null
@@ -108,18 +128,23 @@ export function RevenueChart({
   return (
     <div className="mt-6 overflow-x-auto rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
       <div className="mb-2 flex flex-wrap items-center gap-4 text-xs">
-        <span className="flex items-center gap-1.5">
-          <span className="inline-block h-2 w-4 rounded-sm bg-zinc-900 dark:bg-zinc-100" />
-          {label} {year}
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="inline-block h-2 w-4 rounded-sm bg-zinc-400" />
-          {label} {year - 1}
-        </span>
+        {lines.map((l) => (
+          <span key={l.year} className="flex items-center gap-1.5">
+            <span
+              className={
+                l.selected
+                  ? "inline-block h-2 w-4 rounded-sm bg-zinc-900 dark:bg-zinc-100"
+                  : "inline-block h-2 w-4 rounded-sm"
+              }
+              style={l.selected ? undefined : { backgroundColor: colorOf(l.year) }}
+            />
+            {label} {l.year}
+          </span>
+        ))}
         {seriesTarget && (
           <span className="flex items-center gap-1.5">
             <span className="inline-block h-2 w-4 rounded-sm border border-dashed border-zinc-500" />
-            Target {year}
+            Target {selectedYear}
           </span>
         )}
         <span className="text-zinc-400">cumulatief, excl. btw · hover voor bedragen</span>
@@ -129,7 +154,7 @@ export function RevenueChart({
         viewBox={`0 0 ${W} ${H}`}
         className="h-56 w-full min-w-[560px]"
         role="img"
-        aria-label={`Cumulatieve omzet ${year} versus ${year - 1} en target`}
+        aria-label={`Cumulatieve omzet ${lines.map((l) => l.year).join(", ")} en target ${selectedYear}`}
         onMouseLeave={() => setHover(null)}
       >
         {Array.from({ length: gridLines + 1 }, (_, i) => {
@@ -181,27 +206,42 @@ export function RevenueChart({
             strokeWidth={1.5}
           />
         )}
-        <path
-          d={path(seriesLast)}
-          fill="none"
-          className="stroke-zinc-400"
-          strokeWidth={1.5}
-        />
-        <path
-          d={path(seriesThis)}
-          fill="none"
-          className="stroke-zinc-900 dark:stroke-zinc-100"
-          strokeWidth={2}
-        />
-        {seriesThis.map((v, i) => (
-          <circle
-            key={i}
-            cx={x(i)}
-            cy={y(v)}
-            r={hover === i ? 4 : 2.5}
-            className="fill-zinc-900 dark:fill-zinc-100"
-          />
-        ))}
+
+        {lines
+          .filter((l) => !l.selected)
+          .map((l) => (
+            <path
+              key={l.year}
+              d={path(l.values)}
+              fill="none"
+              stroke={colorOf(l.year)}
+              strokeWidth={1.5}
+            />
+          ))}
+        {lines
+          .filter((l) => l.selected)
+          .map((l) => (
+            <path
+              key={l.year}
+              d={path(l.values)}
+              fill="none"
+              className="stroke-zinc-900 dark:stroke-zinc-100"
+              strokeWidth={2}
+            />
+          ))}
+        {lines
+          .filter((l) => l.selected)
+          .flatMap((l) =>
+            l.values.map((v, i) => (
+              <circle
+                key={i}
+                cx={x(i)}
+                cy={y(v)}
+                r={hover === i ? 4 : 2.5}
+                className="fill-zinc-900 dark:fill-zinc-100"
+              />
+            )),
+          )}
 
         {/* Onzichtbare hoverbanden, bovenop de rest zodat ze de muis altijd opvangen */}
         {bandBounds.map(({ start, end }, i) => (
@@ -227,14 +267,17 @@ export function RevenueChart({
               className="stroke-zinc-300 dark:stroke-zinc-700"
               strokeWidth={1}
             />
-            {hasLast && (
-              <circle
-                cx={x(hover)}
-                cy={y(seriesLast[hover])}
-                r={4}
-                className="fill-zinc-400"
-              />
-            )}
+            {lines
+              .filter((l) => !l.selected)
+              .map((l) => (
+                <circle
+                  key={l.year}
+                  cx={x(hover)}
+                  cy={y(l.values[hover])}
+                  r={3.5}
+                  fill={colorOf(l.year)}
+                />
+              ))}
             {seriesTarget && (
               <circle
                 cx={x(hover)}
@@ -260,8 +303,11 @@ export function RevenueChart({
                   className={
                     line.bold
                       ? "fill-zinc-900 text-[11px] font-semibold dark:fill-zinc-50"
-                      : "fill-zinc-600 text-[10px] dark:fill-zinc-300"
+                      : line.color
+                        ? "text-[10px] font-medium"
+                        : "fill-zinc-600 text-[10px] dark:fill-zinc-300"
                   }
+                  style={line.color ? { fill: line.color } : undefined}
                 >
                   {line.text}
                 </text>
