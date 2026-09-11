@@ -12,7 +12,7 @@ import {
 } from "@/components/ui";
 import { eur2 } from "@/lib/format";
 import { getSessionContext } from "@/utils/supabase/auth";
-import { nettoAmount } from "@/lib/omzet";
+import { splitOmzet } from "@/lib/omzet";
 import {
   REALISED_INVOICE_STATUSES,
   type Client,
@@ -66,23 +66,32 @@ export default async function OmzetPerKlantPage({
 
   const clientName = new Map((clients ?? []).map((c) => [c.id, c.name]));
 
-  const perClient = new Map<string, { revenue: number; count: number }>();
+  const invoicesByClient = new Map<string, Invoice[]>();
   for (const inv of invoices ?? []) {
-    const entry = perClient.get(inv.client_id) ?? { revenue: 0, count: 0 };
-    entry.revenue += nettoAmount(inv);
-    entry.count += 1;
-    perClient.set(inv.client_id, entry);
+    const list = invoicesByClient.get(inv.client_id) ?? [];
+    list.push(inv);
+    invoicesByClient.set(inv.client_id, list);
   }
 
-  const rows = [...perClient.entries()]
-    .map(([id, v]) => ({
-      id,
-      name: clientName.get(id) ?? "—",
-      ...v,
-    }))
+  const rows = [...invoicesByClient.entries()]
+    .map(([id, invs]) => {
+      const omzet = splitOmzet(invs);
+      return {
+        id,
+        name: clientName.get(id) ?? "—",
+        revenue: omzet.netto,
+        count: omzet.count,
+        ws: omzet.wsNetto,
+        interim: omzet.byKind.interim,
+        zzpMarge: omzet.byKind.zzp_marge,
+      };
+    })
     .sort((a, b) => b.revenue - a.revenue);
 
   const total = rows.reduce((s, r) => s + r.revenue, 0);
+  const totalWs = rows.reduce((s, r) => s + r.ws, 0);
+  const totalInterim = rows.reduce((s, r) => s + r.interim, 0);
+  const totalZzpMarge = rows.reduce((s, r) => s + r.zzpMarge, 0);
 
   return (
     <div className="mx-auto max-w-4xl">
@@ -136,6 +145,18 @@ export default async function OmzetPerKlantPage({
                   </Link>
                   <span className="block text-xs text-zinc-400">
                     {r.count} factu{r.count === 1 ? "ur" : "ren"}
+                    {(r.interim > 0.5 || r.zzpMarge > 0.5) && (
+                      <>
+                        {" · "}
+                        {[
+                          r.ws > 0.5 && `W&S ${eur2(r.ws)}`,
+                          r.interim > 0.5 && `Interim ${eur2(r.interim)}`,
+                          r.zzpMarge > 0.5 && `ZZP Marge ${eur2(r.zzpMarge)}`,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </>
+                    )}
                   </span>
                 </span>
                 <span className="shrink-0 tabular-nums">{eur2(r.revenue)}</span>
@@ -154,7 +175,10 @@ export default async function OmzetPerKlantPage({
               <tr>
                 <th className={th}>Klant</th>
                 <th className={th}>Facturen</th>
-                <th className={`${th} text-right`}>Omzet excl. btw</th>
+                <th className={`${th} text-right`}>W&amp;S</th>
+                <th className={`${th} text-right`}>Interim</th>
+                <th className={`${th} text-right`}>ZZP Marge</th>
+                <th className={`${th} text-right`}>Totaal excl. btw</th>
               </tr>
             </thead>
             <tbody className={tbody}>
@@ -171,6 +195,15 @@ export default async function OmzetPerKlantPage({
                   <td className={`${td} text-zinc-600 dark:text-zinc-400`}>
                     {r.count}
                   </td>
+                  <td className={`${td} text-right tabular-nums text-zinc-600 dark:text-zinc-400`}>
+                    {r.ws > 0.5 ? eur2(r.ws) : "—"}
+                  </td>
+                  <td className={`${td} text-right tabular-nums text-zinc-600 dark:text-zinc-400`}>
+                    {r.interim > 0.5 ? eur2(r.interim) : "—"}
+                  </td>
+                  <td className={`${td} text-right tabular-nums text-zinc-600 dark:text-zinc-400`}>
+                    {r.zzpMarge > 0.5 ? eur2(r.zzpMarge) : "—"}
+                  </td>
                   <td className={`${td} text-right tabular-nums`}>
                     {eur2(r.revenue)}
                   </td>
@@ -181,6 +214,15 @@ export default async function OmzetPerKlantPage({
               <tr className="border-t border-zinc-200 font-medium dark:border-zinc-800">
                 <td className={td}>Totaal</td>
                 <td className={td} />
+                <td className={`${td} text-right tabular-nums`}>
+                  {eur2(totalWs)}
+                </td>
+                <td className={`${td} text-right tabular-nums`}>
+                  {eur2(totalInterim)}
+                </td>
+                <td className={`${td} text-right tabular-nums`}>
+                  {eur2(totalZzpMarge)}
+                </td>
                 <td className={`${td} text-right tabular-nums`}>
                   {eur2(total)}
                 </td>
