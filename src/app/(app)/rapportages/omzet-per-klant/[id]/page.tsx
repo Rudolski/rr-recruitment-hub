@@ -112,6 +112,19 @@ export default async function KlantOmzetPage({
               .join(", ")}`}
         </span>
       </p>
+      {(omzet.byKind.interim > 0.5 || omzet.byKind.zzp_marge > 0.5) && (
+        <p className="mt-1 text-xs text-zinc-400">
+          {[
+            omzet.wsNetto > 0.5 && `W&S ${eur2(omzet.wsNetto)}`,
+            omzet.byKind.interim > 0.5 &&
+              `Interim ${eur2(omzet.byKind.interim)}`,
+            omzet.byKind.zzp_marge > 0.5 &&
+              `ZZP Marge ${eur2(omzet.byKind.zzp_marge)}`,
+          ]
+            .filter(Boolean)
+            .join(" · ")}
+        </p>
+      )}
 
       <section className="mt-8">
         <h2 className="mb-2 text-sm font-semibold text-zinc-900 dark:text-zinc-50">
