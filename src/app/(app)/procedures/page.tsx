@@ -76,6 +76,9 @@ export default async function ProceduresPage() {
   }
 
   const rows: ProcedureRow[] = (vacancies ?? [])
+    // Interim/ZZP Marge zijn geen werving&selectie-procedures; niet
+    // relevant hier.
+    .filter((v) => (v.kind ?? "wervingsfee") === "wervingsfee")
     .filter(
       (v) => ACTIVE.has(v.status) || (byVacancy.get(v.id)?.length ?? 0) > 0,
     )
@@ -85,7 +88,6 @@ export default async function ProceduresPage() {
       client: clientName.get(v.client_id) ?? "—",
       consultant: v.consultant,
       exclusivityUntil: v.exclusivity_until,
-      kind: v.kind,
       cands: byVacancy.get(v.id) ?? [],
     }))
     .sort(
