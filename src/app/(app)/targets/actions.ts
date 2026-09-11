@@ -56,5 +56,6 @@ export async function saveYearTargets(fd: FormData) {
   }
 
   revalidatePath("/targets");
+  revalidatePath("/dashboard");
   redirect(`/targets?jaar=${year}`);
 }

@@ -68,13 +68,8 @@ export const navSections: NavSection[] = [
       {
         label: "Dashboard",
         href: "/dashboard",
-        description: "Behaalde omzet (netto/bruto) en de prognose.",
-      },
-      {
-        label: "Targets",
-        href: "/targets",
         description:
-          "Maandtargets, automatisch opgeteld naar kwartaal en jaar en afgezet tegen de omzet.",
+          "Behaalde omzet (netto/bruto), de prognose en omzet t.o.v. target per maand/kwartaal/jaar.",
       },
       {
         label: "Omzet per klant",
