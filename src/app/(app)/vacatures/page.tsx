@@ -11,7 +11,7 @@ import {
   thead,
 } from "@/components/ui";
 import { SortHeader, cmpText, readSort } from "@/components/sort-header";
-import { eur, formatMonth, monthKey } from "@/lib/format";
+import { eur, formatMonth } from "@/lib/format";
 import { getSessionContext } from "@/utils/supabase/auth";
 import {
   VACANCY_KIND_LABELS,
@@ -19,7 +19,6 @@ import {
   VACANCY_STATUS_LABELS,
   isOneOf,
   type Client,
-  type MonthlyTarget,
   type Vacancy,
   type VacancyKind,
 } from "@/lib/types";
@@ -81,30 +80,13 @@ export default async function VacaturesPage({
     .order("created_at", { ascending: false });
   if (status !== "alle") vq = vq.eq("status", status);
 
-  // Gewogen prognose (verwachte fee × slagingskans) voor de lopende en
-  // volgende maand, op basis van de openstaande vacatures.
-  const now = new Date();
-  const thisMonth = monthKey(now);
-  const nextMonth = monthKey(
-    new Date(now.getFullYear(), now.getMonth() + 1, 1),
-  );
-  const forecastYears = [
-    ...new Set([thisMonth, nextMonth].map((m) => Number(m.slice(0, 4)))),
-  ];
-
-  const [{ data: vacancies, error }, { data: clients }, { data: targets }] =
-    await Promise.all([
-      vq.returns<Vacancy[]>(),
-      supabase
-        .from("clients")
-        .select("id, name")
-        .returns<Pick<Client, "id" | "name">[]>(),
-      supabase
-        .from("monthly_targets")
-        .select("year, month, target_revenue")
-        .in("year", forecastYears)
-        .returns<Pick<MonthlyTarget, "year" | "month" | "target_revenue">[]>(),
-    ]);
+  const [{ data: vacancies, error }, { data: clients }] = await Promise.all([
+    vq.returns<Vacancy[]>(),
+    supabase
+      .from("clients")
+      .select("id, name")
+      .returns<Pick<Client, "id" | "name">[]>(),
+  ]);
 
   const clientName = new Map((clients ?? []).map((c) => [c.id, c.name]));
 
@@ -148,96 +130,26 @@ export default async function VacaturesPage({
     basePath: `/vacatures?status=${status}`,
   };
 
-  const targetByMonth = new Map<string, number>(
-    (targets ?? []).map((t) => [
-      `${t.year}-${String(t.month).padStart(2, "0")}`,
-      Number(t.target_revenue ?? 0),
-    ]),
-  );
-  const forecast = { [thisMonth]: 0, [nextMonth]: 0 } as Record<string, number>;
-  const forecastByKind: Record<string, Record<string, number>> = {
-    [thisMonth]: {},
-    [nextMonth]: {},
-  };
-  for (const v of vacancies ?? []) {
-    if (v.status !== "open") continue;
-    const month = (v.expected_close_month ?? "").slice(0, 7);
-    if (month !== thisMonth && month !== nextMonth) continue;
-    if (v.expected_fee == null || v.success_probability == null) continue;
-    const value =
-      Number(v.expected_fee) * (Number(v.success_probability) / 100);
-    forecast[month] += value;
-    const kind = v.kind ?? "wervingsfee";
-    forecastByKind[month][kind] = (forecastByKind[month][kind] ?? 0) + value;
-  }
-
   return (
     <div className="mx-auto max-w-6xl">
       <PageHeader
         title={status === "open" ? "Vacatures openstaand" : "Vacatures"}
-        description="Verwachte fee, maand en kans zijn hier direct aan te passen."
+        description={
+          <>
+            Vacatures aanmaken en beheren. Voor de prognose en de
+            dagelijkse voortgang per vacature, zie{" "}
+            <Link href="/procedures" className="underline">
+              Procedures
+            </Link>
+            .
+          </>
+        }
         action={
           <Link href="/vacatures/nieuw" className={btnPrimary}>
             Nieuwe vacature
           </Link>
         }
       />
-
-      {status === "open" && (
-        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {[thisMonth, nextMonth].map((label) => {
-            const value = forecast[label];
-            const target = targetByMonth.get(label) ?? null;
-            const onOrAboveTarget = target != null && value >= target;
-            const belowTarget = target != null && value < target;
-            const valueClass = onOrAboveTarget
-              ? "text-green-600 dark:text-green-500"
-              : belowTarget
-                ? "text-red-600 dark:text-red-500"
-                : "text-zinc-900 dark:text-zinc-50";
-            const byKind = Object.entries(forecastByKind[label] ?? {}).filter(
-              ([, v]) => Math.abs(v) > 0.5,
-            );
-            return (
-              <div
-                key={label}
-                className="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950"
-              >
-                <p className="text-xs uppercase tracking-wider text-zinc-500">
-                  Prognose {formatMonth(`${label}-01`)}
-                </p>
-                <p
-                  className={`mt-1 text-2xl font-semibold ${valueClass}`}
-                >
-                  {eur(value)}
-                </p>
-                <p className="mt-1 text-xs text-zinc-400">
-                  bedrag × slagingskans
-                  {target != null && (
-                    <>
-                      {" · target "}
-                      {eur(target)}
-                      {" · "}
-                      {value - target >= 0 ? "+" : "−"}
-                      {eur(Math.abs(value - target))}
-                    </>
-                  )}
-                </p>
-                {byKind.length > 1 && (
-                  <p className="mt-1 text-xs text-zinc-400">
-                    {byKind
-                      .map(
-                        ([k, v]) =>
-                          `${VACANCY_KIND_LABELS[k as VacancyKind] ?? k} ${eur(v)}`,
-                      )
-                      .join(" · ")}
-                  </p>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
 
       <form className="mt-6 flex items-end gap-3" method="get">
         <label className="text-sm">
