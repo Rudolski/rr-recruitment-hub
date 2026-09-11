@@ -19,6 +19,7 @@ export type VacancyTask = Tables["vacancy_tasks"]["Row"];
 export type VacancyCandidate = Tables["vacancy_candidates"]["Row"];
 export type WatchSource = Tables["watch_sources"]["Row"];
 export type WatchVacancy = Tables["watch_vacancies"]["Row"];
+export type AcquisitieLead = Tables["acquisitie_leads"]["Row"];
 
 /* -------------------------------------------------------------- */
 /* Vacature-radar                                                 */

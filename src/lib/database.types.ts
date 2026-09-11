@@ -385,6 +385,43 @@ export type Database = {
         };
         Relationships: [];
       };
+      acquisitie_leads: {
+        Row: {
+          id: string;
+          organization_id: string;
+          author_id: string | null;
+          linkedin_url: string;
+          company_name: string | null;
+          note: string | null;
+          approach_on: string;
+          done: boolean;
+          done_at: string | null;
+          converted_client_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          author_id?: string | null;
+          linkedin_url: string;
+          company_name?: string | null;
+          note?: string | null;
+          approach_on: string;
+          done?: boolean;
+          done_at?: string | null;
+          converted_client_id?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          company_name?: string | null;
+          note?: string | null;
+          approach_on?: string;
+          done?: boolean;
+          done_at?: string | null;
+          converted_client_id?: string | null;
+        };
+        Relationships: [];
+      };
       stored_files: {
         Row: {
           id: string;
