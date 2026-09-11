@@ -84,10 +84,24 @@ export function splitOmzet(invoices: Invoice[]): OmzetSplit {
     count += 1;
     if (inv.partner_name && share) {
       partnerTotal += share;
-      byPartner.set(
-        inv.partner_name,
-        (byPartner.get(inv.partner_name) ?? 0) + share,
-      );
+      // Zeldzame uitzondering: het partnerdeel is over meerdere partners
+      // verdeeld (elk een eigen bedrag). partner_share_amount blijft de
+      // som, partner_breakdown geeft de losse bedragen per partner.
+      const breakdown = inv.partner_breakdown;
+      if (breakdown && breakdown.length > 0) {
+        for (const b of breakdown) {
+          if (!b?.name) continue;
+          byPartner.set(
+            b.name,
+            (byPartner.get(b.name) ?? 0) + Number(b.amount ?? 0),
+          );
+        }
+      } else {
+        byPartner.set(
+          inv.partner_name,
+          (byPartner.get(inv.partner_name) ?? 0) + share,
+        );
+      }
     }
 
     const kind = (inv.kind ?? "wervingsfee") as InvoiceKind;

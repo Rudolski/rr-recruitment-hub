@@ -15,20 +15,83 @@ import { INVOICE_KINDS, INVOICE_STATUSES, isOneOf } from "@/lib/types";
 
 const today = () => new Date().toISOString().slice(0, 10);
 
+/**
+ * Meestal één partner (naam + bedrag). Zeldzame uitzondering: meerdere
+ * partners op één factuur, elk met een eigen bedrag — namen en
+ * bedragen dan allebei gescheiden met ";" (niet ",", dat is al het
+ * decimaalteken elders in de app).
+ */
+function parsePartnerFields(fd: FormData): {
+  error?: string;
+  partner_name: string | null;
+  partner_share_amount: number | null;
+  partner_breakdown: { name: string; amount: number }[] | null;
+} {
+  const rawName = str(fd, "partner_name");
+  if (!rawName) {
+    return {
+      partner_name: null,
+      partner_share_amount: null,
+      partner_breakdown: null,
+    };
+  }
+
+  const names = rawName
+    .split(";")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const amountParts = str(fd, "partner_share_amount")
+    .split(";")
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .map((s) => Number(s.replace(",", ".")));
+
+  if (names.length > 1) {
+    if (
+      amountParts.length !== names.length ||
+      amountParts.some((n) => !Number.isFinite(n))
+    ) {
+      return {
+        error: `Vul evenveel bedragen als partnernamen in (${names.length}), gescheiden met ";".`,
+        partner_name: null,
+        partner_share_amount: null,
+        partner_breakdown: null,
+      };
+    }
+    const breakdown = names.map((name, i) => ({
+      name,
+      amount: Math.abs(amountParts[i]),
+    }));
+    const total = breakdown.reduce((s, b) => s + b.amount, 0);
+    return {
+      partner_name: names.join(", "),
+      partner_share_amount: total || null,
+      partner_breakdown: total ? breakdown : null,
+    };
+  }
+
+  const amount = Math.abs(amountParts[0] ?? 0) || null;
+  return {
+    partner_name: amount ? names[0] : null,
+    partner_share_amount: amount,
+    partner_breakdown: null,
+  };
+}
+
 function parse(fd: FormData) {
   const clientId = str(fd, "client_id");
   const amountExcl = numOrNull(fd, "amount_excl_btw");
   const statusRaw = str(fd, "status");
   const kindRaw = str(fd, "kind");
-  const partnerName = nullableStr(fd, "partner_name");
 
   const fieldErrors: Record<string, string> = {};
   if (!clientId) fieldErrors.client_id = "Kies een klant.";
   if (amountExcl == null) fieldErrors.amount_excl_btw = "Vul een bedrag in.";
 
-  const partnerShare = partnerName
-    ? Math.abs(numOrNull(fd, "partner_share_amount") ?? 0) || null
-    : null;
+  const partnerFields = parsePartnerFields(fd);
+  if (partnerFields.error) {
+    fieldErrors.partner_share_amount = partnerFields.error;
+  }
 
   return {
     fieldErrors,
@@ -40,8 +103,9 @@ function parse(fd: FormData) {
       vacancy_label: nullableStr(fd, "vacancy_label"),
       invoice_number: nullableStr(fd, "invoice_number"),
       entity_name: nullableStr(fd, "entity_name"),
-      partner_name: partnerShare ? partnerName : null,
-      partner_share_amount: partnerShare,
+      partner_name: partnerFields.partner_name,
+      partner_share_amount: partnerFields.partner_share_amount,
+      partner_breakdown: partnerFields.partner_breakdown,
       amount_excl_btw: amountExcl ?? 0,
       btw_percentage: numOrNull(fd, "btw_percentage") ?? 21,
       issue_date: nullableStr(fd, "issue_date"),

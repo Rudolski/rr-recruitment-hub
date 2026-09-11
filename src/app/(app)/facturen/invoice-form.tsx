@@ -38,16 +38,36 @@ export function InvoiceForm({
   const [state, formAction, pending] = useActionState(action, emptyFormState);
   const [amount, setAmount] = useState(num(initial?.amount_excl_btw));
   const [btw, setBtw] = useState(num(initial?.btw_percentage ?? 21));
-  const [partnerName, setPartnerName] = useState(initial?.partner_name ?? "");
-  const [partnerShare, setPartnerShare] = useState(
-    num(initial?.partner_share_amount),
+  const initialBreakdown = initial?.partner_breakdown ?? null;
+  const [partnerName, setPartnerName] = useState(
+    initialBreakdown && initialBreakdown.length > 0
+      ? initialBreakdown.map((b) => b.name).join("; ")
+      : (initial?.partner_name ?? ""),
   );
+  const [partnerShare, setPartnerShare] = useState(
+    initialBreakdown && initialBreakdown.length > 0
+      ? initialBreakdown.map((b) => num(b.amount)).join("; ")
+      : num(initial?.partner_share_amount),
+  );
+
+  // Meerdere partners op één factuur: namen en bedragen elk met ";"
+  // gescheiden (niet met "," — dat is al het decimaalteken). Zeldzaam;
+  // normaal gesproken staat hier maar één naam en één bedrag.
+  const parseAmounts = (s: string) =>
+    s
+      .split(";")
+      .map((p) => p.trim())
+      .filter(Boolean)
+      .map((p) => Number(p.replace(",", ".")))
+      .filter((n) => Number.isFinite(n));
 
   const netto = useMemo(() => {
     const a = Number(amount.replace(",", "."));
-    const s = Number(partnerShare.replace(",", "."));
     if (!Number.isFinite(a)) return null;
-    return a - (partnerName.trim() && Number.isFinite(s) ? s : 0);
+    const totalShare = partnerName.trim()
+      ? parseAmounts(partnerShare).reduce((s, n) => s + n, 0)
+      : 0;
+    return a - totalShare;
   }, [amount, partnerShare, partnerName]);
 
   const inclBtw = useMemo(() => {
@@ -189,34 +209,40 @@ export function InvoiceForm({
 
         <div className="space-y-1.5">
           <label htmlFor="partner_name" className={labelClass}>
-            Aandeel naar partner (bv. Juul)
+            Aandeel naar partner(s)
           </label>
           <input
             id="partner_name"
             name="partner_name"
             value={partnerName}
             onChange={(e) => setPartnerName(e.target.value)}
-            placeholder="leeg = volledig voor RR"
+            placeholder="leeg = volledig voor RR, bv. Juul of Juul; Sven"
             className={inputClass}
           />
+          <p className="text-xs text-zinc-400">
+            Meerdere partners op één factuur: namen scheiden met &ldquo;;&rdquo;.
+          </p>
         </div>
 
         <div className="space-y-1.5">
           <label htmlFor="partner_share_amount" className={labelClass}>
-            Bedrag partner (€ excl. btw)
+            Bedrag partner(s) (€ excl. btw)
           </label>
           <input
             id="partner_share_amount"
             name="partner_share_amount"
-            inputMode="numeric"
             value={partnerShare}
             onChange={(e) => setPartnerShare(e.target.value)}
             disabled={!partnerName.trim()}
+            placeholder={
+              partnerName.includes(";") ? "bv. 2000; 2500" : "bv. 2500"
+            }
             className={inputClass}
           />
           <p className="text-xs text-zinc-400">
-            Gaat van de netto-omzet af. Netto voor RR:{" "}
-            {netto == null ? "—" : eur2(netto)}
+            Bij meerdere partners: bedragen in dezelfde volgorde, ook
+            gescheiden met &ldquo;;&rdquo;. Gaat van de netto-omzet af. Netto
+            voor RR: {netto == null ? "—" : eur2(netto)}
           </p>
         </div>
 

@@ -62,7 +62,11 @@ export function InvoiceLines({ invoices }: { invoices: Invoice[] }) {
             </span>
             {inv.partner_name && inv.partner_share_amount ? (
               <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-[11px] text-amber-700 dark:bg-amber-950 dark:text-amber-300">
-                {eur2(inv.partner_share_amount)} → {inv.partner_name}
+                {inv.partner_breakdown && inv.partner_breakdown.length > 0
+                  ? inv.partner_breakdown
+                      .map((b) => `${eur2(b.amount)} → ${b.name}`)
+                      .join(" · ")
+                  : `${eur2(inv.partner_share_amount)} → ${inv.partner_name}`}
               </span>
             ) : null}
           </Link>

@@ -23,6 +23,16 @@ import {
   type InvoiceKind,
 } from "@/lib/types";
 
+function partnerLine(inv: Invoice): string | null {
+  if (!inv.partner_name || !inv.partner_share_amount) return null;
+  if (inv.partner_breakdown && inv.partner_breakdown.length > 0) {
+    return inv.partner_breakdown
+      .map((b) => `${eur2(b.amount)} naar ${b.name}`)
+      .join(" · ");
+  }
+  return `${eur2(inv.partner_share_amount)} naar ${inv.partner_name}`;
+}
+
 function KindChip({ kind }: { kind: string | null }) {
   if (!kind || kind === "wervingsfee") return null;
   return (
@@ -232,12 +242,11 @@ export default async function FacturenPage({
                 <span>{formatDate(inv.issue_date)}</span>
                 <span>{inv.invoice_number || "(zonder nummer)"}</span>
               </div>
-              {inv.partner_name && inv.partner_share_amount ? (
+              {partnerLine(inv) && (
                 <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
-                  waarvan {eur2(inv.partner_share_amount)} naar{" "}
-                  {inv.partner_name}
+                  waarvan {partnerLine(inv)}
                 </p>
-              ) : null}
+              )}
             </li>
           ))}
         </ul>
@@ -273,12 +282,11 @@ export default async function FacturenPage({
                         {inv.vacancy_label}
                       </span>
                     )}
-                    {inv.partner_name && inv.partner_share_amount ? (
+                    {partnerLine(inv) && (
                       <span className="block text-xs text-amber-600 dark:text-amber-400">
-                        waarvan {eur2(inv.partner_share_amount)} naar{" "}
-                        {inv.partner_name}
+                        waarvan {partnerLine(inv)}
                       </span>
-                    ) : null}
+                    )}
                   </td>
                   <td className={`${td} text-zinc-600 dark:text-zinc-400`}>
                     {eur2(inv.amount_excl_btw)}

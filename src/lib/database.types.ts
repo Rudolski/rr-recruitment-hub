@@ -308,6 +308,7 @@ export type Database = {
           kind: string;
           partner_name: string | null;
           partner_share_amount: number | null;
+          partner_breakdown: { name: string; amount: number }[] | null;
           vacancy_label: string | null;
           sent_at: string | null;
           issue_date: string | null;
@@ -329,6 +330,7 @@ export type Database = {
           kind?: string;
           partner_name?: string | null;
           partner_share_amount?: number | null;
+          partner_breakdown?: { name: string; amount: number }[] | null;
           vacancy_label?: string | null;
           sent_at?: string | null;
           issue_date?: string | null;
@@ -348,6 +350,7 @@ export type Database = {
           kind?: string;
           partner_name?: string | null;
           partner_share_amount?: number | null;
+          partner_breakdown?: { name: string; amount: number }[] | null;
           vacancy_label?: string | null;
           sent_at?: string | null;
           issue_date?: string | null;
