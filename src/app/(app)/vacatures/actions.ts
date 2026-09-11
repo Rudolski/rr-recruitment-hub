@@ -167,6 +167,33 @@ export async function updateVacatureForecast(fd: FormData) {
   revalidatePath("/dashboard");
 }
 
+/**
+ * Snel-bewerken van alleen de forecastvelden (bedrag/maand/kans), voor
+ * de compacte chip in het Procedures-overzicht. Raakt bewust geen
+ * andere velden (consultant, partner%, soort) aan.
+ */
+export async function updateVacancyForecastFields(fd: FormData) {
+  const { supabase, organizationId } = await getSessionContext();
+  if (!organizationId) return;
+  const id = str(fd, "id");
+  if (!id) return;
+
+  await supabase
+    .from("vacancies")
+    .update({
+      expected_fee: numOrNull(fd, "expected_fee"),
+      expected_close_month: monthToDate(str(fd, "expected_close_month")),
+      success_probability: clampPct(numOrNull(fd, "success_probability")),
+    })
+    .eq("id", id)
+    .eq("organization_id", organizationId);
+
+  revalidatePath("/vacatures");
+  revalidatePath(`/vacatures/${id}`);
+  revalidatePath("/procedures");
+  revalidatePath("/dashboard");
+}
+
 export async function deleteVacature(fd: FormData) {
   const { supabase, organizationId } = await getSessionContext();
   if (!organizationId) return;
