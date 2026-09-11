@@ -3,7 +3,7 @@
 import { useOptimistic, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { formatDate } from "@/lib/format";
+import { eur, formatDate } from "@/lib/format";
 import {
   CANDIDATE_STAGES,
   CANDIDATE_STAGE_LABELS,
@@ -29,6 +29,8 @@ export type ProcedureRow = {
   client: string;
   consultant: string | null;
   exclusivityUntil: string | null;
+  expectedFee: number | null;
+  successProbability: number | null;
   cands: Cand[];
 };
 
@@ -177,13 +179,22 @@ export function ProceduresGrid({ rows: initial }: { rows: ProcedureRow[] }) {
   );
 
   const labels = (r: ProcedureRow) =>
-    (r.consultant || r.exclusivityUntil) && (
+    (r.consultant ||
+      r.exclusivityUntil ||
+      r.expectedFee != null ||
+      r.successProbability != null) && (
       <div className="mt-0.5 flex flex-wrap gap-1">
         {r.consultant && (
           <span className="rounded bg-zinc-100 px-1 text-[10px] text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
             {CONSULTANT_LABELS[
               r.consultant as keyof typeof CONSULTANT_LABELS
             ] ?? r.consultant}
+          </span>
+        )}
+        {(r.expectedFee != null || r.successProbability != null) && (
+          <span className="rounded bg-green-50 px-1 text-[10px] text-green-700 dark:bg-green-950 dark:text-green-300">
+            {r.expectedFee != null ? eur(r.expectedFee) : "—"}
+            {r.successProbability != null && ` · ${r.successProbability}%`}
           </span>
         )}
         {r.exclusivityUntil && (
