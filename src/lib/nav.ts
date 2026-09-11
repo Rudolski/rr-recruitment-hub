@@ -37,11 +37,6 @@ export const navSections: NavSection[] = [
         href: "/contactpersonen",
         description: "Alle contactpersonen, gekoppeld aan een relatie.",
       },
-      {
-        label: "Archief",
-        href: "/archief",
-        description: "Inactieve relaties.",
-      },
     ],
   },
   {
