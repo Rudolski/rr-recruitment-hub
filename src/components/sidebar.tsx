@@ -100,6 +100,13 @@ export function Sidebar({
             {userEmail}
           </p>
         )}
+        <Link
+          href="/vergrendeling"
+          onClick={onNavigate}
+          className="block rounded-md px-2 py-1.5 text-sm text-zinc-600 transition-colors hover:bg-zinc-100 hover:text-navy dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-cream"
+        >
+          App-vergrendeling (Face ID)
+        </Link>
         <form action={signOut}>
           <button
             type="submit"

@@ -20,6 +20,7 @@ export type VacancyCandidate = Tables["vacancy_candidates"]["Row"];
 export type WatchSource = Tables["watch_sources"]["Row"];
 export type WatchVacancy = Tables["watch_vacancies"]["Row"];
 export type AcquisitieLead = Tables["acquisitie_leads"]["Row"];
+export type WebauthnCredential = Tables["webauthn_credentials"]["Row"];
 
 /* -------------------------------------------------------------- */
 /* Vacature-radar                                                 */

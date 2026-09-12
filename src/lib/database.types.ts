@@ -684,6 +684,36 @@ export type Database = {
         };
         Relationships: [];
       };
+      webauthn_credentials: {
+        Row: {
+          id: string;
+          organization_id: string;
+          user_id: string;
+          credential_id: string;
+          public_key: string;
+          counter: number;
+          device_label: string | null;
+          created_at: string;
+          last_used_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          user_id: string;
+          credential_id: string;
+          public_key: string;
+          counter?: number;
+          device_label?: string | null;
+          created_at?: string;
+          last_used_at?: string | null;
+        };
+        Update: {
+          counter?: number;
+          device_label?: string | null;
+          last_used_at?: string | null;
+        };
+        Relationships: [];
+      };
     };
     Views: { [_ in never]: never };
     Functions: {

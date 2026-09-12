@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { AppLockPing } from "@/components/app-lock-ping";
 import { Sidebar } from "@/components/sidebar";
 
 /**
@@ -20,6 +21,7 @@ export function AppShell({
 
   return (
     <div className="flex min-h-screen overflow-x-hidden bg-zinc-50 dark:bg-zinc-900">
+      <AppLockPing />
       {/* Zijbalk — vast vanaf lg */}
       <div className="hidden lg:flex">
         <Sidebar userEmail={userEmail} />
