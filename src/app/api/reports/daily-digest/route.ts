@@ -42,7 +42,7 @@ async function buildFollowUps(
 ): Promise<FollowUp[]> {
   const today = todayIso();
 
-  const { data: notes } = await db
+  const { data: notes, error: notesError } = await db
     .from("client_notes")
     .select("*")
     .eq("follow_up_done", false)
@@ -50,15 +50,19 @@ async function buildFollowUps(
     .lte("follow_up_on", today)
     .order("follow_up_on", { ascending: true })
     .returns<ClientNote[]>();
+  // Stil falende query (bijv. een verlopen/foute service-role key)
+  // moet nooit als "niks openstaand" overkomen.
+  if (notesError) throw new Error(`client_notes ophalen mislukt: ${notesError.message}`);
 
   if (!notes || notes.length === 0) return [];
 
   const clientIds = [...new Set(notes.map((n) => n.client_id))];
-  const { data: clients } = await db
+  const { data: clients, error: clientsError } = await db
     .from("clients")
     .select("id, name")
     .in("id", clientIds)
     .returns<Pick<Client, "id" | "name">[]>();
+  if (clientsError) throw new Error(`clients ophalen mislukt: ${clientsError.message}`);
   const clientName = new Map((clients ?? []).map((c) => [c.id, c.name]));
 
   return notes.map((n) => ({
@@ -134,25 +138,11 @@ async function run(req: NextRequest) {
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });
   }
 
-  const followUps = await buildFollowUps(db);
-
-  if (req.nextUrl.searchParams.get("debug") === "1") {
-    const today = todayIso();
-    const { data: raw, error: rawError } = await db
-      .from("client_notes")
-      .select("id, follow_up_on, follow_up_done")
-      .order("follow_up_on", { ascending: true });
-    return NextResponse.json({
-      today,
-      supabaseUrlHost: (process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").replace(
-        /^https?:\/\//,
-        "",
-      ),
-      followUpsFound: followUps.length,
-      rawCount: raw?.length ?? null,
-      rawError: rawError?.message ?? null,
-      raw,
-    });
+  let followUps;
+  try {
+    followUps = await buildFollowUps(db);
+  } catch (e) {
+    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
   }
 
   if (followUps.length === 0) {
