@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { Resend } from "resend";
 import { createAdminClient } from "@/utils/supabase/admin";
-import type { Client, ClientNote } from "@/lib/types";
+import type { Client, ClientNote, WatchSource, WatchVacancy } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -74,14 +74,67 @@ async function buildFollowUps(
   }));
 }
 
-function renderEmail(followUps: FollowUp[]): { subject: string; html: string } {
+type NewVacancy = {
+  title: string;
+  company: string | null;
+  url: string;
+  sourceName: string;
+};
+
+/**
+ * Aantal dagen terugkijken voor "nieuw gevonden" vacatures. De radar
+ * scant elke dag (ook in het weekend), deze mail alleen doordeweeks —
+ * op maandag dus terugkijken t/m vrijdag, anders gewoon 1 dag.
+ */
+function lookbackDays(): number {
+  const day = new Date().getUTCDay(); // 0 = zondag, 1 = maandag, ...
+  return day === 1 ? 3 : 1;
+}
+
+async function buildNewVacancies(
+  db: ReturnType<typeof createAdminClient>,
+): Promise<NewVacancy[]> {
+  const cutoff = new Date();
+  cutoff.setUTCDate(cutoff.getUTCDate() - lookbackDays());
+
+  const { data: vacancies, error: vacError } = await db
+    .from("watch_vacancies")
+    .select("*")
+    .gte("first_seen_at", cutoff.toISOString())
+    .is("closed_at", null)
+    .order("first_seen_at", { ascending: false })
+    .returns<WatchVacancy[]>();
+  if (vacError) throw new Error(`watch_vacancies ophalen mislukt: ${vacError.message}`);
+  if (!vacancies || vacancies.length === 0) return [];
+
+  const sourceIds = [...new Set(vacancies.map((v) => v.source_id))];
+  const { data: sources, error: sourcesError } = await db
+    .from("watch_sources")
+    .select("id, name")
+    .in("id", sourceIds)
+    .returns<Pick<WatchSource, "id" | "name">[]>();
+  if (sourcesError) throw new Error(`watch_sources ophalen mislukt: ${sourcesError.message}`);
+  const sourceName = new Map((sources ?? []).map((s) => [s.id, s.name]));
+
+  return vacancies.map((v) => ({
+    title: v.title,
+    company: v.company,
+    url: v.url,
+    sourceName: sourceName.get(v.source_id) ?? "Radar",
+  }));
+}
+
+function renderEmail(
+  followUps: FollowUp[],
+  newVacancies: NewVacancy[],
+): { subject: string; html: string } {
   const dateLabel = new Intl.DateTimeFormat("nl-NL", {
     weekday: "long",
     day: "numeric",
     month: "long",
   }).format(new Date());
 
-  const rows = followUps
+  const followUpRows = followUps
     .map((f) => {
       const label = f.overdue
         ? `te laat sinds ${dateFmt.format(new Date(f.followUpOn))}`
@@ -95,21 +148,55 @@ function renderEmail(followUps: FollowUp[]): { subject: string; html: string } {
     })
     .join("");
 
-  const html = `
-    <div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:560px;margin:0 auto;padding:24px;">
-      <p style="color:#71717a;font-size:13px;text-transform:uppercase;letter-spacing:0.05em;margin:0 0 4px;">RR Recruitment Hub</p>
-      <h1 style="color:#0d1e2e;font-size:20px;margin:0 0 16px;">Opvolgacties — ${dateLabel}</h1>
-      <p style="color:#3f3f46;">${followUps.length} openstaande opvolgactie${followUps.length === 1 ? "" : "s"} bij Klanten/Acquisitie:</p>
-      <ul style="list-style:none;padding:0;margin:16px 0;">${rows}</ul>
-      <p style="margin-top:24px;">
+  const vacancyRows = newVacancies
+    .map((v) => {
+      const who = v.company
+        ? `<strong>${escapeHtml(v.company)}</strong> — ${escapeHtml(v.title)}`
+        : escapeHtml(v.title);
+      return `
+        <li style="margin-bottom:12px;">
+          <a href="${v.url}" style="color:#0d1e2e;text-decoration:none;">${who}</a>
+          <span style="color:#71717a;"> · ${escapeHtml(v.sourceName)}</span>
+        </li>`;
+    })
+    .join("");
+
+  const followUpSection = followUps.length
+    ? `
+      <h1 style="color:#0d1e2e;font-size:18px;margin:24px 0 12px;">Opvolgacties</h1>
+      <p style="color:#3f3f46;margin:0 0 8px;">${followUps.length} openstaande opvolgactie${followUps.length === 1 ? "" : "s"} bij Klanten/Acquisitie:</p>
+      <ul style="list-style:none;padding:0;margin:0;">${followUpRows}</ul>
+      <p style="margin-top:12px;">
         <a href="${SITE_URL}/klanten" style="color:#a95e3f;">Open Klanten →</a>
         &nbsp;·&nbsp;
         <a href="${SITE_URL}/acquisitie" style="color:#a95e3f;">Open Acquisitie →</a>
-      </p>
+      </p>`
+    : "";
+
+  const vacancySection = newVacancies.length
+    ? `
+      <h1 style="color:#0d1e2e;font-size:18px;margin:24px 0 12px;">Nieuw op de radar</h1>
+      <p style="color:#3f3f46;margin:0 0 8px;">${newVacancies.length} nieuwe exclusieve vacature${newVacancies.length === 1 ? "" : "s"}:</p>
+      <ul style="list-style:none;padding:0;margin:0;">${vacancyRows}</ul>
+      <p style="margin-top:12px;">
+        <a href="${SITE_URL}/radar" style="color:#a95e3f;">Open Vacature-radar →</a>
+      </p>`
+    : "";
+
+  const html = `
+    <div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:560px;margin:0 auto;padding:24px;">
+      <p style="color:#71717a;font-size:13px;text-transform:uppercase;letter-spacing:0.05em;margin:0 0 4px;">RR Recruitment Hub</p>
+      <p style="color:#0d1e2e;font-size:20px;font-weight:600;margin:0;">${dateLabel}</p>
+      ${followUpSection}
+      ${vacancySection}
     </div>`;
 
+  const parts = [];
+  if (followUps.length) parts.push(`${followUps.length} opvolgactie${followUps.length === 1 ? "" : "s"}`);
+  if (newVacancies.length) parts.push(`${newVacancies.length} nieuwe vacature${newVacancies.length === 1 ? "" : "s"}`);
+
   return {
-    subject: `${followUps.length} opvolgactie${followUps.length === 1 ? "" : "s"} vandaag — RR Recruitment Hub`,
+    subject: `${parts.join(" · ")} — RR Recruitment Hub`,
     html,
   };
 }
@@ -138,18 +225,22 @@ async function run(req: NextRequest) {
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });
   }
 
-  let followUps;
+  let followUps: FollowUp[];
+  let newVacancies: NewVacancy[];
   try {
-    followUps = await buildFollowUps(db);
+    [followUps, newVacancies] = await Promise.all([
+      buildFollowUps(db),
+      buildNewVacancies(db),
+    ]);
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });
   }
 
-  if (followUps.length === 0) {
-    return NextResponse.json({ sent: false, reason: "geen openstaande opvolgacties" });
+  if (followUps.length === 0 && newVacancies.length === 0) {
+    return NextResponse.json({ sent: false, reason: "niets te melden" });
   }
 
-  const { subject, html } = renderEmail(followUps);
+  const { subject, html } = renderEmail(followUps, newVacancies);
   const resend = new Resend(resendKey);
   const { error } = await resend.emails.send({
     from: DIGEST_FROM,
@@ -161,7 +252,11 @@ async function run(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ sent: true, count: followUps.length });
+  return NextResponse.json({
+    sent: true,
+    followUps: followUps.length,
+    newVacancies: newVacancies.length,
+  });
 }
 
 export function GET(req: NextRequest) {
