@@ -123,9 +123,11 @@ export default async function ProceduresPage() {
     byVacancy.set(c.vacancy_id, list);
   }
 
-  const active = (vacancies ?? []).filter(
-    (v) => ACTIVE.has(v.status) || (byVacancy.get(v.id)?.length ?? 0) > 0,
-  );
+  // Vervuld/geannuleerd verdwijnt hier bewust meteen, ook als er nog
+  // kandidaten aan hangen — geschiedenis blijft gewoon in /vacatures
+  // staan, maar het dagelijkse werkoverzicht moet niet vervuilen met
+  // allang afgeronde vacatures.
+  const active = (vacancies ?? []).filter((v) => ACTIVE.has(v.status));
 
   // W&S: de visuele matrix met kandidaten per stap.
   const rows: ProcedureRow[] = active

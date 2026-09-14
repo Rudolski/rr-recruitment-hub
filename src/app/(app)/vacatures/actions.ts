@@ -33,6 +33,16 @@ function consultantOrNull(fd: FormData): string | null {
   return (CONSULTANTS as readonly string[]).includes(v) ? v : null;
 }
 
+/** Link naar een vooraf ingevulde conceptfactuur voor een vervulde vacature. */
+function factuurTriggerUrl(v: { client_id: string; title: string; kind: string }) {
+  const params = new URLSearchParams({
+    klant: v.client_id,
+    vacature: v.title,
+    soort: v.kind || "wervingsfee",
+  });
+  return `/facturen/nieuw?${params.toString()}`;
+}
+
 function parse(fd: FormData) {
   const clientId = str(fd, "client_id");
   const title = str(fd, "title");
@@ -101,6 +111,13 @@ export async function updateVacature(
   const { fieldErrors, values } = parse(fd);
   if (Object.keys(fieldErrors).length > 0) return fieldError(fieldErrors);
 
+  const { data: current } = await supabase
+    .from("vacancies")
+    .select("status")
+    .eq("id", id)
+    .eq("organization_id", organizationId)
+    .maybeSingle();
+
   const { error } = await supabase
     .from("vacancies")
     .update(values)
@@ -110,6 +127,13 @@ export async function updateVacature(
 
   revalidatePath("/vacatures");
   revalidatePath(`/vacatures/${id}`);
+  revalidatePath("/procedures");
+  revalidatePath("/dashboard");
+
+  // Net op vervuld gezet -> meteen een conceptfactuur klaarzetten.
+  if (values.status === "vervuld" && current?.status !== "vervuld") {
+    redirect(factuurTriggerUrl(values));
+  }
   redirect(`/vacatures/${id}`);
 }
 
@@ -121,6 +145,13 @@ export async function updateVacatureStatus(fd: FormData) {
   const statusRaw = str(fd, "status");
   if (!id || !isOneOf(VACANCY_STATUSES, statusRaw)) return;
 
+  const { data: current } = await supabase
+    .from("vacancies")
+    .select("status, client_id, title, kind")
+    .eq("id", id)
+    .eq("organization_id", organizationId)
+    .maybeSingle();
+
   await supabase
     .from("vacancies")
     .update({ status: statusRaw })
@@ -129,8 +160,14 @@ export async function updateVacatureStatus(fd: FormData) {
 
   revalidatePath("/vacatures");
   revalidatePath(`/vacatures/${id}`);
+  revalidatePath("/procedures");
   revalidatePath("/dashboard");
   revalidatePath("/klanten", "layout");
+
+  // Net op vervuld gezet -> meteen een conceptfactuur klaarzetten.
+  if (statusRaw === "vervuld" && current && current.status !== "vervuld") {
+    redirect(factuurTriggerUrl(current));
+  }
 }
 
 /** Snel-bewerken van de forecastvelden vanuit de lijst. */
