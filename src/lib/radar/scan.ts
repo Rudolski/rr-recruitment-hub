@@ -105,7 +105,7 @@ export async function scanSource(
         return !known || isOwnBrand(known, brands);
       })
       .slice(0, MAX_ENRICH);
-    const results = await mapPool(toFetch, 5, (v) => enrichVacancy(v.url));
+    const results = await mapPool(toFetch, 8, (v) => enrichVacancy(v.url));
     enriched = toFetch.length;
     const found = new Map(toFetch.map((v, i) => [v.externalKey, results[i]]));
 
@@ -203,9 +203,10 @@ export async function scanAll(
   const { data: sources, error } = await q.returns<WatchSourceRow[]>();
   if (error) throw error;
 
-  const results: ScanResult[] = [];
-  for (const s of sources ?? []) {
-    results.push(await scanSource(db, s));
-  }
-  return results;
+  // Bronnen tegelijk scannen i.p.v. na elkaar — anders loopt de totale
+  // tijd bij meerdere actieve bronnen al snel tegen Vercel's
+  // functielimiet aan (60s op het gratis plan). scanSource vangt zijn
+  // eigen fouten al af (schrijft ze weg op de bron), dus één trage of
+  // kapotte bron trekt de rest niet om.
+  return Promise.all((sources ?? []).map((s) => scanSource(db, s)));
 }

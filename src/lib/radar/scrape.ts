@@ -383,7 +383,9 @@ export async function enrichVacancy(
 ): Promise<{ company: string | null; postedOn: string | null }> {
   let html: string;
   try {
-    html = await fetchText(url, 12000);
+    // Kort houden: bij veel vacatures per bron telt elke trage pagina
+    // mee in de totale scanduur (Vercel-functielimiet).
+    html = await fetchText(url, 8000);
   } catch {
     return { company: null, postedOn: null };
   }
