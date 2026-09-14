@@ -135,6 +135,26 @@ async function run(req: NextRequest) {
   }
 
   const followUps = await buildFollowUps(db);
+
+  if (req.nextUrl.searchParams.get("debug") === "1") {
+    const today = todayIso();
+    const { data: raw, error: rawError } = await db
+      .from("client_notes")
+      .select("id, follow_up_on, follow_up_done")
+      .order("follow_up_on", { ascending: true });
+    return NextResponse.json({
+      today,
+      supabaseUrlHost: (process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").replace(
+        /^https?:\/\//,
+        "",
+      ),
+      followUpsFound: followUps.length,
+      rawCount: raw?.length ?? null,
+      rawError: rawError?.message ?? null,
+      raw,
+    });
+  }
+
   if (followUps.length === 0) {
     return NextResponse.json({ sent: false, reason: "geen openstaande opvolgacties" });
   }
