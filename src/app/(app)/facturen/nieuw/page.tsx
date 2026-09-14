@@ -33,6 +33,7 @@ export default async function NieuweFactuurPage({
           lockedPlacementId={str("placement")}
           defaultClientId={str("klant")}
           defaultVacancyLabel={str("vacature")}
+          defaultKind={str("soort")}
           submitLabel="Factuurregel opslaan"
         />
       </div>

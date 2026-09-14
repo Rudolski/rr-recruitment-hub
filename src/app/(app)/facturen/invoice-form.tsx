@@ -26,6 +26,7 @@ export function InvoiceForm({
   lockedPlacementId,
   defaultClientId,
   defaultVacancyLabel,
+  defaultKind,
 }: {
   action: Action;
   clients: Option[];
@@ -34,6 +35,7 @@ export function InvoiceForm({
   lockedPlacementId?: string;
   defaultClientId?: string;
   defaultVacancyLabel?: string;
+  defaultKind?: string;
 }) {
   const [state, formAction, pending] = useActionState(action, emptyFormState);
   const [amount, setAmount] = useState(num(initial?.amount_excl_btw));
@@ -87,6 +89,13 @@ export function InvoiceForm({
           className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950 dark:text-red-300"
         >
           {state.error}
+        </p>
+      )}
+
+      {!initial && defaultVacancyLabel && (
+        <p className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-700 dark:bg-amber-950 dark:text-amber-300">
+          Klant, vacature en soort staan al ingevuld — vul het bedrag aan
+          en sla op, of laat het gewoon als concept staan.
         </p>
       )}
 
@@ -170,7 +179,7 @@ export function InvoiceForm({
           <select
             id="kind"
             name="kind"
-            defaultValue={initial?.kind ?? "wervingsfee"}
+            defaultValue={initial?.kind ?? defaultKind ?? "wervingsfee"}
             className={inputClass}
           >
             {INVOICE_KINDS.map((k) => (
