@@ -287,9 +287,10 @@ export function ProceduresGrid({ rows: initial }: { rows: ProcedureRow[] }) {
     <div className="mt-0.5 flex flex-wrap items-center gap-1">
       {r.consultant && (
         <span className="rounded bg-zinc-100 px-1 text-[10px] text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
-          {CONSULTANT_LABELS[
-            r.consultant as keyof typeof CONSULTANT_LABELS
-          ] ?? r.consultant}
+          {(
+            CONSULTANT_LABELS[r.consultant as keyof typeof CONSULTANT_LABELS] ??
+            r.consultant
+          ).split(" ")[0]}
         </span>
       )}
       <ForecastChip
