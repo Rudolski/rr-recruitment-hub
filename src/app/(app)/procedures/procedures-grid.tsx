@@ -26,6 +26,12 @@ import {
 // tussen stappen (dat gebruikt "text/plain").
 const ROW_DRAG_TYPE = "application/x-rr-vacancy-row";
 
+// "Aangenomen" krijgt geen eigen kolom in het overzicht — zodra iemand
+// is aangenomen zet je de vacature op "Vervuld" en verdwijnt de hele
+// rij toch. De stap blijft wel gewoon kiesbaar bij het bewerken van
+// een kandidaat, voor de volledigheid.
+const GRID_STAGES = CANDIDATE_STAGES.filter((s) => s !== "aangenomen");
+
 type Cand = {
   id: string;
   first_name: string;
@@ -349,7 +355,7 @@ export function ProceduresGrid({ rows: initial }: { rows: ProcedureRow[] }) {
               </span>
             </div>
             <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
-              {CANDIDATE_STAGES.map((stage) => {
+              {GRID_STAGES.map((stage) => {
                 const inStage = r.cands.filter((c) => c.stage === stage);
                 return (
                   <div key={stage} className="px-3 py-2">
@@ -380,7 +386,7 @@ export function ProceduresGrid({ rows: initial }: { rows: ProcedureRow[] }) {
             >
               Vacature
             </th>
-            {CANDIDATE_STAGES.map((s) => (
+            {GRID_STAGES.map((s) => (
               <th key={s} className={`${headBase} min-w-[11rem]`}>
                 {CANDIDATE_STAGE_LABELS[s]}
               </th>
@@ -435,7 +441,7 @@ export function ProceduresGrid({ rows: initial }: { rows: ProcedureRow[] }) {
                 </span>
               </td>
 
-              {CANDIDATE_STAGES.map((stage) => {
+              {GRID_STAGES.map((stage) => {
                 const key = `${r.vacancyId}:${stage}`;
                 const inStage = r.cands.filter((c) => c.stage === stage);
                 return (
