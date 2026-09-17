@@ -41,5 +41,5 @@ export async function verifyMfa(
     return { error: "Code klopt niet. Probeer de nieuwste code uit je app." };
   }
 
-  redirect("/dashboard");
+  redirect("/procedures");
 }

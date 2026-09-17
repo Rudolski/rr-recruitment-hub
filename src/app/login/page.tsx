@@ -12,7 +12,7 @@ export default async function LoginPage({
   const redirectTo =
     typeof redirectParam === "string" && redirectParam.startsWith("/")
       ? redirectParam
-      : "/dashboard";
+      : "/procedures";
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-cream px-4">

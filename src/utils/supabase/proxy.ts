@@ -70,10 +70,10 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // Al ingelogd maar op /login -> door naar het dashboard.
+  // Al ingelogd maar op /login -> door naar Procedures/Vacatures.
   if (user && pathname === "/login") {
     const dashboardUrl = request.nextUrl.clone();
-    dashboardUrl.pathname = "/dashboard";
+    dashboardUrl.pathname = "/procedures";
     dashboardUrl.search = "";
     return NextResponse.redirect(dashboardUrl);
   }

@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "RR Recruitment Hub",
     short_name: "RR Hub",
     description: "Interne webapplicatie voor RR Recruitment",
-    start_url: "/dashboard",
+    start_url: "/procedures",
     display: "standalone",
     background_color: "#fff7ec",
     theme_color: "#0d1e2e",

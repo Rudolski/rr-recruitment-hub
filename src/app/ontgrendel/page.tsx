@@ -11,14 +11,14 @@ export default async function OntgrendelPage() {
 
   const cookieStore = await cookies();
   if (cookieStore.get(UNLOCK_COOKIE)?.value === "1") {
-    redirect("/dashboard");
+    redirect("/procedures");
   }
 
   const { count } = await supabase
     .from("webauthn_credentials")
     .select("id", { count: "exact", head: true })
     .eq("user_id", user.id);
-  if (!count) redirect("/dashboard");
+  if (!count) redirect("/procedures");
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-cream px-4">
