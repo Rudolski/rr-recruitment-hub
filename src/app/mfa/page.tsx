@@ -15,7 +15,7 @@ async function resolveView(
 ): Promise<View> {
   const { data: aal } =
     await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-  if (aal?.currentLevel === "aal2") redirect("/dashboard");
+  if (aal?.currentLevel === "aal2") redirect("/procedures");
 
   const { data: factors } = await supabase.auth.mfa.listFactors();
   const verified = (factors?.totp ?? []).find((f) => f.status === "verified");

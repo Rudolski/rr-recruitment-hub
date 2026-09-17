@@ -26,7 +26,7 @@ export function UnlockForm() {
           setError(result.error);
           return;
         }
-        router.replace("/dashboard");
+        router.replace("/procedures");
         router.refresh();
       } catch (e) {
         setError(

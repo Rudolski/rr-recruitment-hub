@@ -7,7 +7,10 @@
  * de cookie vanzelf na UNLOCK_IDLE_SECONDS.
  */
 export const UNLOCK_COOKIE = "rr_app_unlocked";
-export const UNLOCK_IDLE_SECONDS = 5 * 60;
+// 30 min: op een Mac telt elke keer wisselen naar een andere app (Slack,
+// mail...) al als "op de achtergrond" — bij 5 min liep dat bij normaal
+// multitasken al snel op, ook al zat je gewoon door te werken.
+export const UNLOCK_IDLE_SECONDS = 30 * 60;
 
 export function unlockCookieOptions() {
   return {

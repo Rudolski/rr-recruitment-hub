@@ -15,8 +15,8 @@ export async function login(
 ): Promise<LoginState> {
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
-  const rawRedirect = String(formData.get("redirect") ?? "/dashboard");
-  const redirectTo = rawRedirect.startsWith("/") ? rawRedirect : "/dashboard";
+  const rawRedirect = String(formData.get("redirect") ?? "/procedures");
+  const redirectTo = rawRedirect.startsWith("/") ? rawRedirect : "/procedures";
 
   if (!email || !password) {
     return { error: "Vul je e-mailadres en wachtwoord in." };
