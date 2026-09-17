@@ -16,7 +16,15 @@ import {
   renameVacancyCandidate,
   setCandidateStageDate,
 } from "@/app/(app)/vacatures/board-actions";
-import { updateVacancyForecastFields } from "@/app/(app)/vacatures/actions";
+import {
+  reorderVacancies,
+  updateVacancyForecastFields,
+} from "@/app/(app)/vacatures/actions";
+
+// Eigen dataTransfer-type om een vacature-sleepbeweging (rij
+// herordenen) te onderscheiden van het slepen van een kandidaat-chip
+// tussen stappen (dat gebruikt "text/plain").
+const ROW_DRAG_TYPE = "application/x-rr-vacancy-row";
 
 type Cand = {
   id: string;
@@ -33,10 +41,12 @@ export type ProcedureRow = {
   expectedFee: number | null;
   expectedCloseMonth: string | null;
   successProbability: number | null;
+  sortOrder: number | null;
   cands: Cand[];
 };
 
 type OptAction =
+  | { type: "reorder"; order: string[] }
   | { type: "move"; vacancyId: string; candId: string; stage: string }
   | { type: "rename"; vacancyId: string; candId: string; name: string }
   | { type: "date"; vacancyId: string; candId: string; date: string | null }
@@ -51,6 +61,14 @@ type OptAction =
     };
 
 function reducer(state: ProcedureRow[], a: OptAction): ProcedureRow[] {
+  if (a.type === "reorder") {
+    const byId = new Map(state.map((r) => [r.vacancyId, r]));
+    const reordered = a.order
+      .map((id) => byId.get(id))
+      .filter((r): r is ProcedureRow => !!r);
+    const missing = state.filter((r) => !a.order.includes(r.vacancyId));
+    return [...reordered, ...missing];
+  }
   return state.map((r) => {
     if (r.vacancyId !== a.vacancyId) return r;
     switch (a.type) {
@@ -102,6 +120,8 @@ export function ProceduresGrid({ rows: initial }: { rows: ProcedureRow[] }) {
   const [rows, applyOpt] = useOptimistic(initial, reducer);
   const [, start] = useTransition();
   const [dragOver, setDragOver] = useState<string | null>(null);
+  const [dragOverRow, setDragOverRow] = useState<string | null>(null);
+  const [draggingRow, setDraggingRow] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingForecastId, setEditingForecastId] = useState<string | null>(
     null,
@@ -169,6 +189,42 @@ export function ProceduresGrid({ rows: initial }: { rows: ProcedureRow[] }) {
       updateVacancyForecastFields,
       fd,
     );
+  }
+
+  function reorder(order: string[]) {
+    const fd = new FormData();
+    fd.set("ids", order.join(","));
+    run({ type: "reorder", order }, reorderVacancies, fd);
+  }
+
+  // Desktop: slepen. Droppen op een rij zet de gesleepte vacature vóór
+  // die rij.
+  function handleRowDrop(targetId: string) {
+    return (e: React.DragEvent) => {
+      e.preventDefault();
+      setDragOverRow(null);
+      const draggedId = e.dataTransfer.getData(ROW_DRAG_TYPE);
+      if (!draggedId || draggedId === targetId) return;
+      const ids = rows.map((r) => r.vacancyId);
+      const from = ids.indexOf(draggedId);
+      if (from === -1 || !ids.includes(targetId)) return;
+      const next = [...ids];
+      next.splice(from, 1);
+      next.splice(next.indexOf(targetId), 0, draggedId);
+      reorder(next);
+    };
+  }
+
+  // Mobiel: geen betrouwbaar sleepgebaar op een telefoon, dus simpele
+  // op/neer-knopjes die de rij met de buur verwisselen.
+  function moveRow(vacancyId: string, direction: -1 | 1) {
+    const ids = rows.map((r) => r.vacancyId);
+    const idx = ids.indexOf(vacancyId);
+    const swapWith = idx + direction;
+    if (idx === -1 || swapWith < 0 || swapWith >= ids.length) return;
+    const next = [...ids];
+    [next[idx], next[swapWith]] = [next[swapWith], next[idx]];
+    reorder(next);
   }
 
   function add(vacancyId: string, stage: string, name: string) {
@@ -255,20 +311,42 @@ export function ProceduresGrid({ rows: initial }: { rows: ProcedureRow[] }) {
     <>
       {/* Mobiel: kaart per vacature, stappen onder elkaar */}
       <div className="space-y-3 md:hidden">
-        {rows.map((r) => (
+        {rows.map((r, i) => (
           <div
             key={r.vacancyId}
             className="rounded-lg border border-zinc-200 dark:border-zinc-800"
           >
-            <div className="border-b border-zinc-200 px-3 py-2 leading-tight dark:border-zinc-800">
-              <Link
-                href={`/vacatures/${r.vacancyId}`}
-                className="font-medium text-navy hover:underline dark:text-cream"
-              >
-                {r.title}
-              </Link>
-              <span className="text-xs text-zinc-500"> · {r.client}</span>
-              {labels(r)}
+            <div className="flex items-start justify-between gap-2 border-b border-zinc-200 px-3 py-2 leading-tight dark:border-zinc-800">
+              <span className="min-w-0">
+                <Link
+                  href={`/vacatures/${r.vacancyId}`}
+                  className="font-medium text-navy hover:underline dark:text-cream"
+                >
+                  {r.title}
+                </Link>
+                <span className="text-xs text-zinc-500"> · {r.client}</span>
+                {labels(r)}
+              </span>
+              <span className="flex shrink-0 gap-0.5">
+                <button
+                  type="button"
+                  aria-label="Naar boven"
+                  disabled={i === 0}
+                  onClick={() => moveRow(r.vacancyId, -1)}
+                  className="rounded px-1.5 py-1 text-zinc-400 hover:bg-zinc-100 disabled:opacity-30 dark:hover:bg-zinc-800"
+                >
+                  ▲
+                </button>
+                <button
+                  type="button"
+                  aria-label="Naar beneden"
+                  disabled={i === rows.length - 1}
+                  onClick={() => moveRow(r.vacancyId, 1)}
+                  className="rounded px-1.5 py-1 text-zinc-400 hover:bg-zinc-100 disabled:opacity-30 dark:hover:bg-zinc-800"
+                >
+                  ▼
+                </button>
+              </span>
             </div>
             <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
               {CANDIDATE_STAGES.map((stage) => {
@@ -313,16 +391,48 @@ export function ProceduresGrid({ rows: initial }: { rows: ProcedureRow[] }) {
           {rows.map((r) => (
             <tr key={r.vacancyId}>
               <td
-                className={`${cellBase} sticky left-0 z-10 w-[13rem] min-w-[13rem] border-r bg-white px-2.5 py-1.5 leading-tight dark:bg-zinc-950`}
+                onDragOver={(e) => {
+                  if (!e.dataTransfer.types.includes(ROW_DRAG_TYPE)) return;
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = "move";
+                  setDragOverRow(r.vacancyId);
+                }}
+                onDragLeave={() =>
+                  setDragOverRow((id) => (id === r.vacancyId ? null : id))
+                }
+                onDrop={handleRowDrop(r.vacancyId)}
+                className={`${cellBase} sticky left-0 z-10 w-[13rem] min-w-[13rem] border-r bg-white px-2.5 py-1.5 leading-tight dark:bg-zinc-950 ${
+                  dragOverRow === r.vacancyId
+                    ? "border-t-2 border-t-terra"
+                    : ""
+                } ${draggingRow === r.vacancyId ? "opacity-40" : ""}`}
               >
-                <Link
-                  href={`/vacatures/${r.vacancyId}`}
-                  className="font-medium text-navy hover:underline dark:text-cream"
-                >
-                  {r.title}
-                </Link>
-                <span className="text-xs text-zinc-500"> · {r.client}</span>
-                {labels(r)}
+                <span className="flex items-start gap-1.5">
+                  <span
+                    draggable
+                    onDragStart={(e) => {
+                      e.dataTransfer.setData(ROW_DRAG_TYPE, r.vacancyId);
+                      e.dataTransfer.effectAllowed = "move";
+                      setDraggingRow(r.vacancyId);
+                    }}
+                    onDragEnd={() => setDraggingRow(null)}
+                    title="Sleep om te herordenen"
+                    aria-label="Sleep om te herordenen"
+                    className="mt-0.5 shrink-0 cursor-grab select-none text-zinc-300 active:cursor-grabbing dark:text-zinc-600"
+                  >
+                    ⠿
+                  </span>
+                  <span className="min-w-0">
+                    <Link
+                      href={`/vacatures/${r.vacancyId}`}
+                      className="font-medium text-navy hover:underline dark:text-cream"
+                    >
+                      {r.title}
+                    </Link>
+                    <span className="text-xs text-zinc-500"> · {r.client}</span>
+                    {labels(r)}
+                  </span>
+                </span>
               </td>
 
               {CANDIDATE_STAGES.map((stage) => {

@@ -188,6 +188,7 @@ export type Database = {
           closed_at: string | null;
           created_at: string;
           updated_at: string;
+          sort_order: number | null;
         };
         Insert: {
           id?: string;
@@ -215,6 +216,7 @@ export type Database = {
           closed_at?: string | null;
           created_at?: string;
           updated_at?: string;
+          sort_order?: number | null;
         };
         Update: {
           client_id?: string;
@@ -239,6 +241,7 @@ export type Database = {
           opened_at?: string;
           closed_at?: string | null;
           updated_at?: string;
+          sort_order?: number | null;
         };
         Relationships: [];
       };
