@@ -231,6 +231,32 @@ export async function updateVacancyForecastFields(fd: FormData) {
   revalidatePath("/dashboard");
 }
 
+/**
+ * Handmatige volgorde opslaan (slepen in Procedures). `ids` is de
+ * volledige, nieuwe volgorde van vacature-id's, komma-gescheiden.
+ */
+export async function reorderVacancies(fd: FormData) {
+  const { supabase, organizationId } = await getSessionContext();
+  if (!organizationId) return;
+  const ids = str(fd, "ids")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (ids.length === 0) return;
+
+  await Promise.all(
+    ids.map((id, i) =>
+      supabase
+        .from("vacancies")
+        .update({ sort_order: i })
+        .eq("id", id)
+        .eq("organization_id", organizationId),
+    ),
+  );
+
+  revalidatePath("/procedures");
+}
+
 export async function deleteVacature(fd: FormData) {
   const { supabase, organizationId } = await getSessionContext();
   if (!organizationId) return;

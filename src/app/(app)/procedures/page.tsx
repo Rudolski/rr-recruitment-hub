@@ -25,7 +25,7 @@ export const metadata = { title: "Procedures / Vacatures · RR Recruitment Hub" 
 const ACTIVE = new Set(["open", "concept", "on_hold"]);
 
 const VACANCY_FIELDS =
-  "id, title, client_id, status, kind, consultant, exclusivity_until, expected_fee, expected_close_month, success_probability";
+  "id, title, client_id, status, kind, consultant, exclusivity_until, expected_fee, expected_close_month, success_probability, sort_order";
 
 export default async function ProceduresPage() {
   const { supabase, organizationId } = await getSessionContext();
@@ -80,6 +80,7 @@ export default async function ProceduresPage() {
           | "expected_fee"
           | "expected_close_month"
           | "success_probability"
+          | "sort_order"
         >[]
       >(),
     supabase
@@ -129,7 +130,9 @@ export default async function ProceduresPage() {
   // allang afgeronde vacatures.
   const active = (vacancies ?? []).filter((v) => ACTIVE.has(v.status));
 
-  // W&S: de visuele matrix met kandidaten per stap.
+  // W&S: de visuele matrix met kandidaten per stap. Handmatige
+  // volgorde (slepen) gaat voor; zonder voorkeur (nog nooit gesleept)
+  // valt terug op alfabetisch.
   const rows: ProcedureRow[] = active
     .filter((v) => (v.kind ?? "wervingsfee") === "wervingsfee")
     .map((v) => ({
@@ -141,13 +144,18 @@ export default async function ProceduresPage() {
       expectedFee: v.expected_fee,
       expectedCloseMonth: v.expected_close_month,
       successProbability: v.success_probability,
+      sortOrder: v.sort_order,
       cands: byVacancy.get(v.id) ?? [],
     }))
-    .sort(
-      (a, b) =>
+    .sort((a, b) => {
+      const soA = a.sortOrder ?? Number.POSITIVE_INFINITY;
+      const soB = b.sortOrder ?? Number.POSITIVE_INFINITY;
+      if (soA !== soB) return soA - soB;
+      return (
         a.client.localeCompare(b.client, "nl") ||
-        a.title.localeCompare(b.title, "nl"),
-    );
+        a.title.localeCompare(b.title, "nl")
+      );
+    });
 
   // Interim/ZZP Marge: geen kandidaat-procedure, wel forecast — los
   // eronder, zonder stappenkolommen.
