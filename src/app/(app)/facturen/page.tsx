@@ -120,9 +120,17 @@ export default async function FacturenPage({
         title="Facturen"
         description="Registratie van facturen uit Snelstart Web. Concept telt niet mee in de omzet; verzonden en verder wel (excl. btw)."
         action={
-          <Link href="/facturen/nieuw" className={btnPrimary}>
-            Nieuwe factuurregel
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/facturen/snelstart"
+              className="text-sm text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+            >
+              SnelStart-koppeling
+            </Link>
+            <Link href="/facturen/nieuw" className={btnPrimary}>
+              Nieuwe factuurregel
+            </Link>
+          </div>
         }
       />
 

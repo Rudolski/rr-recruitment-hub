@@ -717,6 +717,123 @@ export type Database = {
         };
         Relationships: [];
       };
+      snelstart_settings: {
+        Row: {
+          organization_id: string;
+          enabled: boolean;
+          sync_since: string;
+          last_synced_at: string | null;
+          last_sync_error: string | null;
+        };
+        Insert: {
+          organization_id: string;
+          enabled?: boolean;
+          sync_since?: string;
+          last_synced_at?: string | null;
+          last_sync_error?: string | null;
+        };
+        Update: {
+          enabled?: boolean;
+          sync_since?: string;
+          last_synced_at?: string | null;
+          last_sync_error?: string | null;
+        };
+        Relationships: [];
+      };
+      snelstart_sales_invoices: {
+        Row: {
+          id: string;
+          organization_id: string;
+          snelstart_id: string;
+          invoice_number: string | null;
+          client_name: string | null;
+          amount: number | null;
+          status: string | null;
+          issue_date: string | null;
+          paid_date: string | null;
+          suggested_vacancy_id: string | null;
+          matched_vacancy_id: string | null;
+          matched_at: string | null;
+          raw: Record<string, unknown> | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          snelstart_id: string;
+          invoice_number?: string | null;
+          client_name?: string | null;
+          amount?: number | null;
+          status?: string | null;
+          issue_date?: string | null;
+          paid_date?: string | null;
+          suggested_vacancy_id?: string | null;
+          matched_vacancy_id?: string | null;
+          matched_at?: string | null;
+          raw?: Record<string, unknown> | null;
+          created_at?: string;
+        };
+        Update: {
+          invoice_number?: string | null;
+          client_name?: string | null;
+          amount?: number | null;
+          status?: string | null;
+          issue_date?: string | null;
+          paid_date?: string | null;
+          suggested_vacancy_id?: string | null;
+          matched_vacancy_id?: string | null;
+          matched_at?: string | null;
+          raw?: Record<string, unknown> | null;
+        };
+        Relationships: [];
+      };
+      snelstart_purchase_invoices: {
+        Row: {
+          id: string;
+          organization_id: string;
+          snelstart_id: string;
+          invoice_number: string | null;
+          relation_name: string | null;
+          amount: number | null;
+          status: string | null;
+          issue_date: string | null;
+          paid_date: string | null;
+          suggested_vacancy_id: string | null;
+          matched_vacancy_id: string | null;
+          matched_at: string | null;
+          raw: Record<string, unknown> | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          snelstart_id: string;
+          invoice_number?: string | null;
+          relation_name?: string | null;
+          amount?: number | null;
+          status?: string | null;
+          issue_date?: string | null;
+          paid_date?: string | null;
+          suggested_vacancy_id?: string | null;
+          matched_vacancy_id?: string | null;
+          matched_at?: string | null;
+          raw?: Record<string, unknown> | null;
+          created_at?: string;
+        };
+        Update: {
+          invoice_number?: string | null;
+          relation_name?: string | null;
+          amount?: number | null;
+          status?: string | null;
+          issue_date?: string | null;
+          paid_date?: string | null;
+          suggested_vacancy_id?: string | null;
+          matched_vacancy_id?: string | null;
+          matched_at?: string | null;
+          raw?: Record<string, unknown> | null;
+        };
+        Relationships: [];
+      };
     };
     Views: { [_ in never]: never };
     Functions: {
