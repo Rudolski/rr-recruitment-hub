@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
 import { btnPrimary, errorBox } from "@/components/ui";
-import { formatDate } from "@/lib/format";
+import { formatDate, formatDateTime } from "@/lib/format";
 import { getSessionContext } from "@/utils/supabase/auth";
 import type {
   Client,
@@ -164,7 +164,7 @@ export default async function RadarPage() {
                           </div>
                           <span className="text-xs text-zinc-400">
                             {s.last_scan_at
-                              ? `laatste scan ${formatDate(s.last_scan_at)} · ${
+                              ? `laatste scan ${formatDateTime(s.last_scan_at)} · ${
                                   s.last_scan_note ?? s.last_scan_status ?? ""
                                 }`
                               : "nog niet gescand"}

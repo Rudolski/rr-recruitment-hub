@@ -83,7 +83,7 @@ export async function scanSource(
 
   const { data: existing } = await db
     .from("watch_vacancies")
-    .select("id, external_key, closed_at, company")
+    .select("id, external_key, closed_at, company, posted_on")
     .eq("source_id", source.id);
 
   const byKey = new Map((existing ?? []).map((r) => [r.external_key, r]));
@@ -136,7 +136,12 @@ export async function scanSource(
       title: v.title,
       company: v.company,
       location: v.location,
-      posted_on: v.postedOn,
+      // Eenmaal vastgelegd, blijft staan: sommige bronnen (bijv.
+      // Personato) geven bij elke scan een sitemap-lastmod van
+      // vandaag mee i.p.v. de echte plaatsingsdatum. Bij een nieuwe
+      // vacature (nog geen bestaande rij) pakken we de nu gescrapete
+      // waarde als eerste vastlegging.
+      posted_on: byKey.get(v.externalKey)?.posted_on ?? v.postedOn,
       last_seen_at: now,
       closed_at: null as string | null,
     }));
