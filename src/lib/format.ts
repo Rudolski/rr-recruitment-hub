@@ -17,6 +17,14 @@ const dateFmt = new Intl.DateTimeFormat("nl-NL", {
   year: "numeric",
 });
 
+const dateTimeFmt = new Intl.DateTimeFormat("nl-NL", {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+});
+
 const monthFmt = new Intl.DateTimeFormat("nl-NL", {
   month: "long",
   year: "numeric",
@@ -37,6 +45,12 @@ export function eur2(value: number | null | undefined): string {
 export function formatDate(value: string | null | undefined): string {
   if (!value) return "—";
   return dateFmt.format(new Date(value));
+}
+
+/** Zoals formatDate, maar met tijdstip (uur:minuut) — voor bijv. laatste scan. */
+export function formatDateTime(value: string | null | undefined): string {
+  if (!value) return "—";
+  return dateTimeFmt.format(new Date(value));
 }
 
 export function formatMonth(value: string | null | undefined): string {
