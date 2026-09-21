@@ -12,11 +12,14 @@ export function ForecastCards({
   totals,
   targets,
   byKind,
+  realised = {},
 }: {
   months: string[];
   totals: Record<string, number>;
   targets: Map<string, number>;
   byKind: Record<string, [VacancyKind, number][]>;
+  /** Al gefactureerde omzet per maand; zit al in `totals`, alleen voor het label. */
+  realised?: Record<string, number>;
 }) {
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -43,7 +46,9 @@ export function ForecastCards({
               {eur(value)}
             </p>
             <p className="mt-1 text-xs text-zinc-400">
-              bedrag × slagingskans
+              {(realised[month] ?? 0) > 0.5
+                ? `${eur(realised[month])} gefactureerd + bedrag × slagingskans`
+                : "bedrag × slagingskans"}
               {target != null && (
                 <>
                   {" · target "}
