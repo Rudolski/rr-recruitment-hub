@@ -4,10 +4,13 @@ import { PageHeader } from "@/components/page-header";
 import { VacancyStatusBadge } from "@/components/status-badge";
 import { btnPrimary, emptyState, errorBox } from "@/components/ui";
 import { eur, formatMonth, monthKey } from "@/lib/format";
+import { nettoAmount } from "@/lib/omzet";
 import { getSessionContext } from "@/utils/supabase/auth";
 import {
   VACANCY_KIND_LABELS,
+  REALISED_INVOICE_STATUSES,
   type Client,
+  type Invoice,
   type MonthlyTarget,
   type Vacancy,
   type VacancyCandidate,
@@ -53,6 +56,7 @@ export default async function ProceduresPage() {
     { data: vacancies },
     { data: clients },
     { data: targets },
+    { data: monthInvoices },
   ] = await Promise.all([
     supabase
       .from("vacancy_candidates")
@@ -92,6 +96,15 @@ export default async function ProceduresPage() {
       .select("year, month, target_revenue")
       .in("year", forecastYears)
       .returns<Pick<MonthlyTarget, "year" | "month" | "target_revenue">[]>(),
+    supabase
+      .from("invoices")
+      .select("amount_excl_btw, partner_name, partner_share_amount")
+      .in("status", REALISED_INVOICE_STATUSES)
+      .gte("issue_date", `${thisMonth}-01`)
+      .lt("issue_date", `${nextMonth}-01`)
+      .returns<
+        Pick<Invoice, "amount_excl_btw" | "partner_name" | "partner_share_amount">[]
+      >(),
   ]);
 
   const tableMissing =
@@ -110,6 +123,13 @@ export default async function ProceduresPage() {
   const contributions = vacancyContributions(vacancies ?? []);
   const forecastMonths = [thisMonth, nextMonth];
   const forecastTotals = sumByMonth(contributions, forecastMonths);
+  // Lopende maand = al gefactureerd + gewogen prognose, zoals op het
+  // Dashboard (die omzet staat 100% vast).
+  const realisedThisMonth = (monthInvoices ?? []).reduce(
+    (s, inv) => s + nettoAmount(inv),
+    0,
+  );
+  forecastTotals[thisMonth] += realisedThisMonth;
   const forecastByKind = byKindPerMonth(contributions, forecastMonths);
 
   const byVacancy = new Map<string, ProcedureRow["cands"]>();
@@ -187,6 +207,7 @@ export default async function ProceduresPage() {
           totals={forecastTotals}
           targets={targetByMonth}
           byKind={forecastByKind}
+          realised={{ [thisMonth]: realisedThisMonth }}
         />
       </div>
 
