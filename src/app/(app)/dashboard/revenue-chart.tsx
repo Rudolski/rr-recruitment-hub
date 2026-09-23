@@ -81,6 +81,8 @@ export function RevenueChart({
     values: isBarMode ? l.monthValues : l.cumValues,
   }));
   const barYear = lines.find((l) => l.selected) ?? lines[0];
+  const prevBarYear = lines.find((l) => l.year === selectedYear - 1) ?? null;
+  const barSeries = prevBarYear ? [prevBarYear, barYear] : [barYear];
 
   const seriesTarget = target
     ? isBarMode
@@ -91,7 +93,7 @@ export function RevenueChart({
   const maxY =
     Math.max(
       1,
-      ...(isBarMode ? barYear.values : lines.flatMap((l) => l.values)),
+      ...(isBarMode ? barSeries.flatMap((l) => l.values) : lines.flatMap((l) => l.values)),
       ...(seriesTarget ?? []),
     ) * 1.1;
 
@@ -145,7 +147,7 @@ export function RevenueChart({
     <div className="mt-6 overflow-x-auto rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-4 text-xs">
-          {(isBarMode ? [barYear] : lines).map((l) => (
+          {(isBarMode ? barSeries : lines).map((l) => (
             <span key={l.year} className="flex items-center gap-1.5">
               <span
                 className={
@@ -256,32 +258,39 @@ export function RevenueChart({
 
         {isBarMode ? (
           <>
-            {barYear.values.map((v, i) => {
-              const barW = ((W - padL - padR) / 11) * 0.5;
-              return (
-                <rect
-                  key={i}
-                  x={x(i) - barW / 2}
-                  y={y(v)}
-                  width={barW}
-                  height={Math.max(0, H - padB - y(v))}
-                  rx={2}
-                  className={
-                    hover === i
-                      ? "fill-zinc-700 dark:fill-zinc-300"
-                      : "fill-zinc-900 dark:fill-zinc-100"
-                  }
-                />
+            {(() => {
+              const groupW = ((W - padL - padR) / 11) * 0.6;
+              const barW = groupW / barSeries.length;
+              return barSeries.map((l, si) =>
+                l.values.map((v, i) => (
+                  <rect
+                    key={`${l.year}-${i}`}
+                    x={x(i) - groupW / 2 + si * barW + 1}
+                    y={y(v)}
+                    width={Math.max(0, barW - 2)}
+                    height={Math.max(0, H - padB - y(v))}
+                    rx={2}
+                    className={
+                      l.selected
+                        ? hover === i
+                          ? "fill-zinc-700 dark:fill-zinc-300"
+                          : "fill-zinc-900 dark:fill-zinc-100"
+                        : ""
+                    }
+                    fill={l.selected ? undefined : colorOf(l.year)}
+                    opacity={!l.selected && hover === i ? 0.85 : 1}
+                  />
+                )),
               );
-            })}
+            })()}
             {seriesTarget &&
               seriesTarget.map((v, i) => {
-                const barW = ((W - padL - padR) / 11) * 0.5;
+                const groupW = ((W - padL - padR) / 11) * 0.6;
                 return (
                   <line
                     key={i}
-                    x1={x(i) - barW / 2 - 3}
-                    x2={x(i) + barW / 2 + 3}
+                    x1={x(i) - groupW / 2 - 3}
+                    x2={x(i) + groupW / 2 + 3}
                     y1={y(v)}
                     y2={y(v)}
                     className="stroke-red-500"
