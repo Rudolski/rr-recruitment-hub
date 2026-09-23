@@ -35,9 +35,9 @@ function cumulative(monthly: number[]): number[] {
 }
 
 /**
- * Cumulatieve omzetgrafiek: alle jaren met data t.o.v. elkaar en de
- * target van het geselecteerde jaar. Pure SVG, geen externe library.
- * Hover een maand voor de bedragen per jaar.
+ * Cumulatieve omzetgrafiek (t.o.v. elkaar en de target) of staafgrafiek
+ * per maand van het geselecteerde jaar. Pure SVG, geen externe
+ * library. Hover een maand voor de bedragen.
  */
 export function RevenueChart({
   selectedYear,
@@ -51,6 +51,7 @@ export function RevenueChart({
   label?: string;
 }) {
   const [hover, setHover] = useState<number | null>(null);
+  const [mode, setMode] = useState<"cumulatief" | "maand">("cumulatief");
 
   const W = 720;
   const H = 240;
@@ -59,23 +60,38 @@ export function RevenueChart({
   const padT = 16;
   const padB = 28;
 
-  const lines = series.map((s) => ({
+  const allLines = series.map((s) => ({
     year: s.year,
     selected: s.year === selectedYear,
-    values: cumulative(s.data),
+    cumValues: cumulative(s.data),
+    monthValues: s.data.slice(1, 13),
   }));
-  const otherYears = lines.filter((l) => !l.selected).map((l) => l.year);
+  const otherYears = allLines
+    .filter((l) => !l.selected)
+    .map((l) => l.year);
   const colorOf = (year: number) => {
     const idx = otherYears.indexOf(year);
     return PALETTE[idx % PALETTE.length];
   };
 
-  const seriesTarget = target ? cumulative(target) : null;
+  const isBarMode = mode === "maand";
+  const lines = allLines.map((l) => ({
+    year: l.year,
+    selected: l.selected,
+    values: isBarMode ? l.monthValues : l.cumValues,
+  }));
+  const barYear = lines.find((l) => l.selected) ?? lines[0];
+
+  const seriesTarget = target
+    ? isBarMode
+      ? target.slice(1, 13)
+      : cumulative(target)
+    : null;
 
   const maxY =
     Math.max(
       1,
-      ...lines.flatMap((l) => l.values),
+      ...(isBarMode ? barYear.values : lines.flatMap((l) => l.values)),
       ...(seriesTarget ?? []),
     ) * 1.1;
 
@@ -127,34 +143,75 @@ export function RevenueChart({
 
   return (
     <div className="mt-6 overflow-x-auto rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
-      <div className="mb-2 flex flex-wrap items-center gap-4 text-xs">
-        {lines.map((l) => (
-          <span key={l.year} className="flex items-center gap-1.5">
-            <span
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-4 text-xs">
+          {(isBarMode ? [barYear] : lines).map((l) => (
+            <span key={l.year} className="flex items-center gap-1.5">
+              <span
+                className={
+                  l.selected
+                    ? "inline-block h-2 w-4 rounded-sm bg-zinc-900 dark:bg-zinc-100"
+                    : "inline-block h-2 w-4 rounded-sm"
+                }
+                style={
+                  l.selected ? undefined : { backgroundColor: colorOf(l.year) }
+                }
+              />
+              {label} {l.year}
+            </span>
+          ))}
+          {seriesTarget && (
+            <span className="flex items-center gap-1.5">
+              <span
+                className={
+                  isBarMode
+                    ? "inline-block h-0.5 w-4 rounded-sm bg-red-500"
+                    : "inline-block h-2 w-4 rounded-sm border border-dashed border-zinc-500"
+                }
+              />
+              Target {selectedYear}
+            </span>
+          )}
+          <span className="text-zinc-400">
+            {isBarMode ? "per maand" : "cumulatief"}, excl. btw · hover voor
+            bedragen
+          </span>
+        </div>
+        <div className="flex gap-1 rounded-md border border-zinc-200 p-0.5 text-xs dark:border-zinc-800">
+          {(
+            [
+              ["cumulatief", "Cumulatief"],
+              ["maand", "Per maand"],
+            ] as const
+          ).map(([value, text]) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => {
+                setMode(value);
+                setHover(null);
+              }}
               className={
-                l.selected
-                  ? "inline-block h-2 w-4 rounded-sm bg-zinc-900 dark:bg-zinc-100"
-                  : "inline-block h-2 w-4 rounded-sm"
+                mode === value
+                  ? "rounded bg-zinc-900 px-2 py-1 font-medium text-cream dark:bg-zinc-100 dark:text-zinc-900"
+                  : "rounded px-2 py-1 text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200"
               }
-              style={l.selected ? undefined : { backgroundColor: colorOf(l.year) }}
-            />
-            {label} {l.year}
-          </span>
-        ))}
-        {seriesTarget && (
-          <span className="flex items-center gap-1.5">
-            <span className="inline-block h-2 w-4 rounded-sm border border-dashed border-zinc-500" />
-            Target {selectedYear}
-          </span>
-        )}
-        <span className="text-zinc-400">cumulatief, excl. btw · hover voor bedragen</span>
+            >
+              {text}
+            </button>
+          ))}
+        </div>
       </div>
 
       <svg
         viewBox={`0 0 ${W} ${H}`}
         className="h-56 w-full min-w-[560px]"
         role="img"
-        aria-label={`Cumulatieve omzet ${lines.map((l) => l.year).join(", ")} en target ${selectedYear}`}
+        aria-label={
+          isBarMode
+            ? `Omzet per maand ${selectedYear} en target`
+            : `Cumulatieve omzet ${lines.map((l) => l.year).join(", ")} en target ${selectedYear}`
+        }
         onMouseLeave={() => setHover(null)}
       >
         {Array.from({ length: gridLines + 1 }, (_, i) => {
@@ -197,51 +254,91 @@ export function RevenueChart({
           </text>
         ))}
 
-        {seriesTarget && (
-          <path
-            d={path(seriesTarget)}
-            fill="none"
-            strokeDasharray="4 4"
-            className="stroke-zinc-500"
-            strokeWidth={1.5}
-          />
-        )}
-
-        {lines
-          .filter((l) => !l.selected)
-          .map((l) => (
-            <path
-              key={l.year}
-              d={path(l.values)}
-              fill="none"
-              stroke={colorOf(l.year)}
-              strokeWidth={1.5}
-            />
-          ))}
-        {lines
-          .filter((l) => l.selected)
-          .map((l) => (
-            <path
-              key={l.year}
-              d={path(l.values)}
-              fill="none"
-              className="stroke-zinc-900 dark:stroke-zinc-100"
-              strokeWidth={2}
-            />
-          ))}
-        {lines
-          .filter((l) => l.selected)
-          .flatMap((l) =>
-            l.values.map((v, i) => (
-              <circle
-                key={i}
-                cx={x(i)}
-                cy={y(v)}
-                r={hover === i ? 4 : 2.5}
-                className="fill-zinc-900 dark:fill-zinc-100"
+        {isBarMode ? (
+          <>
+            {barYear.values.map((v, i) => {
+              const barW = ((W - padL - padR) / 11) * 0.5;
+              return (
+                <rect
+                  key={i}
+                  x={x(i) - barW / 2}
+                  y={y(v)}
+                  width={barW}
+                  height={Math.max(0, H - padB - y(v))}
+                  rx={2}
+                  className={
+                    hover === i
+                      ? "fill-zinc-700 dark:fill-zinc-300"
+                      : "fill-zinc-900 dark:fill-zinc-100"
+                  }
+                />
+              );
+            })}
+            {seriesTarget &&
+              seriesTarget.map((v, i) => {
+                const barW = ((W - padL - padR) / 11) * 0.5;
+                return (
+                  <line
+                    key={i}
+                    x1={x(i) - barW / 2 - 3}
+                    x2={x(i) + barW / 2 + 3}
+                    y1={y(v)}
+                    y2={y(v)}
+                    className="stroke-red-500"
+                    strokeWidth={2}
+                  />
+                );
+              })}
+          </>
+        ) : (
+          <>
+            {seriesTarget && (
+              <path
+                d={path(seriesTarget)}
+                fill="none"
+                strokeDasharray="4 4"
+                className="stroke-zinc-500"
+                strokeWidth={1.5}
               />
-            )),
-          )}
+            )}
+
+            {lines
+              .filter((l) => !l.selected)
+              .map((l) => (
+                <path
+                  key={l.year}
+                  d={path(l.values)}
+                  fill="none"
+                  stroke={colorOf(l.year)}
+                  strokeWidth={1.5}
+                />
+              ))}
+            {lines
+              .filter((l) => l.selected)
+              .map((l) => (
+                <path
+                  key={l.year}
+                  d={path(l.values)}
+                  fill="none"
+                  className="stroke-zinc-900 dark:stroke-zinc-100"
+                  strokeWidth={2}
+                />
+              ))}
+            {lines
+              .filter((l) => l.selected)
+              .flatMap((l) =>
+                l.values.map((v, i) => (
+                  <circle
+                    key={i}
+                    cx={x(i)}
+                    cy={y(v)}
+                    r={hover === i ? 4 : 2.5}
+                    className="fill-zinc-900 dark:fill-zinc-100"
+                  />
+                )),
+              )}
+          </>
+        )}
 
         {/* Onzichtbare hoverbanden, bovenop de rest zodat ze de muis altijd opvangen */}
         {bandBounds.map(({ start, end }, i) => (
@@ -267,18 +364,19 @@ export function RevenueChart({
               className="stroke-zinc-300 dark:stroke-zinc-700"
               strokeWidth={1}
             />
-            {lines
-              .filter((l) => !l.selected)
-              .map((l) => (
-                <circle
-                  key={l.year}
-                  cx={x(hover)}
-                  cy={y(l.values[hover])}
-                  r={3.5}
-                  fill={colorOf(l.year)}
-                />
-              ))}
-            {seriesTarget && (
+            {!isBarMode &&
+              lines
+                .filter((l) => !l.selected)
+                .map((l) => (
+                  <circle
+                    key={l.year}
+                    cx={x(hover)}
+                    cy={y(l.values[hover])}
+                    r={3.5}
+                    fill={colorOf(l.year)}
+                  />
+                ))}
+            {!isBarMode && seriesTarget && (
               <circle
                 cx={x(hover)}
                 cy={y(seriesTarget[hover])}
