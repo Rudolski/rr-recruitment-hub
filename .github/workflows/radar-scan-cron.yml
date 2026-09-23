@@ -1,0 +1,22 @@
+name: Radar-scan (dagelijkse cron)
+
+# Vervangt Vercel's eigen Cron Jobs voor deze route: die staan daar
+# geregistreerd en op "Enabled", maar voeren 'm platform-breed niet
+# uit (Vercel's "View Logs" blijft leeg, ook na handmatig "Run").
+# GitHub Actions triggert dezelfde route rechtstreeks via de bestaande
+# RADAR_CRON_SECRET-bearer-auth, die de route toch al ondersteunde
+# voor handmatig testen.
+on:
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Radar-scan aanroepen
+        run: |
+          curl -fsS -X POST \
+            -H "Authorization: Bearer ${{ secrets.RADAR_CRON_SECRET }}" \
+            https://rr-recruitment-hub.vercel.app/api/radar/scan
