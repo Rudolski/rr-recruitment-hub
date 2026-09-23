@@ -87,7 +87,11 @@ export default async function RadarPage() {
   }
   // Openstaande vacatures: nieuwste plaatsingsdatum eerst (valt terug op
   // wanneer wij 'm zagen als er geen datum op de site stond).
-  const postKey = (v: WatchVacancy) => v.posted_on ?? v.first_seen_at.slice(0, 10);
+  // De "geplaatst op"-datum van de bron blijkt bij meerdere bronnen
+  // onbetrouwbaar (sitemap-lastmod die voor alle vacatures gelijk
+  // staat i.p.v. de echte plaatsingsdatum) — sorteren én tonen gaat
+  // daarom puur op het moment dat wíj 'm voor het eerst zagen.
+  const postKey = (v: WatchVacancy) => v.first_seen_at.slice(0, 10);
   for (const list of openBySource.values())
     list.sort((a, b) => postKey(b).localeCompare(postKey(a)));
 
@@ -214,9 +218,7 @@ export default async function RadarPage() {
                                     </span>
                                   )}
                                   <span className="ml-auto text-xs tabular-nums text-zinc-500">
-                                    {v.posted_on
-                                      ? `geplaatst ${formatDate(v.posted_on)}`
-                                      : `gezien ${formatDate(v.first_seen_at)}`}
+                                    gezien {formatDate(v.first_seen_at)}
                                   </span>
                                 </li>
                               );
@@ -251,10 +253,8 @@ export default async function RadarPage() {
                                   </a>
                                   {v.location && <span>{v.location}</span>}
                                   <span className="ml-auto text-xs">
-                                    {v.posted_on
-                                      ? `geplaatst ${formatDate(v.posted_on)} · `
-                                      : ""}
-                                    weg sinds{" "}
+                                    gezien {formatDate(v.first_seen_at)} · weg
+                                    sinds{" "}
                                     {v.closed_at ? formatDate(v.closed_at) : "—"}
                                   </span>
                                 </li>
