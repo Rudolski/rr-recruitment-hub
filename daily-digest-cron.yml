@@ -1,0 +1,19 @@
+name: Dagelijkse digest (cron)
+
+# Zie radar-scan-cron.yml voor de reden: Vercel's eigen Cron Jobs
+# voeren deze route niet uit ondanks correcte registratie, dus
+# GitHub Actions triggert 'm rechtstreeks via dezelfde bearer-auth.
+on:
+  schedule:
+    - cron: "0 7 * * 1-5"
+  workflow_dispatch: {}
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Digest aanroepen
+        run: |
+          curl -fsS -X POST \
+            -H "Authorization: Bearer ${{ secrets.RADAR_CRON_SECRET }}" \
+            https://rr-recruitment-hub.vercel.app/api/reports/daily-digest
