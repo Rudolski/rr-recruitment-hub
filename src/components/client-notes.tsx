@@ -1,3 +1,6 @@
+"use client";
+
+import { useActionState, useEffect, useRef, useState } from "react";
 import { btnPrimary, inputClass, labelClass } from "@/components/ui";
 import { formatDate } from "@/lib/format";
 import type { ClientNote } from "@/lib/types";
@@ -9,6 +12,71 @@ import {
 } from "@/app/(app)/klanten/notes-actions";
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
+
+/** Notitieformulier met duidelijke bevestiging na het toevoegen. */
+function AddNoteForm({ clientId }: { clientId: string }) {
+  const [state, formAction, pending] = useActionState(addClientNote, {
+    ok: false,
+  });
+  const formRef = useRef<HTMLFormElement>(null);
+  const [justSaved, setJustSaved] = useState(false);
+
+  useEffect(() => {
+    if (!state.ok) return;
+    formRef.current?.reset();
+    const showTimer = setTimeout(() => setJustSaved(true), 0);
+    const hideTimer = setTimeout(() => setJustSaved(false), 2500);
+    return () => {
+      clearTimeout(showTimer);
+      clearTimeout(hideTimer);
+    };
+  }, [state]);
+
+  return (
+    <form
+      ref={formRef}
+      action={formAction}
+      className="space-y-3 rounded-lg border border-zinc-200 p-3 dark:border-zinc-800"
+    >
+      <input type="hidden" name="client_id" value={clientId} />
+      <div className="space-y-1.5">
+        <label htmlFor="note-body" className={labelClass}>
+          Notitie
+        </label>
+        <textarea
+          id="note-body"
+          name="body"
+          required
+          rows={2}
+          placeholder="Gebeld, teruggbellen in oktober · LinkedIn-bericht gestuurd, geen reactie…"
+          className={inputClass}
+        />
+      </div>
+      <div className="flex flex-wrap items-end gap-3">
+        <div className="space-y-1.5">
+          <label htmlFor="note-followup" className={labelClass}>
+            Opvolgen op (optioneel)
+          </label>
+          <input
+            id="note-followup"
+            name="follow_up_on"
+            type="date"
+            min={todayIso()}
+            className={`${inputClass} w-44`}
+          />
+        </div>
+        <button type="submit" disabled={pending} className={btnPrimary}>
+          {pending ? "Bezig…" : "Toevoegen"}
+        </button>
+        {justSaved && (
+          <span className="text-sm font-medium text-green-600 dark:text-green-500">
+            Toegevoegd ✓
+          </span>
+        )}
+      </div>
+    </form>
+  );
+}
 
 /**
  * Notities per klant met een optionele opvolgdatum. Server-component
@@ -23,42 +91,7 @@ export function ClientNotes({
 }) {
   return (
     <div className="space-y-4">
-      <form
-        action={addClientNote}
-        className="space-y-3 rounded-lg border border-zinc-200 p-3 dark:border-zinc-800"
-      >
-        <input type="hidden" name="client_id" value={clientId} />
-        <div className="space-y-1.5">
-          <label htmlFor="note-body" className={labelClass}>
-            Notitie
-          </label>
-          <textarea
-            id="note-body"
-            name="body"
-            required
-            rows={2}
-            placeholder="Gebeld, teruggbellen in oktober · LinkedIn-bericht gestuurd, geen reactie…"
-            className={inputClass}
-          />
-        </div>
-        <div className="flex flex-wrap items-end gap-3">
-          <div className="space-y-1.5">
-            <label htmlFor="note-followup" className={labelClass}>
-              Opvolgen op (optioneel)
-            </label>
-            <input
-              id="note-followup"
-              name="follow_up_on"
-              type="date"
-              min={todayIso()}
-              className={`${inputClass} w-44`}
-            />
-          </div>
-          <button type="submit" className={btnPrimary}>
-            Toevoegen
-          </button>
-        </div>
-      </form>
+      <AddNoteForm clientId={clientId} />
 
       {notes.length === 0 ? (
         <p className="text-sm text-zinc-500">Nog geen notities.</p>

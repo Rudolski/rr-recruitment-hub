@@ -227,7 +227,7 @@ export async function updateFactuur(
 
   revalidatePath("/facturen");
   revalidatePath(`/facturen/${id}`);
-  redirect(`/facturen/${id}`);
+  redirect("/facturen");
 }
 
 export async function deleteFactuur(fd: FormData) {
