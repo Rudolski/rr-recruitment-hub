@@ -12,12 +12,17 @@ function refresh(vacancyId: string) {
 
 /* -------------------- Actiepunten -------------------- */
 
-export async function addVacancyTask(fd: FormData) {
+export type AddTaskState = { ok: boolean };
+
+export async function addVacancyTask(
+  _prev: AddTaskState,
+  fd: FormData,
+): Promise<AddTaskState> {
   const { supabase, organizationId } = await getSessionContext();
-  if (!organizationId) return;
+  if (!organizationId) return { ok: false };
   const vacancyId = str(fd, "vacancy_id");
   const body = str(fd, "body").trim();
-  if (!vacancyId || !body) return;
+  if (!vacancyId || !body) return { ok: false };
 
   await supabase.from("vacancy_tasks").insert({
     organization_id: organizationId,
@@ -25,6 +30,7 @@ export async function addVacancyTask(fd: FormData) {
     body,
   });
   refresh(vacancyId);
+  return { ok: true };
 }
 
 export async function toggleVacancyTask(fd: FormData) {

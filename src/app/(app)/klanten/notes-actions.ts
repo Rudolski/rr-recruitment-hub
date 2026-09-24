@@ -11,13 +11,18 @@ function revalidateCrm(clientId?: string) {
   revalidatePath("/dashboard");
 }
 
-export async function addClientNote(fd: FormData) {
+export type AddNoteState = { ok: boolean };
+
+export async function addClientNote(
+  _prev: AddNoteState,
+  fd: FormData,
+): Promise<AddNoteState> {
   const { supabase, user, organizationId } = await getSessionContext();
-  if (!organizationId) return;
+  if (!organizationId) return { ok: false };
 
   const clientId = str(fd, "client_id");
   const body = str(fd, "body");
-  if (!clientId || !body) return;
+  if (!clientId || !body) return { ok: false };
 
   await supabase.from("client_notes").insert({
     organization_id: organizationId,
@@ -28,6 +33,7 @@ export async function addClientNote(fd: FormData) {
   });
 
   revalidateCrm(clientId);
+  return { ok: true };
 }
 
 export async function updateClientNote(fd: FormData) {
