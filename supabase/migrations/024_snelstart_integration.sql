@@ -90,3 +90,10 @@ create policy "organisatie toegang snelstart_purchase_invoices"
   on snelstart_purchase_invoices for all
   using (is_org_member(organization_id))
   with check (is_org_member(organization_id));
+
+-- Sinds 30 okt 2026 kent Supabase nieuwe tabellen niet meer automatisch
+-- Data API-rechten toe; zonder deze grants is de tabel onbereikbaar
+-- via supabase-js/PostgREST, ongeacht de RLS-policy hierboven.
+grant select, insert, update, delete on snelstart_settings to authenticated, service_role;
+grant select, insert, update, delete on snelstart_sales_invoices to authenticated, service_role;
+grant select, insert, update, delete on snelstart_purchase_invoices to authenticated, service_role;
