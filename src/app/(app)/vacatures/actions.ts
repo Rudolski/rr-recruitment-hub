@@ -134,7 +134,7 @@ export async function updateVacature(
   if (values.status === "vervuld" && current?.status !== "vervuld") {
     redirect(factuurTriggerUrl(values));
   }
-  redirect(`/vacatures/${id}`);
+  redirect("/vacatures");
 }
 
 /** Status wijzigen vanuit het vacatureoverzicht. */

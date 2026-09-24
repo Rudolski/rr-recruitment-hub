@@ -88,7 +88,7 @@ export async function updateKlant(
 
   revalidatePath("/klanten");
   revalidatePath(`/klanten/${id}`);
-  redirect(`/klanten/${id}`);
+  redirect("/klanten");
 }
 
 /** Snel wijzigen van de acquisitiestatus vanaf de klant- of acquisitiepagina. */

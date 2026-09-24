@@ -102,7 +102,7 @@ export async function updateContact(
 
   revalidatePath("/contactpersonen");
   revalidatePath(`/contactpersonen/${id}`);
-  redirect(`/contactpersonen/${id}`);
+  redirect("/contactpersonen");
 }
 
 export async function deleteContact(fd: FormData) {
