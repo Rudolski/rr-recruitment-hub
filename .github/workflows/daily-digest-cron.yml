@@ -5,7 +5,10 @@ name: Dagelijkse digest (cron)
 # GitHub Actions triggert 'm rechtstreeks via dezelfde bearer-auth.
 on:
   schedule:
-    - cron: "0 7 * * 1-5"
+    # Niet op het hele uur: GitHub zelf raadt dat af, dat zijn de
+    # drukste momenten voor de Actions-scheduler en runs kunnen dan
+    # vertraagd worden of wegvallen.
+    - cron: "13 7 * * 1-5"
   workflow_dispatch: {}
 
 jobs:
