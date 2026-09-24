@@ -128,7 +128,7 @@ export async function updatePlacement(
 
   revalidatePath("/placements");
   revalidatePath(`/placements/${id}`);
-  redirect(`/placements/${id}`);
+  redirect("/placements");
 }
 
 export async function deletePlacement(fd: FormData) {
