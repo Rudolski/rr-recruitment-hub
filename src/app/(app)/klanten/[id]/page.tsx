@@ -2,7 +2,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BackLink } from "@/components/page-header";
 import { ClientNotes } from "@/components/client-notes";
-import { FileManager } from "@/components/file-manager";
 import { InvoiceLines } from "@/components/invoice-lines";
 import {
   PlacementStatusBadge,
@@ -16,13 +15,13 @@ import {
   CLIENT_STATUSES,
   CLIENT_STATUS_LABELS,
   FEE_AGREEMENT_TYPE_LABELS,
+  type AcquisitieLead,
   type Client,
   type ClientNote,
   type Contact,
   type FeeAgreement,
   type Invoice,
   type Placement,
-  type StoredFile,
   type Vacancy,
 } from "@/lib/types";
 import { ClientForm } from "../client-form";
@@ -57,7 +56,7 @@ export default async function KlantDetailPage({
     { data: vacancies },
     { data: placements },
     { data: invoices },
-    { data: files, error: filesError },
+    { data: sourceLead },
   ] = await Promise.all([
     supabase
       .from("contacts")
@@ -96,11 +95,10 @@ export default async function KlantDetailPage({
       .order("issue_date", { ascending: false, nullsFirst: true })
       .returns<Invoice[]>(),
     supabase
-      .from("stored_files")
-      .select("*")
-      .eq("client_id", id)
-      .order("created_at", { ascending: false })
-      .returns<StoredFile[]>(),
+      .from("acquisitie_leads")
+      .select("linkedin_url, note, created_at")
+      .eq("converted_client_id", id)
+      .maybeSingle<Pick<AcquisitieLead, "linkedin_url" | "note" | "created_at">>(),
   ]);
 
   const vacancyTitle = new Map((vacancies ?? []).map((v) => [v.id, v.title]));
@@ -112,9 +110,6 @@ export default async function KlantDetailPage({
     if (fa.type === "vast_bedrag") return eur(fa.fixed_amount);
     return "Staffel";
   };
-  const filesTableMissing =
-    !!filesError && /stored_files/.test(filesError.message);
-
   return (
     <div className="mx-auto max-w-3xl">
       <BackLink href="/klanten" label="Klanten" />
@@ -153,6 +148,21 @@ export default async function KlantDetailPage({
           </a>
         )}
       </div>
+
+      {sourceLead?.linkedin_url && (
+        <p className="mt-2 text-xs text-zinc-500">
+          Ontstaan vanuit de LinkedIn-bewaarlijst ({formatDate(sourceLead.created_at)}):{" "}
+          <a
+            href={sourceLead.linkedin_url}
+            target="_blank"
+            rel="noreferrer"
+            className="text-terra underline hover:text-terra-dark"
+          >
+            bekijk de post ↗
+          </a>
+          {sourceLead.note && <> — &ldquo;{sourceLead.note}&rdquo;</>}
+        </p>
+      )}
 
       {/* Notities & opvolging */}
       <section className="mt-6">
@@ -330,19 +340,6 @@ export default async function KlantDetailPage({
           </Link>
         </div>
         <InvoiceLines invoices={invoices ?? []} />
-      </section>
-
-      {/* Bestanden */}
-      <section className="mt-10 border-t border-zinc-200 pt-6 dark:border-zinc-800">
-        <h2 className={`${sectionTitle} mb-3`}>Bestanden</h2>
-        {filesTableMissing ? (
-          <p className="text-sm text-zinc-500">
-            Bestandsopslag nog niet ingericht — draai{" "}
-            <code>supabase/migrations/004_file_storage.sql</code>.
-          </p>
-        ) : (
-          <FileManager files={files ?? []} scope="client" clientId={client.id} />
-        )}
       </section>
 
       {/* Gegevens bewerken */}
