@@ -4,6 +4,38 @@ import { AppShell } from "@/components/app-shell";
 import { createClient } from "@/utils/supabase/server";
 import { requireMfaOrRedirect } from "@/utils/supabase/auth";
 import { UNLOCK_COOKIE } from "@/lib/app-lock";
+import { sendDailyDigestIfNotAlreadySentToday } from "@/lib/daily-digest";
+
+/**
+ * Vangnet naast de GitHub Actions-cron (zie .github/workflows/
+ * daily-digest-cron.yml): die crons bleken bij dit account onbetrouwbaar
+ * (schedule-events vuurden dagenlang niet af). Bij elke pageload van de
+ * hub op een doordeweekse dag checken of de digest van vandaag al weg
+ * is — zo niet, dan gaat 'ie alsnog. sendDailyDigestIfNotAlreadySentToday
+ * zorgt dat dit nooit tot een dubbele mail leidt, welk mechanisme er
+ * ook het eerst bij is. Nooit de pagina laten breken op een fout hier.
+ */
+async function ensureDailyDigest(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+) {
+  try {
+    const isWeekday = ![0, 6].includes(new Date().getUTCDay());
+    if (!isWeekday) return;
+
+    const { data: membership } = await supabase
+      .from("organization_members")
+      .select("organization_id")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (!membership) return;
+
+    await sendDailyDigestIfNotAlreadySentToday(supabase, membership.organization_id);
+  } catch {
+    // Vangnet mag nooit de pagina breken; de cron-route blijft de
+    // primaire, foutafhandelde weg.
+  }
+}
 
 export default async function AppLayout({
   children,
@@ -38,6 +70,8 @@ export default async function AppLayout({
       redirect("/ontgrendel");
     }
   }
+
+  await ensureDailyDigest(supabase, user.id);
 
   return <AppShell userEmail={user.email ?? ""}>{children}</AppShell>;
 }
