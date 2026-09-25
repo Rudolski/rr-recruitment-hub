@@ -787,6 +787,23 @@ export type Database = {
         };
         Relationships: [];
       };
+      digest_send_log: {
+        Row: {
+          organization_id: string;
+          last_sent_on: string | null;
+          last_sent_at: string | null;
+        };
+        Insert: {
+          organization_id: string;
+          last_sent_on?: string | null;
+          last_sent_at?: string | null;
+        };
+        Update: {
+          last_sent_on?: string | null;
+          last_sent_at?: string | null;
+        };
+        Relationships: [];
+      };
       snelstart_purchase_invoices: {
         Row: {
           id: string;
