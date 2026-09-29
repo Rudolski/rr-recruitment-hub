@@ -1,4 +1,9 @@
 import Link from "next/link";
+import {
+  ForecastBreakdown,
+  type ForecastInvoiceRow,
+  type ForecastVacancyRow,
+} from "@/components/forecast-breakdown";
 import { ForecastCards } from "@/components/forecast-cards";
 import { PageHeader } from "@/components/page-header";
 import { VacancyStatusBadge } from "@/components/status-badge";
@@ -98,12 +103,21 @@ export default async function ProceduresPage() {
       .returns<Pick<MonthlyTarget, "year" | "month" | "target_revenue">[]>(),
     supabase
       .from("invoices")
-      .select("amount_excl_btw, partner_name, partner_share_amount")
+      .select("id, client_id, kind, status, amount_excl_btw, partner_name, partner_share_amount")
       .in("status", REALISED_INVOICE_STATUSES)
       .gte("issue_date", `${thisMonth}-01`)
       .lt("issue_date", `${nextMonth}-01`)
       .returns<
-        Pick<Invoice, "amount_excl_btw" | "partner_name" | "partner_share_amount">[]
+        Pick<
+          Invoice,
+          | "id"
+          | "client_id"
+          | "kind"
+          | "status"
+          | "amount_excl_btw"
+          | "partner_name"
+          | "partner_share_amount"
+        >[]
       >(),
   ]);
 
@@ -131,6 +145,40 @@ export default async function ProceduresPage() {
   );
   forecastTotals[thisMonth] += realisedThisMonth;
   const forecastByKind = byKindPerMonth(contributions, forecastMonths);
+
+  // Opbouw achter de prognosekaarten (klik erop): dezelfde filtering als
+  // vacancyContributions, maar dan met id/titel/klant erbij om te tonen.
+  const forecastVacancyRowsByMonth: Record<string, ForecastVacancyRow[]> = {};
+  for (const month of forecastMonths) {
+    forecastVacancyRowsByMonth[month] = (vacancies ?? [])
+      .filter(
+        (v) =>
+          v.status === "open" &&
+          v.expected_fee != null &&
+          v.expected_close_month != null &&
+          v.success_probability != null &&
+          (v.expected_close_month ?? "").slice(0, 7) === month,
+      )
+      .map((v) => ({
+        id: v.id,
+        title: v.title,
+        clientName: clientName.get(v.client_id) ?? "—",
+        kind: v.kind,
+        expectedFee: v.expected_fee,
+        successProbability: v.success_probability,
+        value:
+          Number(v.expected_fee ?? 0) * (Number(v.success_probability ?? 0) / 100),
+      }));
+  }
+  const forecastInvoiceRowsByMonth: Record<string, ForecastInvoiceRow[]> = {
+    [thisMonth]: (monthInvoices ?? []).map((inv) => ({
+      id: inv.id,
+      clientName: clientName.get(inv.client_id) ?? "—",
+      kind: inv.kind,
+      amount: nettoAmount(inv),
+      status: inv.status,
+    })),
+  };
 
   const byVacancy = new Map<string, ProcedureRow["cands"]>();
   for (const c of candidates ?? []) {
@@ -210,6 +258,12 @@ export default async function ProceduresPage() {
           realised={{ [thisMonth]: realisedThisMonth }}
         />
       </div>
+
+      <ForecastBreakdown
+        months={forecastMonths}
+        vacancyRowsByMonth={forecastVacancyRowsByMonth}
+        invoiceRowsByMonth={forecastInvoiceRowsByMonth}
+      />
 
       {tableMissing && (
         <p className={`${errorBox} mt-6`}>
