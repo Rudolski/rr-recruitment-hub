@@ -249,22 +249,6 @@ export default async function ProceduresPage() {
         }
       />
 
-      <div className="mt-6">
-        <ForecastCards
-          months={forecastMonths}
-          totals={forecastTotals}
-          targets={targetByMonth}
-          byKind={forecastByKind}
-          realised={{ [thisMonth]: realisedThisMonth }}
-        />
-      </div>
-
-      <ForecastBreakdown
-        months={forecastMonths}
-        vacancyRowsByMonth={forecastVacancyRowsByMonth}
-        invoiceRowsByMonth={forecastInvoiceRowsByMonth}
-      />
-
       {tableMissing && (
         <p className={`${errorBox} mt-6`}>
           Draai eerst{" "}
@@ -335,6 +319,22 @@ export default async function ProceduresPage() {
           </ul>
         </section>
       )}
+
+      <div className="mt-10">
+        <ForecastCards
+          months={forecastMonths}
+          totals={forecastTotals}
+          targets={targetByMonth}
+          byKind={forecastByKind}
+          realised={{ [thisMonth]: realisedThisMonth }}
+        />
+      </div>
+
+      <ForecastBreakdown
+        months={forecastMonths}
+        vacancyRowsByMonth={forecastVacancyRowsByMonth}
+        invoiceRowsByMonth={forecastInvoiceRowsByMonth}
+      />
 
       <p className="mt-10 text-xs text-zinc-400">
         <Link href="/vacatures" className="underline hover:text-zinc-600 dark:hover:text-zinc-300">
