@@ -35,9 +35,10 @@ export function ForecastCards({
             : "text-zinc-900 dark:text-zinc-50";
         const kindBreakdown = byKind[month] ?? [];
         return (
-          <div
+          <a
             key={month}
-            className="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950"
+            href={`#prognose-${month}`}
+            className="block rounded-lg border border-zinc-200 bg-white p-5 transition-colors hover:border-terra dark:border-zinc-800 dark:bg-zinc-950"
           >
             <p className="text-xs uppercase tracking-wider text-zinc-500">
               Prognose {formatMonth(`${month}-01`)}
@@ -66,7 +67,7 @@ export function ForecastCards({
                   .join(" · ")}
               </p>
             )}
-          </div>
+          </a>
         );
       })}
     </div>

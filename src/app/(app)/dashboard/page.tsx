@@ -1,5 +1,10 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
+import {
+  ForecastBreakdown,
+  type ForecastInvoiceRow,
+  type ForecastVacancyRow,
+} from "@/components/forecast-breakdown";
 import { btnGhost, errorBox } from "@/components/ui";
 import {
   eur,
@@ -274,10 +279,6 @@ export default async function DashboardPage({
   const years = [currentYear + 1, currentYear, currentYear - 1, currentYear - 2];
   const selectClass =
     "mt-1 rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900";
-  const prognoseRows = contributions
-    .filter((c) => c.month === thisMonth || c.month === nextMonth)
-    .sort((a, b) => a.month.localeCompare(b.month));
-
   /* -------- Top klanten in de periode -------- */
   const clientName = new Map((clients ?? []).map((c) => [c.id, c.name]));
   const revenueByClient = new Map<string, number>();
@@ -298,6 +299,32 @@ export default async function DashboardPage({
     .sort((a, b) => b.amount - a.amount)
     .slice(0, 10);
   const topMax = topClients[0]?.amount ?? 1;
+
+  /* -------- Opbouw prognose (klik op een prognosekaart) -------- */
+  const forecastMonths = [thisMonth, nextMonth];
+  const forecastVacancyRowsByMonth: Record<string, ForecastVacancyRow[]> = {};
+  for (const month of forecastMonths) {
+    forecastVacancyRowsByMonth[month] = contributions
+      .filter((c) => c.month === month)
+      .map((c) => ({
+        id: c.vacancy.id,
+        title: c.vacancy.title,
+        clientName: clientName.get(c.vacancy.client_id) ?? "—",
+        kind: c.vacancy.kind,
+        expectedFee: c.vacancy.expected_fee,
+        successProbability: c.vacancy.success_probability,
+        value: c.value,
+      }));
+  }
+  const forecastInvoiceRowsByMonth: Record<string, ForecastInvoiceRow[]> = {
+    [thisMonth]: thisMonthInvoices.map((inv) => ({
+      id: inv.id,
+      clientName: clientName.get(inv.client_id) ?? "—",
+      kind: inv.kind,
+      amount: nettoAmount(inv),
+      status: inv.status,
+    })),
+  };
 
   /* -------- Grafiek: alle jaren met data, W&S-omzet -------- */
   const chartYears = new Set<number>([year]);
@@ -404,9 +431,10 @@ export default async function DashboardPage({
             const delta = target != null ? value - target : null;
             const kindBreakdown = forecastByKind[month] ?? [];
             return (
-              <div
+              <a
                 key={month}
-                className="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950"
+                href={`#prognose-${month}`}
+                className="block rounded-lg border border-zinc-200 bg-white p-5 transition-colors hover:border-terra dark:border-zinc-800 dark:bg-zinc-950"
               >
                 <p className="text-xs uppercase tracking-wider text-zinc-500">
                   Prognose {formatMonth(`${month}-01`)} (totaal)
@@ -440,7 +468,7 @@ export default async function DashboardPage({
                       .join(" · ")}
                   </p>
                 )}
-              </div>
+              </a>
             );
           })}
         </div>
@@ -669,63 +697,11 @@ export default async function DashboardPage({
         </section>
       )}
 
-      <section className="mt-10">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
-            Vacatures in de prognose
-          </h2>
-          <p className="text-sm text-zinc-500">
-            Totaal {formatMonth(`${thisMonth}-01`)}:{" "}
-            <span className="font-medium text-zinc-900 dark:text-zinc-100">
-              {eur(forecastThis)}
-            </span>{" "}
-            · {formatMonth(`${nextMonth}-01`)}:{" "}
-            <span className="font-medium text-zinc-900 dark:text-zinc-100">
-              {eur(forecastNext)}
-            </span>
-          </p>
-        </div>
-
-        {prognoseRows.length === 0 ? (
-          <p className="mt-2 text-sm text-zinc-500">
-            Geen open vacatures met verwachte fee, maand en slagingskans voor
-            deze twee maanden.
-          </p>
-        ) : (
-          <ul className="mt-3 divide-y divide-zinc-100 rounded-lg border border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800">
-            {prognoseRows.map(({ vacancy, month, value }) => (
-              <li
-                key={vacancy.id}
-                className="flex items-center justify-between px-4 py-2.5 text-sm"
-              >
-                <span className="min-w-0">
-                  <Link
-                    href={`/vacatures/${vacancy.id}`}
-                    className="font-medium text-zinc-900 hover:underline dark:text-zinc-100"
-                  >
-                    {vacancy.title}
-                  </Link>
-                  {vacancy.kind && vacancy.kind !== "wervingsfee" && (
-                    <span className="ml-2 rounded bg-zinc-100 px-1.5 py-0.5 text-[11px] text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
-                      {VACANCY_KIND_LABELS[vacancy.kind as VacancyKind] ??
-                        vacancy.kind}
-                    </span>
-                  )}
-                </span>
-                <span className="flex items-center gap-4 text-zinc-500">
-                  <span>{formatMonth(`${month}-01`)}</span>
-                  <span>
-                    {eur(vacancy.expected_fee)} × {vacancy.success_probability}%
-                  </span>
-                  <span className="font-medium text-zinc-900 dark:text-zinc-100">
-                    {eur(value)}
-                  </span>
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+      <ForecastBreakdown
+        months={forecastMonths}
+        vacancyRowsByMonth={forecastVacancyRowsByMonth}
+        invoiceRowsByMonth={forecastInvoiceRowsByMonth}
+      />
 
       {omzet.partners.length > 0 && (
         <section id="omzet-per-partner" className="mt-10">
