@@ -99,7 +99,14 @@ export default async function FacturenPage({
   ].sort((a, b) => b - a);
 
   const filtered = allInvoices.filter((inv) => {
-    if (jaarFilter && inv.issue_date?.slice(0, 4) !== String(jaarFilter)) {
+    // Een factuur zonder datum (zou met de huidige create/advance-logica
+    // niet meer moeten voorkomen) altijd tonen i.p.v. 'm onzichtbaar uit
+    // het jaarfilter te laten vallen.
+    if (
+      jaarFilter &&
+      inv.issue_date &&
+      inv.issue_date.slice(0, 4) !== String(jaarFilter)
+    ) {
       return false;
     }
     if (

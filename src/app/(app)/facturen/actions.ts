@@ -108,7 +108,11 @@ function parse(fd: FormData) {
       partner_breakdown: partnerFields.partner_breakdown,
       amount_excl_btw: amountExcl ?? 0,
       btw_percentage: numOrNull(fd, "btw_percentage") ?? 21,
-      issue_date: nullableStr(fd, "issue_date"),
+      // Nooit leeg: concept telt al mee als omzet (zie
+      // REALISED_INVOICE_STATUSES), en alle omzet-/prognoserapportages
+      // filteren op issue_date — zonder datum verdwijnt een factuur
+      // daar onzichtbaar uit, ook al staat 'ie gewoon in de lijst.
+      issue_date: nullableStr(fd, "issue_date") ?? today(),
       due_date: nullableStr(fd, "due_date"),
       paid_date: nullableStr(fd, "paid_date"),
       notes: nullableStr(fd, "notes"),
@@ -126,7 +130,7 @@ export async function advanceInvoiceStatus(fd: FormData) {
 
   const { data: current } = await supabase
     .from("invoices")
-    .select("sent_at, paid_date")
+    .select("sent_at, paid_date, issue_date")
     .eq("id", id)
     .eq("organization_id", organizationId)
     .maybeSingle();
@@ -135,11 +139,15 @@ export async function advanceInvoiceStatus(fd: FormData) {
     status: string;
     sent_at?: string;
     paid_date?: string;
+    issue_date?: string;
   } = { status: to };
   if ((to === "verzonden" || to === "betaald") && !current?.sent_at) {
     patch.sent_at = new Date().toISOString();
   }
   if (to === "betaald" && !current?.paid_date) patch.paid_date = today();
+  // Zie parse() hierboven: een factuur zonder issue_date valt overal
+  // uit de omzet-/prognoserapportages, ook al telt de status al mee.
+  if (!current?.issue_date) patch.issue_date = today();
 
   await supabase
     .from("invoices")
