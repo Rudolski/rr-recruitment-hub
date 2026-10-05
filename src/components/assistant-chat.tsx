@@ -104,7 +104,7 @@ export function AssistantChat() {
           onClick={() => setOpen(true)}
           className="fixed bottom-4 right-4 z-30 rounded-full bg-terra px-4 py-3 text-sm font-medium text-cream shadow-lg transition-colors hover:bg-terra-dark"
         >
-          Assistent
+          RR-Slaafje
         </button>
       )}
 
@@ -112,7 +112,7 @@ export function AssistantChat() {
         <div className="fixed inset-x-3 bottom-3 z-30 flex max-h-[75vh] flex-col rounded-xl border border-zinc-200 bg-white shadow-2xl sm:inset-x-auto sm:right-4 sm:bottom-4 sm:w-[24rem] dark:border-zinc-700 dark:bg-zinc-950">
           <div className="flex items-center justify-between border-b border-zinc-200 px-4 py-2.5 dark:border-zinc-800">
             <span className="text-sm font-semibold text-navy dark:text-cream">
-              Assistent
+              RR-Slaafje
             </span>
             <div className="flex items-center gap-3 text-xs text-zinc-500">
               {msgs.length > 0 && (
