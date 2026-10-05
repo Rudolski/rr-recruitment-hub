@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { AppLockPing } from "@/components/app-lock-ping";
+import { AssistantChat } from "@/components/assistant-chat";
 import { Sidebar } from "@/components/sidebar";
 
 /**
@@ -80,6 +81,7 @@ export function AppShell({
           {children}
         </main>
       </div>
+      <AssistantChat />
     </div>
   );
 }
