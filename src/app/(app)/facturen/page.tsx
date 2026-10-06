@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
+import { SortHeader, readSort } from "@/components/sort-header";
 import { InvoiceStatusBadge } from "@/components/status-badge";
 import {
   btnPrimary,
@@ -9,7 +10,6 @@ import {
   tableWrap,
   tbody,
   td,
-  th,
   thead,
   tr,
 } from "@/components/ui";
@@ -18,6 +18,7 @@ import { getSessionContext } from "@/utils/supabase/auth";
 import { splitOmzet } from "@/lib/omzet";
 import {
   INVOICE_KIND_LABELS,
+  INVOICE_STATUSES,
   type Client,
   type Invoice,
   type InvoiceKind,
@@ -120,6 +121,51 @@ export default async function FacturenPage({
     return true;
   });
   const omzet = splitOmzet(filtered);
+
+  // Sorteren op elke kolom (?sort=&dir=). Zonder ?sort blijft de volgorde
+  // zoals 'ie was: nieuwste factuurdatum bovenaan.
+  const SORT_KEYS = ["klant", "excl", "incl", "status", "datum", "nummer"] as const;
+  type SortKey = (typeof SORT_KEYS)[number];
+  const hasSort = typeof sp.sort === "string";
+  const { sort: sortKey, dir: sortDir } = hasSort
+    ? readSort(sp, SORT_KEYS, "datum")
+    : { sort: "datum" as SortKey, dir: "desc" as const };
+  const factor = sortDir === "asc" ? 1 : -1;
+  const collator = new Intl.Collator("nl", { numeric: true, sensitivity: "base" });
+  // Lege waarden (geen datum/nummer) staan altijd onderaan.
+  const sortValue = (inv: Invoice): string | number | null => {
+    switch (sortKey) {
+      case "klant":
+        return clientName.get(inv.client_id) ?? null;
+      case "excl":
+        return Number(inv.amount_excl_btw);
+      case "incl":
+        return Number(inv.amount_incl_btw);
+      case "status":
+        return INVOICE_STATUSES.indexOf(inv.status as (typeof INVOICE_STATUSES)[number]);
+      case "datum":
+        return inv.issue_date;
+      case "nummer":
+        return inv.invoice_number?.trim() || null;
+    }
+  };
+  const sorted = hasSort
+    ? [...filtered].sort((a, b) => {
+        const va = sortValue(a);
+        const vb = sortValue(b);
+        if (va == null && vb == null) return 0;
+        if (va == null) return 1;
+        if (vb == null) return -1;
+        if (typeof va === "number" && typeof vb === "number") {
+          return (va - vb) * factor;
+        }
+        return collator.compare(String(va), String(vb)) * factor;
+      })
+    : filtered;
+  // Bewaar de actieve filters als je op een kolomkop klikt.
+  const sortBase = `/facturen?jaar=${jaarFilter ?? ""}${
+    klantFilter ? `&klant=${encodeURIComponent(klantFilter)}` : ""
+  }`;
 
   // Openstaand = verzonden of te laat, nog niet betaald; over alle jaren
   // heen en los van de filters hieronder.
@@ -255,7 +301,7 @@ export default async function FacturenPage({
       {/* Mobiel: kaart per factuur */}
       {!error && filtered.length > 0 && (
         <ul className="mt-4 space-y-2 md:hidden">
-          {filtered.map((inv) => (
+          {sorted.map((inv) => (
             <li
               key={inv.id}
               className="rounded-lg border border-zinc-200 bg-white p-3 text-sm dark:border-zinc-800 dark:bg-zinc-950"
@@ -303,16 +349,29 @@ export default async function FacturenPage({
           <table className={table}>
             <thead className={thead}>
               <tr>
-                <th className={th}>Klant</th>
-                <th className={th}>Excl. btw</th>
-                <th className={th}>Incl. btw</th>
-                <th className={th}>Status</th>
-                <th className={th}>Factuurdatum</th>
-                <th className={th}>Nummer</th>
+                {(
+                  [
+                    ["klant", "Klant"],
+                    ["excl", "Excl. btw"],
+                    ["incl", "Incl. btw"],
+                    ["status", "Status"],
+                    ["datum", "Factuurdatum"],
+                    ["nummer", "Nummer"],
+                  ] as const
+                ).map(([key, label]) => (
+                  <SortHeader
+                    key={key}
+                    label={label}
+                    columnKey={key}
+                    activeKey={sortKey}
+                    dir={sortDir}
+                    basePath={sortBase}
+                  />
+                ))}
               </tr>
             </thead>
             <tbody className={tbody}>
-              {filtered.map((inv) => (
+              {sorted.map((inv) => (
                 <tr key={inv.id} className={tr}>
                   <td className={`${td} text-zinc-600 dark:text-zinc-400`}>
                     <Link
