@@ -58,6 +58,7 @@ export async function askAssistant(
       system: buildSystemPrompt((clients ?? []).map((c) => c.name), todayIso, weekday),
       messages: turns,
       tools: ASSISTANT_TOOLS,
+      maxTokens: 1500,
     });
     const proposals = toolUses
       .map((t) => proposalFromToolUse(t.name, t.input))
@@ -78,7 +79,11 @@ export async function applyProposals(raw: unknown): Promise<ApplyResult[]> {
   const proposals = (Array.isArray(raw) ? raw : [])
     .slice(0, 10)
     .map((p) => sanitizeProposal(p))
-    .filter((p): p is Proposal => p !== null);
+    // Agenda-afspraken worden niet hier uitgevoerd maar via de Outlook-knop.
+    .filter(
+      (p): p is Exclude<Proposal, { type: "calendar_event" }> =>
+        p !== null && p.type !== "calendar_event",
+    );
   if (proposals.length === 0) return [{ ok: false, message: "Niets om uit te voeren." }];
 
   const results: ApplyResult[] = [];

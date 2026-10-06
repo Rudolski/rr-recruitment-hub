@@ -5,6 +5,7 @@ import Link from "next/link";
 import { applyProposals, askAssistant } from "@/app/(app)/assistent/actions";
 import {
   describeProposal,
+  outlookUrl,
   type ApplyResult,
   type ChatTurn,
   type Proposal,
@@ -83,9 +84,10 @@ export function AssistantChat() {
 
   function confirm(id: number) {
     const msg = msgs.find((m) => m.id === id);
-    if (!msg?.proposals || pending) return;
+    const db = msg?.proposals?.filter((p) => p.type !== "calendar_event");
+    if (!db?.length || pending) return;
     startTransition(async () => {
-      const results = await applyProposals(msg.proposals);
+      const results = await applyProposals(db);
       setMsgs((cur) =>
         cur.map((m) => (m.id === id ? { ...m, status: "applied", results } : m)),
       );
@@ -168,7 +170,22 @@ export function AssistantChat() {
                       ))}
                     </ul>
 
-                    {m.status === "open" && (
+                    {m.proposals
+                      .filter((p) => p.type === "calendar_event")
+                      .map((p, i) => (
+                        <a
+                          key={i}
+                          href={p.type === "calendar_event" ? outlookUrl(p) : "#"}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-block rounded-md border border-terra px-3 py-1.5 text-xs font-medium text-terra hover:bg-zinc-50 dark:hover:bg-zinc-800"
+                        >
+                          Zet in Outlook ↗
+                        </a>
+                      ))}
+
+                    {m.status === "open" &&
+                      m.proposals.some((p) => p.type !== "calendar_event") && (
                       <div className="flex gap-2">
                         <button
                           type="button"
@@ -188,7 +205,8 @@ export function AssistantChat() {
                         </button>
                       </div>
                     )}
-                    {m.status === "cancelled" && (
+                    {m.status === "cancelled" &&
+                      m.proposals.some((p) => p.type !== "calendar_event") && (
                       <p className="text-xs text-zinc-400">Geannuleerd.</p>
                     )}
                     {m.status === "applied" &&
