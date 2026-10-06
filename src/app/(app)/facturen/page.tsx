@@ -121,9 +121,12 @@ export default async function FacturenPage({
   });
   const omzet = splitOmzet(filtered);
 
-  // Openstaand = verzonden maar nog niet betaald, over alle jaren heen en
-  // los van de filters hieronder.
-  const openstaand = allInvoices.filter((inv) => inv.status === "verzonden");
+  // Openstaand = verzonden of te laat, nog niet betaald; over alle jaren
+  // heen en los van de filters hieronder.
+  const openstaand = allInvoices.filter(
+    (inv) => inv.status === "verzonden" || inv.status === "te_laat",
+  );
+  const teLaat = openstaand.filter((inv) => inv.status === "te_laat").length;
   const openstaandExcl = openstaand.reduce(
     (s, inv) => s + Number(inv.amount_excl_btw),
     0,
@@ -155,7 +158,7 @@ export default async function FacturenPage({
 
       <div className="mt-6 rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
         <p className="text-xs uppercase tracking-wider text-zinc-500">
-          Openstaand (verzonden, nog niet betaald)
+          Openstaand (verzonden of te laat, nog niet betaald)
         </p>
         <p className="mt-1 text-2xl font-semibold text-zinc-900 dark:text-zinc-50">
           {eur2(openstaandExcl)}{" "}
@@ -163,7 +166,8 @@ export default async function FacturenPage({
         </p>
         <p className="mt-1 text-xs text-zinc-400">
           {eur2(openstaandIncl)} incl. btw · {openstaand.length}{" "}
-          {openstaand.length === 1 ? "factuur" : "facturen"}, alle jaren
+          {openstaand.length === 1 ? "factuur" : "facturen"}
+          {teLaat > 0 ? ` (waarvan ${teLaat} te laat)` : ""}, alle jaren
         </p>
       </div>
 
