@@ -39,7 +39,6 @@ export function InvoiceForm({
 }) {
   const [state, formAction, pending] = useActionState(action, emptyFormState);
   const [amount, setAmount] = useState(num(initial?.amount_excl_btw));
-  const [btw, setBtw] = useState(num(initial?.btw_percentage ?? 21));
   const initialBreakdown = initial?.partner_breakdown ?? null;
   const [partnerName, setPartnerName] = useState(
     initialBreakdown && initialBreakdown.length > 0
@@ -74,10 +73,9 @@ export function InvoiceForm({
 
   const inclBtw = useMemo(() => {
     const a = Number(amount.replace(",", "."));
-    const b = Number(btw.replace(",", "."));
-    if (!Number.isFinite(a) || !Number.isFinite(b)) return null;
-    return Math.round(a * (1 + b / 100) * 100) / 100;
-  }, [amount, btw]);
+    if (!Number.isFinite(a)) return null;
+    return Math.round(a * 1.21 * 100) / 100;
+  }, [amount]);
 
   return (
     <form action={formAction} className="max-w-2xl space-y-5">
@@ -207,7 +205,8 @@ export function InvoiceForm({
             className={inputClass}
           />
           <p className="text-xs text-zinc-400">
-            Het volledige factuurbedrag aan de klant.
+            Het volledige factuurbedrag aan de klant. Incl. 21% btw:{" "}
+            {inclBtw == null ? "—" : eur2(inclBtw)}
           </p>
           {state.fieldErrors.amount_excl_btw && (
             <p className="text-xs text-red-600">
@@ -252,23 +251,6 @@ export function InvoiceForm({
             Bij meerdere partners: bedragen in dezelfde volgorde, ook
             gescheiden met &ldquo;;&rdquo;. Gaat van de netto-omzet af. Netto
             voor RR: {netto == null ? "—" : eur2(netto)}
-          </p>
-        </div>
-
-        <div className="space-y-1.5">
-          <label htmlFor="btw_percentage" className={labelClass}>
-            Btw %
-          </label>
-          <input
-            id="btw_percentage"
-            name="btw_percentage"
-            inputMode="numeric"
-            value={btw}
-            onChange={(e) => setBtw(e.target.value)}
-            className={inputClass}
-          />
-          <p className="text-xs text-zinc-400">
-            Incl. btw: {inclBtw == null ? "—" : eur2(inclBtw)}
           </p>
         </div>
 
