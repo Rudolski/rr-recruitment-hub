@@ -107,7 +107,7 @@ function parse(fd: FormData) {
       partner_share_amount: partnerFields.partner_share_amount,
       partner_breakdown: partnerFields.partner_breakdown,
       amount_excl_btw: amountExcl ?? 0,
-      btw_percentage: numOrNull(fd, "btw_percentage") ?? 21,
+      btw_percentage: 21, // btw is altijd 21%
       // Nooit leeg: concept telt al mee als omzet (zie
       // REALISED_INVOICE_STATUSES), en alle omzet-/prognoserapportages
       // filteren op issue_date — zonder datum verdwijnt een factuur
