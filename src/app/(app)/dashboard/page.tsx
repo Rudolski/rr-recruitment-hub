@@ -41,13 +41,18 @@ function lastDay(year: number, month: number) {
 
 const wsKindSet = new Set<string>(WS_INVOICE_KINDS);
 
-function monthlyBuckets(invoices: Invoice[], wsOnly = false): number[] {
+function monthlyBuckets(
+  invoices: Invoice[],
+  wsOnly = false,
+  inclPartner = false,
+): number[] {
   const b = Array(13).fill(0) as number[];
   for (const inv of invoices) {
     if (!inv.issue_date) continue;
     if (wsOnly && !wsKindSet.has(inv.kind ?? "wervingsfee")) continue;
     const m = Number(inv.issue_date.slice(5, 7));
-    b[m] += nettoAmount(inv);
+    // inclPartner: het volledige factuurbedrag; anders alleen het RR-deel.
+    b[m] += inclPartner ? Number(inv.amount_excl_btw) : nettoAmount(inv);
   }
   return b;
 }
@@ -178,17 +183,20 @@ export default async function DashboardPage({
 
   // Alle soorten tellen mee (geen wsOnly) — dit is totale omzet t.o.v. target.
   const yearBuckets = monthlyBuckets(yearInvoices);
+  const yearBucketsBruto = monthlyBuckets(yearInvoices, false, true);
   const quarterCards = [1, 2, 3, 4].map((q) => {
     const months = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].filter(
       (m) => QUARTER_OF_MONTH[m] === q,
     );
     const behaald = months.reduce((s, m) => s + yearBuckets[m], 0);
+    const bruto = months.reduce((s, m) => s + yearBucketsBruto[m], 0);
     const target = targetMonthly
       ? months.reduce((s, m) => s + (targetMonthly![m] ?? 0), 0)
       : 0;
-    return { q, behaald, target };
+    return { q, behaald, bruto, target };
   });
   const jaarBehaald = yearBuckets.slice(1, 13).reduce((a, b) => a + b, 0);
+  const jaarBruto = yearBucketsBruto.slice(1, 13).reduce((a, b) => a + b, 0);
   const jaarTarget = targetMonthly
     ? targetMonthly.slice(1, 13).reduce((a, b) => a + b, 0)
     : 0;
@@ -337,6 +345,8 @@ export default async function DashboardPage({
     // target-kaarten hierboven.
     data: monthlyBuckets(
       allInvoicesEver.filter((inv) => inv.issue_date?.slice(0, 4) === String(y)),
+      false,
+      inclPartner,
     ),
   }));
 
@@ -405,7 +415,7 @@ export default async function DashboardPage({
             value="1"
             defaultChecked={inclPartner}
           />
-          <span>Incl. partnerdeel (fee/plaatsing en top klanten)</span>
+          <span>Incl. partnerdeel (omzet, grafiek, fee/plaatsing en top klanten)</span>
         </label>
         <button
           type="submit"
@@ -477,22 +487,30 @@ export default async function DashboardPage({
       <section className="mt-10">
         <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
           Omzet t.o.v. target ({year})
+          {inclPartner && (
+            <span className="ml-2 text-xs font-normal text-zinc-400">
+              bedragen incl. partnerdeel; target en percentage rekenen met het
+              RR-deel
+            </span>
+          )}
         </h2>
         <div className="mt-3 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
           {[
-            ...quarterCards.map(({ q, behaald, target }) => ({
+            ...quarterCards.map(({ q, behaald, bruto, target }) => ({
               label: `Q${q}`,
               current: isCurrentYear && q === currentRealQuarter,
               behaald,
+              bruto,
               target,
             })),
             {
               label: "Jaar",
               current: false,
               behaald: jaarBehaald,
+              bruto: jaarBruto,
               target: jaarTarget,
             },
-          ].map(({ label, current, behaald, target }) => {
+          ].map(({ label, current, behaald, bruto, target }) => {
             const pct = pctLabel(behaald, target);
             const barPct =
               target > 0 ? Math.min(100, Math.round((behaald / target) * 100)) : 0;
@@ -515,8 +533,13 @@ export default async function DashboardPage({
                   )}
                 </p>
                 <p className="mt-1 text-2xl font-semibold text-zinc-900 dark:text-zinc-50">
-                  {eur(behaald)}
+                  {eur(inclPartner ? bruto : behaald)}
                 </p>
+                {inclPartner && (
+                  <p className="mt-0.5 text-xs text-zinc-400">
+                    incl. partnerdeel · RR-deel {eur(behaald)}
+                  </p>
+                )}
                 <p className="mt-1 text-xs text-zinc-400">
                   target {eur(target)} ·{" "}
                   <span className={`font-medium ${pct.tone}`}>{pct.text}</span>
@@ -605,7 +628,7 @@ export default async function DashboardPage({
         selectedYear={year}
         series={chartSeries}
         target={targetMonthly}
-        label="Omzet"
+        label={inclPartner ? "Omzet incl. partnerdeel" : "Omzet"}
       />
 
       <section id="omzetverdeling" className="mt-10">
