@@ -11,15 +11,24 @@ type ContactOpt = {
   role: string | null;
 };
 type FeeOpt = { client_id: string; percentage: number | null };
+type VacancyOpt = {
+  id: string;
+  client_id: string;
+  title: string;
+  location: string | null;
+  exclusivity_until: string | null;
+};
 
 export function ContractForm({
   clients,
   contacts,
   fees,
+  vacancies,
 }: {
   clients: ClientOpt[];
   contacts: ContactOpt[];
   fees: FeeOpt[];
+  vacancies: VacancyOpt[];
 }) {
   const [clientId, setClientId] = useState("");
   const [bedrijf, setBedrijf] = useState("");
@@ -28,6 +37,17 @@ export function ContractForm({
   const [titel, setTitel] = useState("");
   const [percentage, setPercentage] = useState("");
   const [lang, setLang] = useState<"nl" | "en">("nl");
+  const [vacature, setVacature] = useState("");
+  const [plaats, setPlaats] = useState("");
+  const [adres, setAdres] = useState("");
+  const [postcode, setPostcode] = useState("");
+  const [datum, setDatum] = useState(() => new Date().toISOString().slice(0, 10));
+  const [exclusiefTm, setExclusiefTm] = useState("");
+
+  const clientVacancies = useMemo(
+    () => vacancies.filter((v) => v.client_id === clientId),
+    [vacancies, clientId],
+  );
 
   const clientContacts = useMemo(
     () => contacts.filter((c) => c.client_id === clientId),
@@ -40,6 +60,20 @@ export function ContractForm({
     if (c) setBedrijf(c.name);
     const fee = fees.find((f) => f.client_id === id);
     if (fee?.percentage != null) setPercentage(String(fee.percentage));
+    // Eén lopende vacature bij deze klant? Dan meteen overnemen.
+    const open = vacancies.filter((v) => v.client_id === id);
+    if (open.length === 1) fillVacancy(open[0]);
+  }
+
+  function fillVacancy(v: VacancyOpt) {
+    setVacature(v.title);
+    if (v.location) setPlaats(v.location);
+    if (v.exclusivity_until) setExclusiefTm(v.exclusivity_until);
+  }
+
+  function pickVacancy(id: string) {
+    const v = clientVacancies.find((x) => x.id === id);
+    if (v) fillVacancy(v);
   }
 
   function pickContact(id: string) {
@@ -95,6 +129,21 @@ export function ContractForm({
               </option>
             ))}
           </select>
+          {clientVacancies.length > 0 && (
+            <select
+              defaultValue=""
+              onChange={(e) => pickVacancy(e.target.value)}
+              className={`${inputClass} mt-2`}
+            >
+              <option value="">— Vacature overnemen —</option>
+              {clientVacancies.map((v) => (
+                <option key={v.id} value={v.id}>
+                  {v.title}
+                  {v.location ? ` · ${v.location}` : ""}
+                </option>
+              ))}
+            </select>
+          )}
           {clientContacts.length > 0 && (
             <select
               defaultValue=""
@@ -119,7 +168,13 @@ export function ContractForm({
           onChange={setBedrijf}
           required
         />
-        <Field label="Vacature" name="vacature" placeholder="Supply Chain Manager" />
+        <Field
+          label="Vacature"
+          name="vacature"
+          value={vacature}
+          onChange={setVacature}
+          placeholder="Supply Chain Manager"
+        />
         <Field
           label="Voornaam contactpersoon"
           name="voornaam"
@@ -145,11 +200,41 @@ export function ContractForm({
           onChange={setPercentage}
           placeholder="20"
         />
-        <Field label="Adres" name="adres" placeholder="Straatnaam 1" />
-        <Field label="Postcode" name="postcode" placeholder="5900 AA" />
-        <Field label="Plaats" name="plaats" placeholder="Venlo" />
-        <Field label="Datum overeenkomst" name="datum" type="date" />
-        <Field label="Exclusiviteit t/m" name="exclusief_tm" type="date" />
+        <Field
+          label="Adres"
+          name="adres"
+          value={adres}
+          onChange={setAdres}
+          placeholder="Straatnaam 1"
+        />
+        <Field
+          label="Postcode"
+          name="postcode"
+          value={postcode}
+          onChange={setPostcode}
+          placeholder="5900 AA"
+        />
+        <Field
+          label="Plaats"
+          name="plaats"
+          value={plaats}
+          onChange={setPlaats}
+          placeholder="Venlo"
+        />
+        <Field
+          label="Datum overeenkomst"
+          name="datum"
+          type="date"
+          value={datum}
+          onChange={setDatum}
+        />
+        <Field
+          label="Exclusiviteit t/m"
+          name="exclusief_tm"
+          type="date"
+          value={exclusiefTm}
+          onChange={setExclusiefTm}
+        />
       </div>
 
       <button type="submit" className={btnPrimary}>

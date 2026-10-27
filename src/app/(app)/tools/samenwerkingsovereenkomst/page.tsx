@@ -1,7 +1,7 @@
 import { PageHeader } from "@/components/page-header";
 import { errorBox } from "@/components/ui";
 import { getSessionContext } from "@/utils/supabase/auth";
-import type { Client, Contact, FeeAgreement } from "@/lib/types";
+import type { Client, Contact, FeeAgreement, Vacancy } from "@/lib/types";
 import { ContractForm } from "./contract-form";
 
 export const metadata = {
@@ -28,18 +28,33 @@ export default async function SamenwerkingsovereenkomstPage({
     );
   }
 
-  const [{ data: clients }, { data: contacts }, { data: fees }] =
-    await Promise.all([
-      supabase.from("clients").select("id, name").order("name"),
-      supabase
-        .from("contacts")
-        .select("id, client_id, name, role")
-        .returns<Pick<Contact, "id" | "client_id" | "name" | "role">[]>(),
-      supabase
-        .from("fee_agreements")
-        .select("client_id, percentage")
-        .returns<Pick<FeeAgreement, "client_id" | "percentage">[]>(),
-    ]);
+  const [
+    { data: clients },
+    { data: contacts },
+    { data: fees },
+    { data: vacancies },
+  ] = await Promise.all([
+    supabase.from("clients").select("id, name").order("name"),
+    supabase
+      .from("contacts")
+      .select("id, client_id, name, role")
+      .returns<Pick<Contact, "id" | "client_id" | "name" | "role">[]>(),
+    supabase
+      .from("fee_agreements")
+      .select("client_id, percentage")
+      .returns<Pick<FeeAgreement, "client_id" | "percentage">[]>(),
+    supabase
+      .from("vacancies")
+      .select("id, client_id, title, location, exclusivity_until, status")
+      .in("status", ["open", "concept", "on_hold"])
+      .order("title")
+      .returns<
+        Pick<
+          Vacancy,
+          "id" | "client_id" | "title" | "location" | "exclusivity_until" | "status"
+        >[]
+      >(),
+  ]);
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -61,6 +76,7 @@ export default async function SamenwerkingsovereenkomstPage({
         clients={(clients as Pick<Client, "id" | "name">[] | null) ?? []}
         contacts={contacts ?? []}
         fees={fees ?? []}
+        vacancies={vacancies ?? []}
       />
     </div>
   );
