@@ -137,6 +137,32 @@ export async function updateVacature(
   redirect("/vacatures");
 }
 
+/** Alleen de titel wijzigen, vanuit de kop van de vacaturepagina. */
+export async function updateVacatureTitle(
+  id: string,
+  rawTitle: string,
+): Promise<{ error: string | null }> {
+  const { supabase, organizationId } = await getSessionContext();
+  if (!organizationId) return { error: "Geen organisatie." };
+  const title = rawTitle.trim();
+  if (!id) return { error: "Onbekende vacature." };
+  if (!title) return { error: "Titel is verplicht." };
+
+  const { error } = await supabase
+    .from("vacancies")
+    .update({ title })
+    .eq("id", id)
+    .eq("organization_id", organizationId);
+  if (error) return { error: "Opslaan mislukt. Probeer het opnieuw." };
+
+  revalidatePath("/vacatures");
+  revalidatePath(`/vacatures/${id}`);
+  revalidatePath("/procedures");
+  revalidatePath("/dashboard");
+  revalidatePath("/klanten", "layout");
+  return { error: null };
+}
+
 /** Status wijzigen vanuit het vacatureoverzicht. */
 export async function updateVacatureStatus(fd: FormData) {
   const { supabase, organizationId } = await getSessionContext();
