@@ -15,6 +15,7 @@ import type {
 import { VacancyForm } from "../vacancy-form";
 import { VacancyBoard } from "../vacancy-board";
 import { VacancyTasks } from "../vacancy-tasks";
+import { VacancyTitle } from "../vacancy-title";
 import { deleteVacature, updateVacature } from "../actions";
 
 export const metadata = { title: "Vacature · RR Recruitment Hub" };
@@ -84,9 +85,7 @@ export default async function VacatureDetailPage({
   return (
     <div className="mx-auto max-w-3xl">
       <BackLink href="/vacatures" label="Vacatures" />
-      <h1 className="mt-2 font-[family-name:var(--font-roc)] text-xl font-medium tracking-tight sm:text-2xl text-navy dark:text-cream">
-        {vacancy.title}
-      </h1>
+      <VacancyTitle id={vacancy.id} title={vacancy.title} />
       {clientName && (
         <p className="mt-1 text-sm text-zinc-500">
           <Link
@@ -155,7 +154,10 @@ export default async function VacatureDetailPage({
         <h2 className="mb-4 text-sm font-semibold text-zinc-900 dark:text-zinc-50">
           Gegevens
         </h2>
+        {/* key: na een titelwijziging bovenaan opnieuw opbouwen, anders
+            zet "Wijzigingen opslaan" de oude titel terug. */}
         <VacancyForm
+          key={vacancy.title}
           action={updateVacature}
           clients={clients ?? []}
           initial={vacancy}
