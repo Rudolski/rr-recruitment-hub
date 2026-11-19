@@ -143,8 +143,10 @@ export function AssistantChat() {
                 Typ wat je wilt vastleggen, bijvoorbeeld &ldquo;Jan de Vries bij
                 Rhenus gebeld, nam niet op, morgen opnieuw bellen&rdquo;. Of
                 plak een LinkedIn-profiel (naam, functie, bedrijf) met
-                &ldquo;remind me morgen bellen&rdquo;. Ik stel voor wat ik ga
-                doen; jij bevestigt.
+                &ldquo;remind me morgen bellen&rdquo;. Ook procedures en
+                actiepunten: &ldquo;Piet door naar 2e gesprek bij Vos op
+                donderdag&rdquo; of &ldquo;opvolging Udea naar volgende
+                week&rdquo;. Ik stel voor wat ik ga doen; jij bevestigt.
               </p>
             )}
 

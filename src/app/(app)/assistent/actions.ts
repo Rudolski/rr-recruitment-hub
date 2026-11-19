@@ -8,9 +8,13 @@ import {
   buildSystemPrompt,
   proposalFromToolUse,
   sanitizeProposal,
+  type AssistantContext,
 } from "@/lib/assistant-server";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/lib/database.types";
 import type { ApplyResult, ChatTurn, Proposal } from "@/lib/assistant";
 import { describeProposal } from "@/lib/assistant";
+import { formatDate } from "@/lib/format";
 
 const norm = (s: string) => s.trim().toLowerCase().replace(/\s+/g, " ");
 
@@ -42,9 +46,67 @@ export async function askAssistant(
 
   const { data: clients } = await supabase
     .from("clients")
-    .select("name")
+    .select("id, name")
     .eq("organization_id", organizationId)
     .order("name");
+  const clientName = new Map((clients ?? []).map((c) => [c.id, c.name]));
+
+  // Lopende vacatures met hun funnel en open actiepunten, plus open
+  // opvolgingen, zodat het model naar bestaande ids kan verwijzen.
+  const { data: vacancies } = await supabase
+    .from("vacancies")
+    .select("id, title, client_id")
+    .eq("organization_id", organizationId)
+    .in("status", ["open", "concept", "on_hold"])
+    .order("title");
+  const vacancyIds = (vacancies ?? []).map((v) => v.id);
+  const [{ data: candidates }, { data: tasks }, { data: followUps }] = await Promise.all([
+    vacancyIds.length
+      ? supabase
+          .from("vacancy_candidates")
+          .select("vacancy_id, first_name, stage")
+          .eq("organization_id", organizationId)
+          .in("vacancy_id", vacancyIds)
+          .order("position")
+      : Promise.resolve({ data: [] as { vacancy_id: string; first_name: string; stage: string }[] }),
+    vacancyIds.length
+      ? supabase
+          .from("vacancy_tasks")
+          .select("id, vacancy_id, body")
+          .eq("organization_id", organizationId)
+          .eq("done", false)
+          .in("vacancy_id", vacancyIds)
+          .order("created_at")
+      : Promise.resolve({ data: [] as { id: string; vacancy_id: string; body: string }[] }),
+    supabase
+      .from("client_notes")
+      .select("id, client_id, body, follow_up_on")
+      .eq("organization_id", organizationId)
+      .eq("follow_up_done", false)
+      .not("follow_up_on", "is", null)
+      .order("follow_up_on")
+      .limit(100),
+  ]);
+
+  const ctx: AssistantContext = {
+    clientNames: (clients ?? []).map((c) => c.name),
+    vacancies: (vacancies ?? []).map((v) => ({
+      id: v.id,
+      label: `${v.title} (${clientName.get(v.client_id) ?? "onbekende klant"})`,
+      candidates: (candidates ?? [])
+        .filter((c) => c.vacancy_id === v.id)
+        .map((c) => ({ first_name: c.first_name, stage: c.stage })),
+      tasks: (tasks ?? [])
+        .filter((t) => t.vacancy_id === v.id)
+        .map((t) => ({ id: t.id, body: t.body.replace(/\s+/g, " ").slice(0, 200) })),
+    })),
+    followUps: (followUps ?? []).map((f) => ({
+      id: f.id,
+      client_name: clientName.get(f.client_id) ?? "onbekende klant",
+      body: f.body.replace(/\s+/g, " ").slice(0, 200),
+      follow_up_on: f.follow_up_on ?? "",
+    })),
+  };
 
   const now = new Date();
   const todayIso = now.toLocaleDateString("sv-SE", { timeZone: "Europe/Amsterdam" });
@@ -55,13 +117,13 @@ export async function askAssistant(
 
   try {
     const { text, toolUses } = await generateWithTools({
-      system: buildSystemPrompt((clients ?? []).map((c) => c.name), todayIso, weekday),
+      system: buildSystemPrompt(ctx, todayIso, weekday),
       messages: turns,
       tools: ASSISTANT_TOOLS,
       maxTokens: 1500,
     });
     const proposals = toolUses
-      .map((t) => proposalFromToolUse(t.name, t.input))
+      .map((t) => proposalFromToolUse(t.name, t.input, ctx))
       .filter((p): p is Proposal => p !== null);
     return {
       reply: text || (proposals.length ? "Dit stel ik voor:" : "Dat is me niet helemaal duidelijk."),
@@ -90,6 +152,14 @@ export async function applyProposals(raw: unknown): Promise<ApplyResult[]> {
 
   for (const p of proposals) {
     try {
+      if (
+        p.type !== "create_prospect" &&
+        p.type !== "add_note"
+      ) {
+        results.push(await applyHubProposal(supabase, organizationId, p));
+        continue;
+      }
+
       const { data: clients } = await supabase
         .from("clients")
         .select("id, name")
@@ -189,5 +259,141 @@ export async function applyProposals(raw: unknown): Promise<ApplyResult[]> {
   revalidatePath("/acquisitie");
   revalidatePath("/dashboard");
   revalidatePath("/klanten", "layout");
+  revalidatePath("/vacatures", "layout");
+  revalidatePath("/procedures");
   return results;
+}
+
+type HubProposal = Exclude<
+  Proposal,
+  { type: "calendar_event" | "create_prospect" | "add_note" }
+>;
+
+/**
+ * Procedures, actiepunten en opvolgingen. Alles wordt opnieuw opgezocht
+ * binnen de eigen organisatie; wat de browser terugstuurt is alleen een
+ * verwijzing.
+ */
+async function applyHubProposal(
+  db: SupabaseClient<Database>,
+  organizationId: string,
+  p: HubProposal,
+): Promise<ApplyResult> {
+  if (p.type === "add_candidate" || p.type === "move_candidate" || p.type === "add_task") {
+    const { data: vacancy } = await db
+      .from("vacancies")
+      .select("id, title")
+      .eq("id", p.vacancy_id)
+      .eq("organization_id", organizationId)
+      .maybeSingle();
+    if (!vacancy) return { ok: false, message: `Vacature "${p.vacancy_label}" niet gevonden.` };
+    const href = `/vacatures/${vacancy.id}`;
+
+    if (p.type === "add_task") {
+      const { error } = await db.from("vacancy_tasks").insert({
+        organization_id: organizationId,
+        vacancy_id: vacancy.id,
+        body: p.body,
+      });
+      if (error) throw new Error(error.message);
+      return { ok: true, message: `Actiepunt toegevoegd bij ${vacancy.title}.`, href };
+    }
+
+    const { data: existing } = await db
+      .from("vacancy_candidates")
+      .select("id, first_name, position")
+      .eq("vacancy_id", vacancy.id)
+      .eq("organization_id", organizationId);
+    const matches = (existing ?? []).filter((c) => norm(c.first_name) === norm(p.first_name));
+
+    if (p.type === "move_candidate") {
+      if (matches.length === 0) {
+        return { ok: false, message: `${p.first_name} staat niet bij ${vacancy.title}.` };
+      }
+      if (matches.length > 1) {
+        return {
+          ok: false,
+          message: `Er staan meerdere kandidaten met de naam ${p.first_name} bij ${vacancy.title}. Pas dit in de hub zelf aan.`,
+          href,
+        };
+      }
+      const { error } = await db
+        .from("vacancy_candidates")
+        .update({
+          stage: p.stage,
+          stage_date: p.stage_date ?? null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", matches[0].id)
+        .eq("organization_id", organizationId);
+      if (error) throw new Error(error.message);
+      return { ok: true, message: `${matches[0].first_name} bij ${vacancy.title} verplaatst.`, href };
+    }
+
+    if (matches.length > 0) {
+      return {
+        ok: false,
+        message: `${p.first_name} staat al bij ${vacancy.title}. Niet dubbel toegevoegd.`,
+        href,
+      };
+    }
+    const nextPos = Math.max(-1, ...(existing ?? []).map((c) => Number(c.position) || 0)) + 1;
+    const { error } = await db.from("vacancy_candidates").insert({
+      organization_id: organizationId,
+      vacancy_id: vacancy.id,
+      first_name: p.first_name,
+      stage: p.stage,
+      stage_date: p.stage_date ?? null,
+      position: nextPos,
+    });
+    if (error) throw new Error(error.message);
+    return { ok: true, message: `${p.first_name} toegevoegd aan ${vacancy.title}.`, href };
+  }
+
+  if (p.type === "complete_task") {
+    const { data: task } = await db
+      .from("vacancy_tasks")
+      .select("id, vacancy_id, done")
+      .eq("id", p.task_id)
+      .eq("organization_id", organizationId)
+      .maybeSingle();
+    if (!task) return { ok: false, message: "Actiepunt niet gevonden." };
+    const href = `/vacatures/${task.vacancy_id}`;
+    if (task.done) return { ok: true, message: "Actiepunt was al afgevinkt.", href };
+    const { error } = await db
+      .from("vacancy_tasks")
+      .update({ done: true, done_at: new Date().toISOString() })
+      .eq("id", task.id)
+      .eq("organization_id", organizationId);
+    if (error) throw new Error(error.message);
+    return { ok: true, message: `Actiepunt afgevinkt bij ${p.vacancy_label}.`, href };
+  }
+
+  // Opvolging verzetten of afronden.
+  const { data: note } = await db
+    .from("client_notes")
+    .select("id, client_id")
+    .eq("id", p.note_id)
+    .eq("organization_id", organizationId)
+    .maybeSingle();
+  if (!note) return { ok: false, message: "Opvolging niet gevonden." };
+  const href = `/klanten/${note.client_id}`;
+  const update =
+    p.type === "complete_follow_up"
+      ? { follow_up_done: true, follow_up_done_at: new Date().toISOString() }
+      : { follow_up_on: p.follow_up_on, follow_up_done: false, follow_up_done_at: null };
+  const { error } = await db
+    .from("client_notes")
+    .update(update)
+    .eq("id", note.id)
+    .eq("organization_id", organizationId);
+  if (error) throw new Error(error.message);
+  return {
+    ok: true,
+    message:
+      p.type === "complete_follow_up"
+        ? `Opvolging bij ${p.client_name} afgerond.`
+        : `Opvolging bij ${p.client_name} verzet naar ${formatDate(p.follow_up_on)}.`,
+    href,
+  };
 }
