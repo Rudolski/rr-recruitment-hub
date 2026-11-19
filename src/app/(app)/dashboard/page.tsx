@@ -636,7 +636,8 @@ export default async function DashboardPage({
           Omzetverdeling ({periodLabel})
         </h2>
         <p className="mt-1 text-xs text-zinc-500">
-          W&amp;S tegenover Interim (eigen uren) en ZZP Marge.
+          W&amp;S tegenover Interim (eigen uren) en ZZP Marge. Klik een soort
+          aan voor de facturen.
         </p>
         <div className="mt-3 overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-800">
           <table className="w-full text-sm">
@@ -657,8 +658,20 @@ export default async function DashboardPage({
                 const pct =
                   omzet.netto > 0 ? Math.round((v / omzet.netto) * 100) : null;
                 return (
-                  <tr key={k}>
-                    <td className="px-4 py-2">{INVOICE_KIND_LABELS[k]}</td>
+                  <tr
+                    key={k}
+                    className="hover:bg-zinc-50 dark:hover:bg-zinc-900"
+                  >
+                    <td className="px-4 py-2">
+                      <Link
+                        href={`/rapportages/omzet-per-soort?soort=${k}&jaar=${year}&van=${fromMonth}&tm=${toMonth}${
+                          clientFilter ? `&klant=${clientFilter}` : ""
+                        }`}
+                        className="text-navy hover:text-terra hover:underline dark:text-cream"
+                      >
+                        {INVOICE_KIND_LABELS[k]}
+                      </Link>
+                    </td>
                     <td className="px-4 py-2 text-right tabular-nums">
                       {eur(v)}
                     </td>
